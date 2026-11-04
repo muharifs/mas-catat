@@ -38,7 +38,11 @@ describe('periods and weeks', () => {
   });
 
   it('leaves nothing behind when period creation fails', async () => {
-    const { db, repos, ids } = await setup(2);
+    const { db, repos, periodId, ids } = await setup(2);
+    // End the first period so the one-active-period rule does not hide the failures under test.
+    await repos.weeks.close(periodId, 1);
+    await repos.weeks.close(periodId, 2);
+    await repos.periods.close(periodId, '2026-01-11');
     const before = { periods: await count(db, 'periods'), pm: await count(db, 'period_members'), weeks: await count(db, 'weeks') };
     await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', hostOrder: [ids[0] as string, 'ghost'] })).rejects.toThrow();
     await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', hostOrder: [ids[0] as string, ids[0] as string] })).rejects.toThrow(
@@ -46,6 +50,32 @@ describe('periods and weeks', () => {
     );
     await expect(repos.periods.create({ name: 'X', startDate: '2026-02-31', hostOrder: ids })).rejects.toThrow(DomainError);
     expect({ periods: await count(db, 'periods'), pm: await count(db, 'period_members'), weeks: await count(db, 'weeks') }).toEqual(before);
+  });
+
+  it('allows only one active period at a time', async () => {
+    const { repos, periodId, ids } = await setup(2);
+    await expect(repos.periods.create({ name: 'Dua', startDate: '2026-03-01', hostOrder: ids })).rejects.toThrow(/still active/);
+    expect((await repos.periods.getActive())?.id).toBe(periodId);
+    await repos.weeks.close(periodId, 1);
+    await repos.weeks.close(periodId, 2);
+    await repos.periods.close(periodId, '2026-01-11');
+    expect(await repos.periods.getActive()).toBeNull();
+    const next = await repos.periods.create({ name: 'Dua', startDate: '2026-03-01', hostOrder: ids });
+    expect((await repos.periods.getActive())?.id).toBe(next.id);
+  });
+
+  it('ends a period only when every week is closed', async () => {
+    const { repos, periodId } = await setup(2);
+    await expect(repos.periods.close(periodId, '2026-01-11')).rejects.toThrow(/open weeks/);
+    await repos.weeks.close(periodId, 1);
+    await expect(repos.periods.close(periodId, '2026-01-11')).rejects.toThrow(/open weeks/);
+    await repos.weeks.close(periodId, 2);
+    await expect(repos.periods.close(periodId, '2026-01-01')).rejects.toThrow(/before the start/);
+    await expect(repos.periods.close(periodId, '2026-02-31')).rejects.toThrow(DomainError);
+    await expect(repos.periods.close('ghost', '2026-01-11')).rejects.toThrow(/not found/);
+    await repos.periods.close(periodId, '2026-01-11');
+    expect(await repos.periods.getById(periodId)).toMatchObject({ status: 'closed', endDate: '2026-01-11' });
+    await expect(repos.periods.close(periodId, '2026-01-12')).rejects.toThrow(/already closed/);
   });
 
   it('swaps the hosts of two open weeks', async () => {
@@ -273,5 +303,28 @@ describe('ledger and host settlement', () => {
     await db.exec('DROP TABLE offset_credits');
     await expect(repos.ledger.settleHost(periodId, 1, '2026-01-04')).rejects.toThrow();
     expect(await count(db, 'ledger_entries')).toBe(0);
+  });
+});
+
+async function membersOnly(): Promise<Repositories> {
+  let n = 0;
+  return createRepositories(await createMigratedTestDb(), { newId: () => `m${(n += 1)}`, now: () => '2026-01-01T00:00:00.000Z' });
+}
+
+describe('members', () => {
+  it('rejects duplicate names, case-insensitive, on create and rename', async () => {
+    const repos = await membersOnly();
+    const budi = await repos.members.create('Budi');
+    const sari = await repos.members.create('Sari');
+    await expect(repos.members.create('budi')).rejects.toThrow(/already exists/);
+    await expect(repos.members.create('  BUDI  ')).rejects.toThrow(/already exists/);
+    await expect(repos.members.rename(sari.id, 'bUdI')).rejects.toThrow(/already exists/);
+    await repos.members.rename(budi.id, 'BUDI'); // own name, different case: allowed
+    expect((await repos.members.getById(budi.id))?.name).toBe('BUDI');
+  });
+
+  it('rejects empty names', async () => {
+    const repos = await membersOnly();
+    await expect(repos.members.create('   ')).rejects.toThrow(/empty/);
   });
 });

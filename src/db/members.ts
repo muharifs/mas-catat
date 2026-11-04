@@ -23,10 +23,21 @@ function cleanName(name: string): string {
   return trimmed;
 }
 
+/** Exact name match, case-insensitive. `exceptId` lets a member keep (or re-case) its own name on rename. */
+async function assertNameFree(db: Db, name: string, exceptId?: string): Promise<void> {
+  const rows = await db.getAll<{ id: string; name: string }>('SELECT id, name FROM members');
+  const wanted = name.toLowerCase();
+  if (rows.some((r) => r.id !== exceptId && r.name.toLowerCase() === wanted)) {
+    throw new RepositoryError(`member name already exists: ${name}`);
+  }
+}
+
 export function createMembersRepo(db: Db, deps: RepoDeps = defaultDeps) {
   return {
     async create(name: string): Promise<Member> {
-      const member: Member = { id: deps.newId(), name: cleanName(name), createdAt: deps.now() };
+      const cleaned = cleanName(name);
+      await assertNameFree(db, cleaned);
+      const member: Member = { id: deps.newId(), name: cleaned, createdAt: deps.now() };
       await db.run('INSERT INTO members (id, name, created_at) VALUES (?, ?, ?)', [
         member.id,
         member.name,
@@ -47,7 +58,9 @@ export function createMembersRepo(db: Db, deps: RepoDeps = defaultDeps) {
     },
 
     async rename(id: string, name: string): Promise<void> {
-      const { changes } = await db.run('UPDATE members SET name = ? WHERE id = ?', [cleanName(name), id]);
+      const cleaned = cleanName(name);
+      await assertNameFree(db, cleaned, id);
+      const { changes } = await db.run('UPDATE members SET name = ? WHERE id = ?', [cleaned, id]);
       if (changes === 0) throw new RepositoryError(`member ${id} not found`);
     },
   };

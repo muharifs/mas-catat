@@ -1,6 +1,7 @@
 // Periods repository: creates a period with its fixed member list and host schedule.
 import { assertIsoDate, DomainError } from '@/domain/money';
 import { periodWeekCount } from '@/domain/dues';
+import { addDays, isRealDate } from '@/domain/schedule';
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
@@ -44,13 +45,6 @@ const toPeriod = (r: PeriodRow): Period => ({
   createdAt: r.created_at,
 });
 
-/** Calendar date arithmetic on ISO dates (UTC, so no timezone or DST surprises). */
-function addDays(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, (d ?? 1) + days));
-  return date.toISOString().slice(0, 10);
-}
-
 export interface CreatePeriodInput {
   name: string;
   /** Date of week 1; later weeks are 7 days apart. */
@@ -69,7 +63,7 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       const name = input.name.trim();
       if (name.length === 0) throw new RepositoryError('period name must not be empty');
       assertIsoDate(input.startDate, 'startDate');
-      if (addDays(input.startDate, 0) !== input.startDate) {
+      if (!isRealDate(input.startDate)) {
         throw new DomainError(`startDate is not a real calendar date: ${input.startDate}`);
       }
       const memberCount = input.hostOrder.length;
@@ -89,6 +83,9 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       };
 
       await db.transaction(async (tx) => {
+        // Only one active period at a time. Checked inside the transaction so it cannot race.
+        const active = await tx.getFirst<{ id: string }>("SELECT id FROM periods WHERE status = 'active' LIMIT 1");
+        if (active) throw new RepositoryError('another period is still active; end it before creating a new one');
         await tx.run(
           'INSERT INTO periods (id, name, member_count, status, start_date, end_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [period.id, period.name, period.memberCount, period.status, period.startDate, null, period.createdAt],
@@ -120,6 +117,38 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         [id],
       );
       return row ? toPeriod(row) : null;
+    },
+
+    /** The single active period, or null. */
+    async getActive(): Promise<Period | null> {
+      const row = await db.getFirst<PeriodRow>(
+        "SELECT id, name, member_count, status, start_date, end_date, created_at FROM periods WHERE status = 'active' ORDER BY rowid DESC LIMIT 1",
+      );
+      return row ? toPeriod(row) : null;
+    },
+
+    /**
+     * Ends the period: status='closed' and end_date only. Allowed only when EVERY week is closed.
+     * Write-off of member debt and leftover credit are not done here (planned for M5).
+     */
+    async close(periodId: string, endDate: string): Promise<void> {
+      assertIsoDate(endDate, 'endDate');
+      if (!isRealDate(endDate)) throw new DomainError(`endDate is not a real calendar date: ${endDate}`);
+      await db.transaction(async (tx) => {
+        const period = await tx.getFirst<PeriodRow>(
+          'SELECT id, name, member_count, status, start_date, end_date, created_at FROM periods WHERE id = ?',
+          [periodId],
+        );
+        if (!period) throw new RepositoryError(`period ${periodId} not found`);
+        if (period.status === 'closed') throw new RepositoryError(`period ${periodId} is already closed`);
+        if (endDate < period.start_date) throw new RepositoryError('end date is before the start date of the period');
+        const open = await tx.getFirst<{ n: number }>(
+          "SELECT COUNT(*) AS n FROM weeks WHERE period_id = ? AND status <> 'closed'",
+          [periodId],
+        );
+        if ((open?.n ?? 0) > 0) throw new RepositoryError('period still has open weeks; close every week first');
+        await tx.run("UPDATE periods SET status = 'closed', end_date = ? WHERE id = ?", [endDate, periodId]);
+      });
     },
 
     /** Newest first. */

@@ -1,11 +1,11 @@
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function App() {
+// Placeholder home screen. Real screens arrive in later milestones.
+export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
+      <Text style={styles.title}>Mas Catat</Text>
+      <Text>Catatan iuran dan kas kelompok</Text>
     </View>
   );
 }
@@ -16,5 +16,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
   },
 });

@@ -41,11 +41,68 @@ describe('buildHostSettlement', () => {
     expect(after.weeks[3]?.outstanding).toBe(15_000);
   });
 
-  it('debt larger than payout gives negative netCash (not capped)', () => {
-    const unpaid = [1, 2, 3, 4, 5].map((week) => ({ week, amount: 15_000 }));
+  it('debt below payout: full offset, nothing remains', () => {
+    const r = buildHostSettlement({ ...base, hostUnpaidWeeks: [{ week: 1, amount: 15_000 }, { week: 2, amount: 15_000 }] });
+    expect(r.entries[1]).toMatchObject({ type: 'host_offset', amount: 30_000 });
+    expect(r.netCash).toBe(20_000);
+    expect(r.remainingDebt).toBe(0);
+  });
+
+  it('debt equal to payout: offset = payout, netCash 0, nothing remains', () => {
+    const unpaid = [1, 2, 3].map((w) => ({ week: w, amount: 15_000 })).concat([{ week: 4, amount: 5_000 }]); // 50.000
+    const r = buildHostSettlement({ ...base, week: 4, hostUnpaidWeeks: unpaid });
+    expect(r.entries).toHaveLength(2);
+    expect(r.entries[1]?.amount).toBe(50_000);
+    expect(r.netCash).toBe(0);
+    expect(r.remainingDebt).toBe(0);
+    expect(r.offsetWeeks).toEqual(unpaid);
+  });
+
+  it('debt above payout: capped at payout, oldest weeks first, last week partial', () => {
+    const unpaid = [1, 2, 3, 4, 5].map((week) => ({ week, amount: 15_000 })); // 75.000 vs payout 50.000
     const r = buildHostSettlement({ ...base, week: 5, hostUnpaidWeeks: unpaid });
-    expect(r.entries[1]?.amount).toBe(75_000);
-    expect(r.netCash).toBe(-25_000);
+    expect(r.entries).toHaveLength(2);
+    expect(r.entries[0]).toMatchObject({ type: 'host_payout', amount: 50_000 });
+    expect(r.entries[1]).toMatchObject({ type: 'host_offset', direction: 'in', amount: 50_000 });
+    expect(r.offsetWeeks).toEqual([
+      { week: 1, amount: 15_000 },
+      { week: 2, amount: 15_000 },
+      { week: 3, amount: 15_000 },
+      { week: 4, amount: 5_000 },
+    ]);
+    expect(r.netCash).toBe(0);
+    expect(r.remainingDebt).toBe(25_000);
+    expect(r.entries[1]?.note).toMatch(/weeks 1, 2, 3, 4/);
+    expect(r.entries[1]?.note).toMatch(/partially/);
+  });
+
+  it('applies the cap oldest first even if input is unordered', () => {
+    const unpaid = [5, 1, 4, 2, 3].map((week) => ({ week, amount: 15_000 }));
+    const r = buildHostSettlement({ ...base, week: 5, hostUnpaidWeeks: unpaid });
+    expect(r.offsetWeeks.map((w) => w.week)).toEqual([1, 2, 3, 4]);
+    expect(r.offsetWeeks.reduce((s, w) => s + w.amount, 0)).toBe(50_000);
+  });
+
+  it('host without debt: remainingDebt is 0', () => {
+    expect(buildHostSettlement({ ...base, hostUnpaidWeeks: [] }).remainingDebt).toBe(0);
+  });
+
+  it('capped offset keeps the rest outstanding; later payments fill it without double counting', () => {
+    const { weeks } = allocatePayments([], 5);
+    const r = buildHostSettlement({ ...base, week: 5, hostUnpaidWeeks: unpaidWeeksThrough(weeks, 5) });
+    const after = allocatePayments([], 5, r.offsetWeeks);
+    const unpaid = unpaidWeeksThrough(after.weeks, 5);
+    expect(unpaid).toEqual([
+      { week: 4, amount: 10_000 },
+      { week: 5, amount: 15_000 },
+    ]);
+    expect(unpaid.reduce((s, u) => s + u.amount, 0)).toBe(r.remainingDebt);
+
+    const paid = allocatePayments([{ id: 'p', memberId: 'h', date: '2026-02-01', amount: 25_000 }], 5, r.offsetWeeks);
+    expect(paid.allocations.map((a) => [a.week, a.amount])).toEqual([[4, 10_000], [5, 15_000]]);
+    expect(unpaidWeeksThrough(paid.weeks, 5)).toEqual([]);
+    expect(paid.weeks[3]).toMatchObject({ paid: 10_000, offset: 5_000, outstanding: 0 });
+    expect(paid.credit).toBe(0);
   });
 
   it('works for N=1 and N=12 and yields integers only', () => {
@@ -54,6 +111,7 @@ describe('buildHostSettlement', () => {
       expect(r.entries[0]?.amount).toBe(10_000 * n);
       expect(r.entries.every((e) => Number.isInteger(e.amount) && e.amount > 0)).toBe(true);
       expect(Number.isInteger(r.netCash)).toBe(true);
+      expect(Number.isInteger(r.remainingDebt)).toBe(true);
     }
   });
 

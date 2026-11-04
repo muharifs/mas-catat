@@ -22,7 +22,7 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | ID | Milestone | Deliverable / done when | Est. | Depends on | Status |
 |----|-----------|--------------------------|------|-----------|--------|
 | M0 | Project setup | Expo + TypeScript strict + lint + git repo, app runs on phone via Expo Go | 0.5-1 day | - | Done (2026-11-05) |
-| M1 | Domain logic | Pure functions in src/domain/ (dues, payout 10.000xN, kas 5.000xN, debt, offset) with unit tests passing | 1-2 days | M0 | Implemented 2026-11-05; pending owner review of offset direction |
+| M1 | Domain logic | Pure functions in src/domain/ (dues, payout 10.000xN, kas 5.000xN, debt, offset) with unit tests passing | 1-2 days | M0 | Done (2026-11-05) |
 | M2 | Database | expo-sqlite schema + versioned migrations; repository layer; tests | 1-2 days | M1 | Not started |
 | M3 | Members and periods | Add/edit members, create period, editable host schedule per week, start/end period | 2-3 days | M2 | Not started |
 | M4 | Dues and payments | Record flexible payments (advance, late, partial), allocate to weekly dues, show per-member balance and arrears | 2-3 days | M3 | Not started |
@@ -51,7 +51,7 @@ Decided (owner, 2026-11-04):
   (absent that week, pays next week), and amounts may differ. So payments are separate records that are
   allocated to weekly dues, not a simple paid/unpaid flag.
 - Host payout is 10.000 x N regardless of who has paid so far; the host's debt is offset as a separate entry.
-- Offset scope: ALL of the host's unpaid weeks so far (not only that week).
+- Offset scope: ALL of the host's unpaid weeks so far (not only that week), oldest first, capped at the payout (10.000 x N). Debt beyond the cap stays as debt.
 - Lump-sum allocation: automatically to the oldest unpaid week first; each payment keeps the week/date it was actually made, so the owner can see when it was paid.
 
 - Kas is split into pos (accounts): Tunai (cash), Debit (bank/e-wallet), and Piutang (money lent to members).
@@ -67,6 +67,7 @@ Decided (owner, 2026-11-04):
 Still open: none for v1. New questions will be added here as they come up.
 
 ## 6. Progress log (newest first)
+- 2026-11-05: M1 CLOSED. Owner chose to CAP the host offset at the payout: offset = min(host debt so far, 10.000 x N), applied to the oldest unpaid weeks first (last week may be partial); the rest stays as debt (`remainingDebt`), netCash is never negative. Zero-amount payments stay rejected (owner did not object after explanation). Verified: 46 tests in 3 suites pass, lint and typecheck clean. Open for later: (c) store allocations in M4 instead of recomputing; how `remainingDebt` is collected later (normal payment via allocation for now); callers must compute hostUnpaidWeeks from statuses that already include earlier offsets to avoid double offset.
 - 2026-11-05: M1 implemented in src/domain/ (types, money, dues, allocation, payout + tests). Verified: 41 tests pass in 3 suites, lint and typecheck clean, no float/rounding calls in domain code. smoke.test.ts replaced by real tests. Design choices to review: (a) host_offset is a cash-in entry, so netCash = payout - offset and can be negative when debt > payout; offset is not capped; (b) zero-amount payments are rejected; (c) allocation is recomputed from payments, so a back-dated payment entered later can change order; M4 should consider storing allocations. Host with no debt gets only the payout entry. member_payment entries and kas pos (Tunai/Debit/Piutang) are left to M4/M5. M1 stays open until the owner reviews (a)-(c).
 - 2026-11-05: M1 approved by owner.
 - 2026-11-05: M0 CLOSED. Owner confirmed the app runs in Expo Go via QR code. Evidence: lint, typecheck and tests pass (commit 3a9899c) plus owner confirmation on phone. Next: M1 (domain logic) proposal, waiting for owner "approved". Still open: .claude/settings.json deletion not confirmed, left uncommitted.

@@ -16,7 +16,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - Host of a week can be changed on member request (until the week is closed). No member leaves mid-period; N is fixed.
 - Payments are separate records (member, date, amount), may be advance, late or partial, and are allocated to weekly dues.
 - Lump-sum payments are allocated to the oldest unpaid week first; each payment keeps its own date/week so the UI can show when it was actually paid.
-- Host payout offset covers ALL of the host's unpaid weeks so far, recorded as a separate entry.
+- Host payout offset covers the host's unpaid weeks so far (oldest first), capped at the payout (10.000 x N); any debt beyond the cap stays as debt. Recorded as a separate entry.
 - Every week, EVERY member (including that week's host) owes Rp15.000.
   - Total collected = 15.000 x N.
   - Host receives 10.000 x N.

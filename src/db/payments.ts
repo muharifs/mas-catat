@@ -102,6 +102,13 @@ export interface RecordPaymentInput {
 export interface RecordedPayment {
   payment: Payment;
   allocations: Allocation[];
+  /** Part of the payment beyond the remaining dues (integer rupiah, 0 if none). Derived, never stored. */
+  credit: number;
+}
+
+/** A payment with its derived credit: amount minus everything allocated from it. */
+export interface PaymentWithCredit extends Payment {
+  credit: number;
 }
 
 export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
@@ -109,8 +116,9 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
     /**
      * Saves the payment and its allocations in ONE transaction. The payment fills the oldest weeks that
      * still have room, given what is already stored (earlier allocations and host offsets are never moved).
-     * Throws DomainError for an invalid amount/date and RepositoryError when the amount is more than the
-     * remaining dues of the period; in both cases nothing is written.
+     * The full amount is stored; whatever exceeds the remaining dues of the period is left as member credit
+     * (returned in `credit`, derivable later via getCredit). Throws DomainError for an invalid amount/date
+     * (e.g. not a multiple of 15.000); on any failure nothing is written.
      */
     async record(input: RecordPaymentInput): Promise<RecordedPayment> {
       const payment: Payment = {
@@ -138,18 +146,14 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         const credits = combineCredits(paid, offset);
 
         const result = allocatePayments([payment], totalWeeks, credits);
-        if (result.credit > 0) {
-          throw new RepositoryError(
-            `payment exceeds the remaining dues of the period by ${result.credit}; nothing was saved`,
-          );
-        }
+        // Any surplus (result.credit) is NOT stored: it is derived later as amount - SUM(allocations).
         for (const a of result.allocations) {
           await tx.run(
             'INSERT INTO allocations (payment_id, period_id, member_id, week, amount, payment_date) VALUES (?, ?, ?, ?, ?, ?)',
             [a.paymentId, input.periodId, a.memberId, a.week, a.amount, a.paymentDate],
           );
         }
-        return { payment, allocations: result.allocations };
+        return { payment, allocations: result.allocations, credit: result.credit };
       });
     },
 
@@ -178,6 +182,28 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         [paymentId],
       );
       return rows.map(toAllocation);
+    },
+
+    /** Payments with their credit (amount - allocated), oldest date first. Read-only; allocations never move. */
+    async listWithCredit(periodId: string, memberId: string): Promise<PaymentWithCredit[]> {
+      const rows = await db.getAll<PaymentRow & { allocated: number }>(
+        `SELECT p.id, p.member_id, p.date, p.amount,
+                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id), 0) AS allocated
+           FROM payments p WHERE p.period_id = ? AND p.member_id = ? ORDER BY p.date, p.rowid`,
+        [periodId, memberId],
+      );
+      return rows.map((r) => ({ ...toPayment(r), credit: r.amount - r.allocated }));
+    },
+
+    /** Total credit of a member in a period (integer rupiah): sum over payments of amount - allocated. */
+    async getCredit(periodId: string, memberId: string): Promise<number> {
+      const row = await db.getFirst<{ credit: number }>(
+        `SELECT COALESCE(SUM(p.amount), 0)
+                - COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.period_id = ? AND a.member_id = ?), 0) AS credit
+           FROM payments p WHERE p.period_id = ? AND p.member_id = ?`,
+        [periodId, memberId, periodId, memberId],
+      );
+      return row?.credit ?? 0;
     },
 
     /** Per-week paid / offset / outstanding for one member, weeks 1..N. */

@@ -121,15 +121,69 @@ describe('payments and allocations', () => {
     expect(await count(db, 'allocations')).toBe(0);
   });
 
-  it('rejects zero amounts and payments larger than the remaining dues, saving nothing', async () => {
+  it('rejects zero amounts, saving nothing', async () => {
     const { db, repos, periodId, ids } = await setup(2);
-    const memberId = ids[0] as string;
-    await expect(repos.payments.record({ periodId, memberId, date: '2026-01-04', amount: 0 })).rejects.toThrow();
-    await expect(repos.payments.record({ periodId, memberId, date: '2026-01-04', amount: 45_000 })).rejects.toThrow(
-      /exceeds the remaining dues/,
-    );
+    await expect(repos.payments.record({ periodId, memberId: ids[0] as string, date: '2026-01-04', amount: 0 })).rejects.toThrow();
     expect(await count(db, 'payments')).toBe(0);
     expect(await count(db, 'allocations')).toBe(0);
+  });
+
+  it('keeps the surplus as credit: 30.000 with one week left allocates 15.000 and leaves 15.000 credit', async () => {
+    const { repos, periodId, ids } = await setup(2);
+    const memberId = ids[0] as string;
+    await repos.payments.record({ periodId, memberId, date: '2026-01-04', amount: 15_000 }); // week 1 of 2 settled
+    const r = await repos.payments.record({ periodId, memberId, date: '2026-01-05', amount: 30_000 });
+
+    expect(r.payment.amount).toBe(30_000);
+    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([[2, 15_000]]);
+    expect(r.credit).toBe(15_000);
+    expect(await repos.payments.getCredit(periodId, memberId)).toBe(15_000);
+    expect((await repos.payments.listWithCredit(periodId, memberId)).map((p) => p.credit)).toEqual([0, 15_000]);
+    expect((await repos.payments.getWeekStatuses(periodId, memberId)).map((s) => [s.paid, s.outstanding])).toEqual([
+      [15_000, 0],
+      [15_000, 0],
+    ]);
+  });
+
+  it('turns the whole payment into credit with zero allocations when every week is settled', async () => {
+    const { db, repos, periodId, ids } = await setup(2);
+    const memberId = ids[0] as string;
+    await repos.payments.record({ periodId, memberId, date: '2026-01-04', amount: 30_000 });
+    const allocationsBefore = await count(db, 'allocations');
+
+    const r = await repos.payments.record({ periodId, memberId, date: '2026-01-06', amount: 45_000 });
+    expect(r.allocations).toEqual([]);
+    expect(r.credit).toBe(45_000);
+    expect(await count(db, 'allocations')).toBe(allocationsBefore);
+    expect(await count(db, 'payments')).toBe(2);
+    expect(await repos.payments.getCredit(periodId, memberId)).toBe(45_000);
+  });
+
+  it('sums credit over several payments, per member, and never moves stored allocations', async () => {
+    const { repos, periodId, ids } = await setup(2);
+    const [a, b] = [ids[0] as string, ids[1] as string];
+    await repos.payments.record({ periodId, memberId: a, date: '2026-01-04', amount: 45_000 }); // 15.000 credit
+    const first = await repos.payments.getAllocationsForPayment((await repos.payments.listByMember(periodId, a))[0]!.id);
+    await repos.payments.record({ periodId, memberId: a, date: '2026-01-01', amount: 30_000 }); // earlier date, all credit
+    await repos.payments.record({ periodId, memberId: b, date: '2026-01-04', amount: 15_000 });
+
+    expect(await repos.payments.getCredit(periodId, a)).toBe(45_000);
+    expect(await repos.payments.getCredit(periodId, b)).toBe(0);
+    expect(await repos.payments.getCredit(periodId, 'nobody')).toBe(0);
+    const list = await repos.payments.listWithCredit(periodId, a);
+    expect(list.reduce((s, p) => s + p.credit, 0)).toBe(45_000);
+    expect(await repos.payments.getAllocationsForPayment(list.find((p) => p.date === '2026-01-04')!.id)).toEqual(first);
+    for (const n of [45_000, ...list.map((p) => p.credit)]) expect(Number.isInteger(n)).toBe(true);
+  });
+
+  it('still rejects a non-multiple of 15.000 even when it would be pure credit, writing nothing', async () => {
+    const { db, repos, periodId, ids } = await setup(2);
+    const memberId = ids[0] as string;
+    await repos.payments.record({ periodId, memberId, date: '2026-01-04', amount: 30_000 });
+    await expect(repos.payments.record({ periodId, memberId, date: '2026-01-05', amount: 20_000 })).rejects.toThrow(DomainError);
+    expect(await count(db, 'payments')).toBe(1);
+    expect(await count(db, 'allocations')).toBe(2);
+    expect(await repos.payments.getCredit(periodId, memberId)).toBe(0);
   });
 
   it('keeps stored allocations unchanged when an earlier-dated payment is entered later', async () => {

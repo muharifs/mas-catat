@@ -14,7 +14,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - A period has N members. The gathering rotates house to house, one host per week,
   until every member has hosted once, then the period ends.
 - Host of a week can be changed on member request (until the week is closed). No member leaves mid-period; N is fixed.
-- Payments are separate records (member, date, amount), may be advance or late, and are allocated to weekly dues. Every payment MUST be a positive multiple of Rp15.000 (e.g. absent 2 weeks pays 30.000); partial payments are rejected.
+- Payments are separate records (member, date, amount), may be advance or late, and are allocated to weekly dues. Every payment MUST be a positive multiple of Rp15.000 (e.g. absent 2 weeks pays 30.000); partial payments are rejected. A payment above the remaining dues of the period is accepted and the excess is member credit, carried over to the member's next period as advance dues.
 - Lump-sum payments are allocated to the oldest unpaid week first; each payment keeps its own date/week so the UI can show when it was actually paid.
 - Host payout offset covers the host's unpaid weeks so far (oldest first), capped at the payout (10.000 x N); any debt beyond the cap stays as debt. Recorded as a separate entry.
 - Every week, EVERY member (including that week's host) owes Rp15.000.

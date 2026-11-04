@@ -22,7 +22,7 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | ID | Milestone | Deliverable / done when | Est. | Depends on | Status |
 |----|-----------|--------------------------|------|-----------|--------|
 | M0 | Project setup | Expo + TypeScript strict + lint + git repo, app runs on phone via Expo Go | 0.5-1 day | - | Done (2026-11-05) |
-| M1 | Domain logic | Pure functions in src/domain/ (dues, payout 10.000xN, kas 5.000xN, debt, offset) with unit tests passing | 1-2 days | M0 | Not started |
+| M1 | Domain logic | Pure functions in src/domain/ (dues, payout 10.000xN, kas 5.000xN, debt, offset) with unit tests passing | 1-2 days | M0 | Implemented 2026-11-05; pending owner review of offset direction |
 | M2 | Database | expo-sqlite schema + versioned migrations; repository layer; tests | 1-2 days | M1 | Not started |
 | M3 | Members and periods | Add/edit members, create period, editable host schedule per week, start/end period | 2-3 days | M2 | Not started |
 | M4 | Dues and payments | Record flexible payments (advance, late, partial), allocate to weekly dues, show per-member balance and arrears | 2-3 days | M3 | Not started |
@@ -67,6 +67,8 @@ Decided (owner, 2026-11-04):
 Still open: none for v1. New questions will be added here as they come up.
 
 ## 6. Progress log (newest first)
+- 2026-11-05: M1 implemented in src/domain/ (types, money, dues, allocation, payout + tests). Verified: 41 tests pass in 3 suites, lint and typecheck clean, no float/rounding calls in domain code. smoke.test.ts replaced by real tests. Design choices to review: (a) host_offset is a cash-in entry, so netCash = payout - offset and can be negative when debt > payout; offset is not capped; (b) zero-amount payments are rejected; (c) allocation is recomputed from payments, so a back-dated payment entered later can change order; M4 should consider storing allocations. Host with no debt gets only the payout entry. member_payment entries and kas pos (Tunai/Debit/Piutang) are left to M4/M5. M1 stays open until the owner reviews (a)-(c).
+- 2026-11-05: M1 approved by owner.
 - 2026-11-05: M0 CLOSED. Owner confirmed the app runs in Expo Go via QR code. Evidence: lint, typecheck and tests pass (commit 3a9899c) plus owner confirmation on phone. Next: M1 (domain logic) proposal, waiting for owner "approved". Still open: .claude/settings.json deletion not confirmed, left uncommitted.
 - 2026-11-05: M0 configured locally. Scaffold uses expo-router (App.tsx and index.ts removed on purpose, owner confirmed). Fixed npm ERESOLVE by pinning react-dom 19.3.0 to match react 19.3.0, installed eslint + eslint-config-expo with eslint.config.js, and moved jest/jest-expo/@types/jest to devDependencies only. Results: `npm run lint` clean, `npm run typecheck` clean (strict + noUncheckedIndexedAccess), `npm test` 1/1 passing (smoke test only). Dev server started with `expo start --lan`. NOT done yet: owner has not confirmed the app opens in Expo Go, so M0 is not marked done. Open question: .claude/settings.json is deleted in the working tree; owner has not confirmed this is intended, so it is left out of the commit.
 - 2026-11-04: Owner answered the pos questions (transfers, Piutang, tour spending) and confirmed Node/npm are installed on the laptop. All v1 rules are specified. Waiting for the Expo project to exist on the laptop to start M0 configuration.

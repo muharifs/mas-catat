@@ -24,6 +24,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - If a member has not paid, the unpaid amount stays as a debt entry. When that member
   is the host, the debt is offset against the payout. Record it as TWO ledger entries
   (payout and offset), never as one silently reduced number, so reports stay auditable.
+- At period close, unpaid member debt is written off and absorbed by kas: one append-only write-off entry per member (no carry-over). Reports distinguish actual kas (Tunai+Debit) from expected kas (actual + outstanding dues).
 - Kas is split into pos: Tunai (cash), Debit (bank/e-wallet), Piutang (lent to members). Cash out also covers shared goals (e.g. tour).
 - Transfers between Tunai and Debit go in either direction (one transfer entry). Piutang has no interest or deadline; repayments go into Tunai. Shared-goal spending is a plain cash-out entry with a note.
 - Ledger is append-only. Corrections of closed weeks are reversal + new entry with a change trail; never overwrite.

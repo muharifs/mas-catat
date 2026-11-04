@@ -14,7 +14,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - A period has N members. The gathering rotates house to house, one host per week,
   until every member has hosted once, then the period ends.
 - Host of a week can be changed on member request (until the week is closed). No member leaves mid-period; N is fixed.
-- Payments are separate records (member, date, amount), may be advance or late, and are allocated to weekly dues. Every payment MUST be a positive multiple of Rp15.000 (e.g. absent 2 weeks pays 30.000); partial payments are rejected. A payment above the remaining dues of the period is accepted and the excess is member credit, carried over to the member's next period as advance dues.
+- Payments are separate records (member, date, amount), may be advance or late, and are allocated to weekly dues. Every payment MUST be a positive multiple of Rp15.000 (e.g. absent 2 weeks pays 30.000); partial payments are rejected. A payment above the remaining dues of the period is accepted and the excess is member credit, carried over to the member's next period as advance dues. The payment form warns before saving when part or all of a payment becomes credit. Credit may be a non-multiple of Rp15.000 (e.g. after a capped host offset), so carry-over can settle part of a week. If the member does not join the next period, the credit is refunded with one append-only cash-out entry.
 - Lump-sum payments are allocated to the oldest unpaid week first; each payment keeps its own date/week so the UI can show when it was actually paid.
 - Host payout offset covers the host's unpaid weeks so far (oldest first), capped at the payout (10.000 x N); any debt beyond the cap stays as debt. Recorded as a separate entry.
 - Every week, EVERY member (including that week's host) owes Rp15.000.
@@ -24,7 +24,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - If a member has not paid, the unpaid amount stays as a debt entry. When that member
   is the host, the debt is offset against the payout. Record it as TWO ledger entries
   (payout and offset), never as one silently reduced number, so reports stay auditable.
-- At period close, unpaid member debt is written off and absorbed by kas: one append-only write-off entry per member (no carry-over). Reports distinguish actual kas (Tunai+Debit) from expected kas (actual + outstanding dues).
+- At period close, unpaid member debt is written off and absorbed by kas: one append-only write-off entry per member (no carry-over). Reports distinguish actual kas (Tunai+Debit) from expected kas (actual + outstanding dues - member credit held). Credit money enters Tunai/Debit when received and is shown as a separate liability line ("Titipan kredit anggota").
 - Kas is split into pos: Tunai (cash), Debit (bank/e-wallet), Piutang (lent to members). Cash out also covers shared goals (e.g. tour).
 - Transfers between Tunai and Debit go in either direction (one transfer entry). Piutang has no interest or deadline; repayments go into Tunai. Shared-goal spending is a plain cash-out entry with a note.
 - Ledger is append-only. Corrections of closed weeks are reversal + new entry with a change trail; never overwrite.

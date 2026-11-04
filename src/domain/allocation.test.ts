@@ -1,4 +1,5 @@
 import { allocatePayments } from './allocation';
+import { DomainError } from './money';
 import type { Payment } from './types';
 
 const pay = (id: string, date: string, amount: number, memberId = 'm1'): Payment => ({ id, memberId, date, amount });
@@ -11,7 +12,7 @@ describe('allocatePayments', () => {
     expect(r.weeks.map((w) => w.outstanding)).toEqual([15_000, 15_000, 15_000]);
   });
 
-  it('exact payment settles one week', () => {
+  it('accepts exactly 15.000 and settles one week', () => {
     const r = allocatePayments([pay('a', '2026-01-01', 15_000)], 3);
     expect(r.allocations).toEqual([
       { paymentId: 'a', memberId: 'm1', week: 1, amount: 15_000, paymentDate: '2026-01-01' },
@@ -19,19 +20,22 @@ describe('allocatePayments', () => {
     expect(r.weeks.map((w) => w.outstanding)).toEqual([0, 15_000, 15_000]);
   });
 
-  it('partial payment leaves the remainder; a later payment completes the same week first', () => {
-    const r = allocatePayments([pay('a', '2026-01-01', 5_000), pay('b', '2026-01-08', 20_000)], 3);
-    expect(r.allocations).toEqual([
-      { paymentId: 'a', memberId: 'm1', week: 1, amount: 5_000, paymentDate: '2026-01-01' },
-      { paymentId: 'b', memberId: 'm1', week: 1, amount: 10_000, paymentDate: '2026-01-08' },
-      { paymentId: 'b', memberId: 'm1', week: 2, amount: 10_000, paymentDate: '2026-01-08' },
+  it('30.000 settles the two oldest unpaid weeks (member was absent for 2 weeks)', () => {
+    const r = allocatePayments([pay('a', '2026-01-01', 15_000), pay('catchup', '2026-01-22', 30_000)], 5);
+    expect(r.allocations.filter((a) => a.paymentId === 'catchup').map((a) => [a.week, a.amount, a.paymentDate])).toEqual([
+      [2, 15_000, '2026-01-22'],
+      [3, 15_000, '2026-01-22'],
     ]);
-    expect(r.weeks.map((w) => w.outstanding)).toEqual([0, 5_000, 15_000]);
+    expect(r.weeks.map((w) => w.outstanding)).toEqual([0, 0, 0, 15_000, 15_000]);
   });
 
-  it('advance payment covers several future weeks', () => {
+  it('45.000 paid in advance covers three future weeks', () => {
     const r = allocatePayments([pay('a', '2026-01-01', 45_000)], 5);
-    expect(r.allocations.map((a) => a.week)).toEqual([1, 2, 3]);
+    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([
+      [1, 15_000],
+      [2, 15_000],
+      [3, 15_000],
+    ]);
     expect(r.credit).toBe(0);
   });
 
@@ -42,14 +46,9 @@ describe('allocatePayments', () => {
   });
 
   it('lump sum spans several weeks oldest first, each allocation keeps the payment date', () => {
-    const r = allocatePayments([pay('big', '2026-03-01', 40_000)], 5);
-    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([
-      [1, 15_000],
-      [2, 15_000],
-      [3, 10_000],
-    ]);
+    const r = allocatePayments([pay('big', '2026-03-01', 45_000)], 5);
     expect(new Set(r.allocations.map((a) => a.paymentDate))).toEqual(new Set(['2026-03-01']));
-    expect(r.weeks.map((w) => w.outstanding)).toEqual([0, 0, 5_000, 15_000, 15_000]);
+    expect(r.weeks.map((w) => w.outstanding)).toEqual([0, 0, 0, 15_000, 15_000]);
   });
 
   it('processes payments in date order regardless of input order', () => {
@@ -66,22 +65,34 @@ describe('allocatePayments', () => {
   });
 
   it('surplus after all weeks are settled becomes advance credit', () => {
-    const r = allocatePayments([pay('a', '2026-01-01', 50_000)], 2);
+    const r = allocatePayments([pay('a', '2026-01-01', 60_000)], 2);
     expect(r.allocations.map((a) => a.amount)).toEqual([15_000, 15_000]);
-    expect(r.credit).toBe(20_000);
+    expect(r.credit).toBe(30_000);
     expect(r.weeks.every((w) => w.outstanding === 0)).toBe(true);
   });
 
-  it('offset credits reduce what payments must cover', () => {
-    const r = allocatePayments([pay('a', '2026-01-01', 10_000)], 3, [{ week: 1, amount: 5_000 }]);
+  it('a large multiple with no open weeks left is still accepted and becomes credit', () => {
+    const settled = allocatePayments([pay('a', '2026-01-01', 15_000), pay('b', '2026-01-08', 150_000)], 1);
+    expect(settled.allocations).toHaveLength(1);
+    expect(settled.credit).toBe(150_000);
+    const big = allocatePayments([pay('c', '2026-01-01', 150_000)], 2);
+    expect(big.allocations.map((a) => a.amount)).toEqual([15_000, 15_000]);
+    expect(big.credit).toBe(120_000);
+  });
+
+  it('offset credits (not payments) may be any amount and reduce what payments must cover', () => {
+    const r = allocatePayments([pay('a', '2026-01-01', 15_000)], 3, [{ week: 1, amount: 5_000 }]);
     expect(r.weeks[0]).toEqual({ week: 1, due: 15_000, paid: 10_000, offset: 5_000, outstanding: 0 });
-    expect(r.allocations).toHaveLength(1);
+    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([
+      [1, 10_000],
+      [2, 5_000],
+    ]);
   });
 
   it('does not mutate its inputs', () => {
     const payments = Object.freeze([
-      Object.freeze(pay('b', '2026-01-08', 20_000)),
-      Object.freeze(pay('a', '2026-01-01', 5_000)),
+      Object.freeze(pay('b', '2026-01-08', 30_000)),
+      Object.freeze(pay('a', '2026-01-01', 15_000)),
     ]);
     const credits = Object.freeze([Object.freeze({ week: 2, amount: 1_000 })]);
     const snapshot = JSON.stringify([payments, credits]);
@@ -90,28 +101,38 @@ describe('allocatePayments', () => {
   });
 
   it('returns only integers and conserves money', () => {
-    const payments = [pay('a', '2026-01-01', 7_000), pay('b', '2026-01-02', 33_333), pay('c', '2026-01-03', 999_999)];
+    const payments = [pay('a', '2026-01-01', 15_000), pay('b', '2026-01-02', 45_000), pay('c', '2026-01-03', 990_000)];
     const r = allocatePayments(payments, 4);
     const allocated = r.allocations.reduce((s, a) => s + a.amount, 0);
-    expect(allocated + r.credit).toBe(7_000 + 33_333 + 999_999);
+    expect(allocated + r.credit).toBe(15_000 + 45_000 + 990_000);
     const numbers = [r.credit, ...r.allocations.map((a) => a.amount), ...r.weeks.flatMap((w) => [w.paid, w.outstanding])];
     expect(numbers.every(Number.isInteger)).toBe(true);
   });
 
   describe('invalid input', () => {
-    it.each([-1, 0, 1.5, NaN])('rejects payment amount %p', (amount) => {
+    it.each([-1, 0, 1.5, NaN, Infinity])('rejects non-positive or non-integer payment amount %p', (amount) => {
       expect(() => allocatePayments([pay('a', '2026-01-01', amount)], 3)).toThrow(/amount/);
     });
+    it.each([10_000, 20_000, 1_500, 150_001, 5_000, 25_000])('rejects non-multiple of 15.000: %p', (amount) => {
+      const call = () => allocatePayments([pay('a', '2026-01-01', amount)], 3);
+      expect(call).toThrow(DomainError);
+      expect(call).toThrow(/multiple of 15000/);
+    });
+    it('rejects a bad payment even when it is not the first one', () => {
+      expect(() => allocatePayments([pay('a', '2026-01-01', 15_000), pay('b', '2026-01-08', 10_000)], 3)).toThrow(
+        /payment b amount/,
+      );
+    });
     it('rejects bad date', () => {
-      expect(() => allocatePayments([pay('a', '01/01/2026', 1_000)], 3)).toThrow(/ISO date/);
+      expect(() => allocatePayments([pay('a', '01/01/2026', 15_000)], 3)).toThrow(/ISO date/);
     });
     it.each([0, -2, 1.5])('rejects totalWeeks %p', (n) => {
       expect(() => allocatePayments([], n)).toThrow(/totalWeeks/);
     });
     it('rejects mixed members', () => {
-      expect(() => allocatePayments([pay('a', '2026-01-01', 1_000), pay('b', '2026-01-01', 1_000, 'm2')], 3)).toThrow(
-        /same member/,
-      );
+      expect(() =>
+        allocatePayments([pay('a', '2026-01-01', 15_000), pay('b', '2026-01-01', 15_000, 'm2')], 3),
+      ).toThrow(/same member/);
     });
     it('rejects invalid offset credits', () => {
       expect(() => allocatePayments([], 3, [{ week: 4, amount: 1 }])).toThrow(/beyond/);

@@ -1,5 +1,5 @@
 // Allocation of member payments to weekly dues, oldest unpaid week first. Pure.
-import { assertIsoDate, assertPositiveInt, assertRupiah, DomainError, WEEKLY_DUE } from './money';
+import { assertDuesMultiple, assertIsoDate, assertPositiveInt, assertRupiah, DomainError, WEEKLY_DUE } from './money';
 import type { Allocation, Payment, Rupiah, WeekCredit, WeekStatus } from './types';
 
 export interface AllocationResult {
@@ -13,9 +13,11 @@ export interface AllocationResult {
 /**
  * Allocates the payments of ONE member to the weekly dues of a period.
  *
+ * - Every payment must be a positive multiple of WEEKLY_DUE (15.000); otherwise a DomainError is thrown.
+ *   Offset credits are NOT payments and may be any amount (a capped offset can settle a week partially).
  * - Payments are processed in date order (ties keep input order).
  * - Each payment fills the oldest week that is not fully settled, then the next, and so on.
- *   This covers exact, partial, late, advance and lump-sum payments with one rule.
+ *   This covers exact, late, advance and lump-sum payments with one rule.
  *   Advance payments simply reach weeks that have not happened yet.
  * - A payment may be split across weeks; each Allocation keeps the payment's own date.
  * - Amount left after all totalWeeks are settled is returned as `credit`.
@@ -42,9 +44,7 @@ export function allocatePayments(
   const memberId = payments[0]?.memberId;
   for (const p of payments) {
     if (p.memberId !== memberId) throw new DomainError('all payments must belong to the same member');
-    if (!Number.isSafeInteger(p.amount) || p.amount <= 0) {
-      throw new DomainError(`payment ${p.id} amount must be a positive integer rupiah, got ${String(p.amount)}`);
-    }
+    assertDuesMultiple(p.amount, `payment ${p.id} amount`);
     assertIsoDate(p.date, `payment ${p.id} date`);
   }
 

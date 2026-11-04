@@ -32,14 +32,11 @@ describe('member balance', () => {
   const pay = (id: string, date: string, amount: number) => ({ id, memberId: 'm1', date, amount });
 
   it('shows debt and advance separately', () => {
-    // 5 weeks; paid 20.000 -> week 1 settled, week 2 has 5.000 paid.
-    const { weeks } = allocatePayments([pay('a', '2026-01-01', 20_000)], 5);
+    // 5 weeks; paid 30.000 -> weeks 1 and 2 settled, week 3 still owed.
+    const { weeks } = allocatePayments([pay('a', '2026-01-01', 30_000)], 5);
     const atWeek3 = memberBalance(weeks, 3);
-    expect(atWeek3).toEqual({ dueToDate: 45_000, settledToDate: 20_000, outstanding: 25_000, prepaid: 0 });
-    expect(unpaidWeeksThrough(weeks, 3)).toEqual([
-      { week: 2, amount: 10_000 },
-      { week: 3, amount: 15_000 },
-    ]);
+    expect(atWeek3).toEqual({ dueToDate: 45_000, settledToDate: 30_000, outstanding: 15_000, prepaid: 0 });
+    expect(unpaidWeeksThrough(weeks, 3)).toEqual([{ week: 3, amount: 15_000 }]);
   });
 
   it('reports advance as prepaid', () => {

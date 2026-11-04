@@ -14,18 +14,18 @@ describe('buildHostSettlement', () => {
   });
 
   it('host with debt over several weeks: two entries, offset = total of unpaid weeks', () => {
-    const payments = [{ id: 'p1', memberId: 'h', date: '2026-01-01', amount: 20_000 }];
+    const payments = [{ id: 'p1', memberId: 'h', date: '2026-01-01', amount: 15_000 }];
     const { weeks } = allocatePayments(payments, 5);
-    const unpaid = unpaidWeeksThrough(weeks, 3); // week2: 10.000, week3: 15.000
+    const unpaid = unpaidWeeksThrough(weeks, 3); // week2: 15.000, week3: 15.000
     const r = buildHostSettlement({ ...base, hostUnpaidWeeks: unpaid });
     expect(r.entries).toHaveLength(2);
     expect(r.entries[0]).toMatchObject({ type: 'host_payout', direction: 'out', amount: 50_000 });
-    expect(r.entries[1]).toMatchObject({ type: 'host_offset', direction: 'in', amount: 25_000, memberId: 'h', week: 3 });
+    expect(r.entries[1]).toMatchObject({ type: 'host_offset', direction: 'in', amount: 30_000, memberId: 'h', week: 3 });
     expect(r.offsetWeeks).toEqual([
-      { week: 2, amount: 10_000 },
+      { week: 2, amount: 15_000 },
       { week: 3, amount: 15_000 },
     ]);
-    expect(r.netCash).toBe(25_000);
+    expect(r.netCash).toBe(20_000);
   });
 
   it('payout stays 10.000 x N, not reduced by the offset', () => {
@@ -98,11 +98,28 @@ describe('buildHostSettlement', () => {
     ]);
     expect(unpaid.reduce((s, u) => s + u.amount, 0)).toBe(r.remainingDebt);
 
-    const paid = allocatePayments([{ id: 'p', memberId: 'h', date: '2026-02-01', amount: 25_000 }], 5, r.offsetWeeks);
-    expect(paid.allocations.map((a) => [a.week, a.amount])).toEqual([[4, 10_000], [5, 15_000]]);
-    expect(unpaidWeeksThrough(paid.weeks, 5)).toEqual([]);
+    // A valid payment (15.000) fills the partially offset week 4 first (10.000), then 5.000 of week 5.
+    const paid = allocatePayments([{ id: 'p', memberId: 'h', date: '2026-02-01', amount: 15_000 }], 5, r.offsetWeeks);
+    expect(paid.allocations.map((a) => [a.week, a.amount])).toEqual([[4, 10_000], [5, 5_000]]);
     expect(paid.weeks[3]).toMatchObject({ paid: 10_000, offset: 5_000, outstanding: 0 });
+    expect(unpaidWeeksThrough(paid.weeks, 5)).toEqual([{ week: 5, amount: 10_000 }]);
     expect(paid.credit).toBe(0);
+  });
+
+  // OPEN QUESTION - WAITING FOR OWNER DECISION. Do not treat this as the intended final behaviour.
+  // Payments must be multiples of 15.000, but a capped offset can leave a remainingDebt that is NOT a
+  // multiple (here 25.000). Today that exact remainder cannot be paid with a normal payment: 25.000 is
+  // rejected. No exception was made on purpose; the owner must decide how such a remainder is collected.
+  it('documents: remaining host debt of 25.000 cannot be paid by a normal payment (pending owner decision)', () => {
+    const { weeks } = allocatePayments([], 5);
+    const r = buildHostSettlement({ ...base, week: 5, hostUnpaidWeeks: unpaidWeeksThrough(weeks, 5) });
+    expect(r.remainingDebt).toBe(25_000);
+    expect(r.remainingDebt % 15_000).not.toBe(0);
+    const exact = [{ id: 'p', memberId: 'h', date: '2026-02-01', amount: r.remainingDebt }];
+    expect(() => allocatePayments(exact, 5, r.offsetWeeks)).toThrow(/multiple of 15000/);
+    // A 30.000 payment is accepted, but 5.000 more than the debt is left over as credit.
+    const over = [{ id: 'p', memberId: 'h', date: '2026-02-01', amount: 30_000 }];
+    expect(allocatePayments(over, 5, r.offsetWeeks).credit).toBe(5_000);
   });
 
   it('works for N=1 and N=12 and yields integers only', () => {

@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a verified on the owner's phone; M5b and M5c implemented, not yet verified on the phone). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -28,8 +28,8 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M4 | Dues and payments | Record payments (advance or late, always multiples of Rp15.000), allocate to weekly dues, show per-member balance and arrears, warn before saving when part of a payment becomes credit, payment money enters Tunai/Debit on receipt; "Tutup minggu"; migration 0002 (ledger account) | 2-3 days | M3 | Done (2026-11-05); verified on the owner's phone via Expo Go (combined checklist, 22 steps), migration 0002 ran there |
 | M3b | Meetings and host selection | Hosts chosen per meeting within a two-meeting window instead of a fixed order set at creation; meeting date set with the host; "Minggu" renamed "Pertemuan" in the UI; no migration (decisions in section 5) | 1-2 days | M4 | Done (2026-11-05); verified on the owner's phone via Expo Go (combined checklist) |
 | M5a | Payout and kas ledger | Host payout + offset as two entries (works on an already CLOSED week; offset uses arrears at payout time), kas ledger across pos (Tunai, Debit, Piutang) with opening balances, transfers, loans and repayments, shared-goal cash-out, corrections by reversal with change trail, migration 0003, strict amount parser | 1.5-2 days | M4 | Done (2026-11-05); verified on the owner's phone via Expo Go (combined checklist), migration 0003 ran there |
-| M5b | Period close and credit | Write-off (one entry per member), pre-close screen, credit carry-over, credit refund entry, migration 0004, and blocking period close until every host is paid | 1-1.5 days | M5a | Implemented (owner approved: "approved m5b, ikut usul"), not yet verified on the phone; checklist below |
-| M5c | UX fixes before M6 | Home with kas cards and one primary button, first-run checklist, DateField on 7 screens, payment amount chips (domain helper paymentChoices), "Kredit" wording becomes "Titipan" in the UI, toasts, loading/error states, Buat Periode defaults and redirect, Kas plus/minus colors; no migration, no money rule change | 1 day (estimate) | M5b | Implemented (owner approved: "approved M5c, ikut usul"), not yet verified on the phone; checklist below |
+| M5b | Period close and credit | Write-off (one entry per member), pre-close screen, credit carry-over, credit refund entry, migration 0004, and blocking period close until every host is paid | 1-1.5 days | M5a | Done (2026-11-06); verified on the owner's phone via Expo Go (M5b checklist), migration 0004 ran there |
+| M5c | UX fixes before M6 | Home with kas cards and one primary button, first-run checklist, DateField on 7 screens, payment amount chips (domain helper paymentChoices), "Kredit" wording becomes "Titipan" in the UI, toasts, loading/error states, Buat Periode defaults and redirect, Kas plus/minus colors; no migration, no money rule change | 1 day (estimate) | M5b | Done (2026-11-06); verified on the owner's phone via Expo Go (M5c checklist) |
 | M6 | Reports | Per-member history, per-week summary, kas balance, period summary, "Titipan kredit anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan kredit anggota" until its meeting is closed | 2 days | M5 | Not started |
 | M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
 | M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
@@ -37,11 +37,11 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 
 Total v1 estimate: about 2-3 weeks of part-time work (assumption: a few hours per day).
 
-M5 status: M5 is split into M5a and M5b. M5a was approved by the owner ("approved M5a, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-05 (together with M4 and M3b). M5b was approved by the owner ("approved m5b, ikut usul") and is implemented, status "implemented, not yet verified on the phone". M6 has not started.
+M5 status: M5 is split into M5a and M5b. M5a was approved by the owner ("approved M5a, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-05 (together with M4 and M3b). M5b was approved by the owner ("approved m5b, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 (migration 0004 included). M6 has not started.
 
-M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, ikut usul"), is implemented, status "implemented, not yet verified on the phone". M5b is still "not verified on the phone". M6 has not started.
+M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06, together with M5b. M6 has not started.
 
-### M5c phone checklist (owner, Expo Go; not yet run)
+### M5c phone checklist (owner, Expo Go; passed on 2026-11-06 together with M5b: "lolos semua lanjut")
 1. Home: kas cards (Tunai, Debit, Piutang) show, and there is exactly one primary button for the current state.
 2. First-run checklist shows on a fresh start and is hidden once an ended period or a closed meeting exists.
 3. Anggota: the keyboard stays open while typing; the member count is right.
@@ -56,7 +56,7 @@ M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, i
 12. Loading state and DB error screen with "Coba lagi".
 13. Touch targets are 48 high; check with TalkBack.
 
-### M5b phone checklist (owner, Expo Go; not yet run)
+### M5b phone checklist (owner, Expo Go; passed on 2026-11-06 together with M5c: "lolos semua lanjut")
 1. App opens, migration 0004 runs, old data is intact, nothing breaks when there is no active period.
 2. Period detail: "Akhiri periode" opens the new screen; with open meetings or an unpaid host the button is disabled with the reason (meeting number and host name).
 3. Correct one payout: that meeting shows unpaid again; re-pay it: the button is enabled.
@@ -241,9 +241,10 @@ Developer deviations and assumptions in M5c, to be reviewed by the owner:
 - (l) The DB error screen title is now "Terjadi masalah".
 - (m) CLAUDE.md gets one extra clause: the UI calls member credit "Titipan". (Noted here only; this PM did not edit CLAUDE.md. Check that the clause is actually in the file.)
 
-Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens are proven only on the phone, since tests use sql.js and there are no automated UI tests. M6 has not started.
+Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M6 has not started.
 
 ## 6. Progress log (newest first)
+- 2026-11-06: Phone verification. Owner ran the Expo Go checklists for M5b (12 steps, including migration 0004 on expo-sqlite) and M5c (13 steps) and reported "lolos semua lanjut". Evidence: owner confirmation. Marked Done: M5b and M5c. HEAD at this point: 3b8c4b6, no code change. Next: the owner's small revisions are handled as a separate milestone (M5d) by the main session; M6 proposal awaits "approved M6".
 - 2026-11-06: M5c implemented (owner approved: "approved M5c, ikut usul"), status "implemented, not yet verified on the phone"; M5b stays "not verified on the phone". Scope: UX fixes before M6 (Home, first-run checklist, DateField, amount chips, "Titipan" wording, toasts, loading/error states, Buat Periode, Kas colors). Decisions, deferred UX and developer deviations are in section 5; phone checklist is under the milestone table. Verified (developer's results): `npm test` 413 passed in 21 suites (was 376 in 17: +37 tests, +4 suites); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` succeeded (1 Android bundle, 2.9 MB, output outside the project). No dependency, app.json, migration or money-rule change; the domain only gained `paymentChoices` and `daysBetween`. Old test whose assertions changed: only src/ui/errors.test.ts, 2 lines, the word "kredit" became "titipan". NOT verified: there are no automated UI tests, and none of the new screens has been tried on the phone. Next: owner phone check of M5b and M5c, then M6 proposal.
 - 2026-11-05: M5b implemented (owner approved: "approved m5b, ikut usul"), status "implemented, not yet verified on the phone". Scope: period close screen with write-off (one entry per member), credit settling own arrears at close, carry-over to the next period, credit refund entry, migration 0004, close blocked until every host is paid, kas entries without an active period, kas-type reversals in closed periods. Decisions and developer assumptions are in section 5; phone checklist (12 items) is under the milestone table. Verified: `npm test` 376 passed in 17 suites (was 317 in 14); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles. NOT verified: migration 0004 on expo-sqlite and the new screens (periods/[id]/close, credits, carry-over preview in periods/new), since tests use sql.js. Note for M6: carried-over credit stays in "Titipan kredit anggota" until its meeting is closed. M6 not started. Next: owner phone check of M5b, then M6 proposal.
 - 2026-11-05: Phone verification. Owner ran the combined Expo Go checklist for M4, M3b and M5a (22 steps, including migrations 0002 and 0003 on the phone) and reported "lolos semua lanjut". Evidence: owner confirmation. Marked Done: M4, M3b, M5a; M2 and M3 phone notes resolved (the expo-sqlite adapter runs on the device). HEAD at this point: 536c825, no code change. Still open: owner answer on the payout offset range (through the host's own meeting vs through the current meeting; proposed: current meeting); M5b proposal awaits "approved M5b".

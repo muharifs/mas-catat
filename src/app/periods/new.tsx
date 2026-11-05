@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isRealDate, previewMeetingDates } from '@/domain/schedule';
+import { isRealDate, nearestMeetingDayOnOrAfter, previewMeetingDates } from '@/domain/schedule';
+import { sortByName } from '@/domain/sort';
 import type { MemberCarryOver } from '@/db/credits';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
@@ -50,7 +51,7 @@ export default function NewPeriodScreen() {
 
   // null = the owner has not touched the field yet, so the default (computed from loaded data) is shown.
   const [nameInput, setNameInput] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState(todayIso());
+  const [startDate, setStartDate] = useState(() => nearestMeetingDayOnOrAfter(todayIso()));
   const [selectedInput, setSelectedInput] = useState<string[] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,11 +83,15 @@ export default function NewPeriodScreen() {
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { members, active, refundable } = data;
+  const { active, refundable } = data;
+  const members = sortByName(data.members, (m) => m.name); // display order only; the order of selection is kept as is
   const name = nameInput ?? data.defaultName;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
-  const shownCarry = selected.length === 0 ? [] : carry;
-  const leftOut = refundable.filter((r) => !selected.includes(r.memberId));
+  const shownCarry = selected.length === 0 ? [] : sortByName(carry, (c) => nameOf(c.memberId));
+  const leftOut = sortByName(
+    refundable.filter((r) => !selected.includes(r.memberId)),
+    (r) => nameOf(r.memberId),
+  );
   const dateOk = isRealDate(startDate);
   const preview = dateOk ? previewMeetingDates(startDate, selected.length) : [];
   const canSave = !active && !saving && name.trim().length > 0 && dateOk && selected.length > 0;
@@ -138,7 +143,7 @@ export default function NewPeriodScreen() {
       <Text style={styles.section}>Pilih anggota ({selected.length} dipilih)</Text>
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>
       <View style={styles.bulk}>
-        <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(members.map((m) => m.id))} />
+        <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(data.members.map((m) => m.id))} />
         <Button label="Kosongkan" variant="secondary" style={styles.flex} onPress={() => setSelectedInput([])} />
       </View>
       <View style={styles.list}>

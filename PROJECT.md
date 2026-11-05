@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone; M5d implemented, not yet verified). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -30,6 +30,7 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M5a | Payout and kas ledger | Host payout + offset as two entries (works on an already CLOSED week; offset uses arrears at payout time), kas ledger across pos (Tunai, Debit, Piutang) with opening balances, transfers, loans and repayments, shared-goal cash-out, corrections by reversal with change trail, migration 0003, strict amount parser | 1.5-2 days | M4 | Done (2026-11-05); verified on the owner's phone via Expo Go (combined checklist), migration 0003 ran there |
 | M5b | Period close and credit | Write-off (one entry per member), pre-close screen, credit carry-over, credit refund entry, migration 0004, and blocking period close until every host is paid | 1-1.5 days | M5a | Done (2026-11-06); verified on the owner's phone via Expo Go (M5b checklist), migration 0004 ran there |
 | M5c | UX fixes before M6 | Home with kas cards and one primary button, first-run checklist, DateField on 7 screens, payment amount chips (domain helper paymentChoices), "Kredit" wording becomes "Titipan" in the UI, toasts, loading/error states, Buat Periode defaults and redirect, Kas plus/minus colors; no migration, no money rule change | 1 day (estimate) | M5b | Done (2026-11-06); verified on the owner's phone via Expo Go (M5c checklist) |
+| M5d | Revisions from real use | Alphabetical member lists, swipe-right instant Rp15.000 payment on Pembayaran, Tuesday meetings, member dues into Tunai only; no migration; domain additions sort.ts, swipe-pay.ts, MEETING_WEEKDAY | 1 day (estimate) | M5c | Implemented, not yet verified on the phone |
 | M6 | Reports | Per-member history, per-week summary, kas balance, period summary, "Titipan kredit anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan kredit anggota" until its meeting is closed | 2 days | M5 | Not started |
 | M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
 | M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
@@ -40,6 +41,22 @@ Total v1 estimate: about 2-3 weeks of part-time work (assumption: a few hours pe
 M5 status: M5 is split into M5a and M5b. M5a was approved by the owner ("approved M5a, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-05 (together with M4 and M3b). M5b was approved by the owner ("approved m5b, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 (migration 0004 included). M6 has not started.
 
 M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06, together with M5b. M6 has not started.
+
+M5d status: M5d (revisions from real use) was approved by the owner in the main session ("approved M5d, ikut usul") and is implemented, but NOT yet verified on the phone. M6 stays proposed and is NOT approved.
+
+### M5d phone checklist (owner, Expo Go; not yet run)
+1. Member lists are sorted alphabetically (case-insensitive) in all six places: Anggota, Pembayaran, Buat Periode, host choices, pre-close, Titipan.
+2. Swipe right past the threshold on a Pembayaran row records Rp15.000 into Tunai and shows a toast naming the meeting.
+3. A short swipe springs back and nothing is saved.
+4. Vertical scrolling of the list still works.
+5. Swipe is disabled for a fully paid member and for an ended period.
+6. A member with arrears older than the current meeting gets the oldest meeting settled.
+7. No "Bayar" button on the row; tapping the row opens the member detail.
+8. "Catat pembayaran" has no pos choice and says Tunai.
+9. "Bayar tuan rumah" still offers Tunai/Debit (default Tunai).
+10. New period: the start date defaults to a Tuesday.
+11. After a meeting is moved to a Wednesday, the default date of the next meeting is 6 days later.
+12. Existing stored dates are unchanged.
 
 ### M5c phone checklist (owner, Expo Go; passed on 2026-11-06 together with M5b: "lolos semua lanjut")
 1. Home: kas cards (Tunai, Debit, Piutang) show, and there is exactly one primary button for the current state.
@@ -137,7 +154,7 @@ Decided (owner, 2026-11-05, M3 proposal "approved, ikut usul"):
 Decided (owner, 2026-11-05, M4 proposal "approved m4 ikut usul"):
 - Close week: only the oldest open week, in order, with no payout requirement. Weeks can therefore be closed before the host is paid; M5 must allow payout on a closed week, and the offset uses the host's arrears at payout time.
 - Arrears are counted through the "current week" = the oldest open week (not the phone clock). Later weeks count as prepaid. When every week is closed, the last week is the current week.
-- Receiving pos is chosen on the payment form: Tunai or Debit, default Tunai.
+- Receiving pos is chosen on the payment form: Tunai or Debit, default Tunai. (Replaced in M5d for member payments: they always go to Tunai, see the M5d decisions.)
 - Payment date may be in the past or today, never in the future.
 - Payments to an ended period are rejected (closes a gap in payments.record).
 - Wrong payments cannot be corrected until M5; the risk is accepted, the confirmation screen is the safeguard.
@@ -216,6 +233,19 @@ Decided (owner, 2026-11-06, M5c: "approved M5c, ikut usul"):
 5. No bottom tabs.
 6. Amount chips for arrears that are not a multiple of Rp15.000 are rounded down through the domain helper `paymentChoices`; the remainder is settled first by the next payment (oldest-first allocation).
 
+Decided (owner, 2026-11-06, M5d: "approved M5d, ikut usul"):
+1. Member lists are displayed alphabetically, case-insensitive, in Anggota, Pembayaran, Buat Periode, host choices, pre-close and Titipan. The stored initial_order is untouched.
+2. Pembayaran: swiping a row to the right records an instant Rp15.000 payment into Tunai, dated today, with a toast and no dialog. A wrong swipe is fixed through the existing correction on the member detail. Older arrears are allowed (oldest unpaid meeting first). The swipe is disabled when the member has no arrears through the current meeting or the period has ended (pure domain function `canSwipePay`). The "Bayar" button is removed; tapping the row opens the member detail.
+3. Meetings are on Tuesday: constant MEETING_WEEKDAY in src/domain/schedule.ts, no setting screen. The start date of a new period defaults to the nearest Tuesday. The next default date and the estimates for later meetings are the Tuesday closest to 7 days after the previous date. Stored dates are never rewritten.
+4. Member dues always go into Tunai. Debit is reached through a Kas transfer. "Bayar tuan rumah" keeps the Tunai/Debit choice, default Tunai. This replaces the M4 decision "pos chosen on the form" for member payments.
+5. CLAUDE.md was updated accordingly (Tuesday rule, member payments to Tunai).
+
+Developer assumptions in M5d, to be reviewed by the owner:
+- The swipe toast is built from payments.preview just before record (not atomic; acceptable for a single user).
+- Swipe is allowed when the remaining arrears is a non-multiple of Rp15.000.
+- Buat Periode "Pilih semua" keeps the original data order.
+- The member picker in kas/new.tsx is not sorted (out of scope).
+
 Deferred UX (NOT done in M5c):
 - Live payment preview without a dialog.
 - Inline multiple errors.
@@ -244,6 +274,7 @@ Developer deviations and assumptions in M5c, to be reviewed by the owner:
 Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M6 has not started.
 
 ## 6. Progress log (newest first)
+- 2026-11-06: M5d implemented (owner approved in the main session: "approved M5d, ikut usul"), status "implemented, not yet verified on the phone". Scope: alphabetical member lists, swipe-right instant payment on Pembayaran, Tuesday meetings, member dues into Tunai only. Decisions and assumptions are in section 5; phone checklist (12 items) is under the milestone table. Verified (real results): `npm test` 23 suites, 435 tests pass (413 before + 22 new, none removed); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK (temp output, deleted). Files: new src/domain/sort.ts (+test), src/domain/swipe-pay.ts (+test), src/ui/components/SwipeRow.tsx; changed CLAUDE.md, src/domain/schedule.ts, src/db/periods.ts, src/ui/messages.ts, src/app/periods/[id]/payments.tsx, pay.tsx, src/app/periods/new.tsx, src/app/members/index.tsx, src/app/periods/[id]/meetings/[number].tsx, close.tsx, src/app/credits/index.tsx, and tests schedule.test.ts, repositories.test.ts, messages.test.ts. Changed assertions: fixtures moved from Sunday dates to Tuesday (Sunday+7 became +9) and date estimates shifted accordingly; the planAssignment test was split into a shift case and a no-change case. NOT verified on the phone: swipe feel and threshold, vertical scroll, toast, background label (no automated UI tests). M6 stays proposed, NOT approved. Next: owner phone check of M5d, then the M6 decision.
 - 2026-11-06: Phone verification. Owner ran the Expo Go checklists for M5b (12 steps, including migration 0004 on expo-sqlite) and M5c (13 steps) and reported "lolos semua lanjut". Evidence: owner confirmation. Marked Done: M5b and M5c. HEAD at this point: 3b8c4b6, no code change. Next: the owner's small revisions are handled as a separate milestone (M5d) by the main session; M6 proposal awaits "approved M6".
 - 2026-11-06: M5c implemented (owner approved: "approved M5c, ikut usul"), status "implemented, not yet verified on the phone"; M5b stays "not verified on the phone". Scope: UX fixes before M6 (Home, first-run checklist, DateField, amount chips, "Titipan" wording, toasts, loading/error states, Buat Periode, Kas colors). Decisions, deferred UX and developer deviations are in section 5; phone checklist is under the milestone table. Verified (developer's results): `npm test` 413 passed in 21 suites (was 376 in 17: +37 tests, +4 suites); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` succeeded (1 Android bundle, 2.9 MB, output outside the project). No dependency, app.json, migration or money-rule change; the domain only gained `paymentChoices` and `daysBetween`. Old test whose assertions changed: only src/ui/errors.test.ts, 2 lines, the word "kredit" became "titipan". NOT verified: there are no automated UI tests, and none of the new screens has been tried on the phone. Next: owner phone check of M5b and M5c, then M6 proposal.
 - 2026-11-05: M5b implemented (owner approved: "approved m5b, ikut usul"), status "implemented, not yet verified on the phone". Scope: period close screen with write-off (one entry per member), credit settling own arrears at close, carry-over to the next period, credit refund entry, migration 0004, close blocked until every host is paid, kas entries without an active period, kas-type reversals in closed periods. Decisions and developer assumptions are in section 5; phone checklist (12 items) is under the milestone table. Verified: `npm test` 376 passed in 17 suites (was 317 in 14); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles. NOT verified: migration 0004 on expo-sqlite and the new screens (periods/[id]/close, credits, carry-over preview in periods/new), since tests use sql.js. Note for M6: carried-over credit stays in "Titipan kredit anggota" until its meeting is closed. M6 not started. Next: owner phone check of M5b, then M6 proposal.

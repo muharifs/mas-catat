@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ACCOUNT_LABELS, KAS_KINDS, type KasEntryInput, type KasKind } from '@/domain/kas';
 import { AMOUNT_FORMAT_HINT, parseRupiahInput } from '@/domain/payment-preview';
+import { sortByName } from '@/domain/sort';
 import type { Account } from '@/domain/types';
 import { useRepos } from '@/db/provider';
 import { AmountField } from '@/ui/components/AmountField';
@@ -76,7 +77,7 @@ export default function NewKasEntryScreen() {
   if (kind === 'loan' && !data.active) {
     return <ErrorState message="Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif." />;
   }
-  const candidates = kind === 'loan' ? data.loanCandidates : data.allMembers;
+  const candidates = sortByName(kind === 'loan' ? data.loanCandidates : data.allMembers, (m) => m.name); // display order only
   const needsMember = kind === 'loan' || kind === 'loan_repayment';
 
   function buildInput(amount: number): KasEntryInput {

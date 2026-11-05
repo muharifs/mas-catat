@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ACCOUNT_LABELS } from '@/domain/kas';
+import { sortByName } from '@/domain/sort';
 import type { RefundableCredit } from '@/db/credits';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
@@ -93,7 +94,7 @@ export default function CreditsScreen() {
         berikutnya.
       </Text>
       {items.length === 0 ? <Text style={styles.muted}>Tidak ada anggota yang memegang titipan dari periode yang sudah berakhir.</Text> : null}
-      {items.map((item) => {
+      {sortByName(items, (item) => nameOf(item.memberId)).map((item) => {
         const key = `${item.periodId}:${item.memberId}`;
         const isSelected = selected !== null && `${selected.periodId}:${selected.memberId}` === key;
         return (

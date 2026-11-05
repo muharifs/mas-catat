@@ -13,27 +13,17 @@ import { Notice } from '@/ui/components/Notice';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
-import { arrearsRemainderNote, paymentChoiceLabel, toasts } from '@/ui/messages';
+import { arrearsRemainderNote, describeWeeks, paymentChoiceLabel, toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
-type Account = 'tunai' | 'debit';
-const ACCOUNT_LABEL: Record<Account, string> = { tunai: 'Tunai', debit: 'Debit' };
-
-/** "pertemuan 2", "pertemuan 1 sampai 3", or "pertemuan 1, 3" when the meetings are not consecutive. */
-function describeWeeks(weeks: readonly number[]): string {
-  const first = weeks[0];
-  const last = weeks[weeks.length - 1];
-  if (first === undefined || last === undefined) return '';
-  if (weeks.length === 1) return `pertemuan ${first}`;
-  const consecutive = last - first + 1 === weeks.length;
-  return consecutive ? `pertemuan ${first} sampai ${last}` : `pertemuan ${weeks.join(', ')}`;
-}
+// Member dues always go into Tunai. Moving money to Debit is a transfer on the Kas screen.
+const RECEIVING_ACCOUNT = 'tunai';
 
 /** Confirmation text. Every number comes from the preview; nothing is calculated here. */
-function confirmMessage(name: string, date: string, account: Account, preview: PaymentPreview): string {
-  const lines = [`${name} membayar ${formatRupiah(preview.amount)} pada ${formatDate(date)}, masuk ke ${ACCOUNT_LABEL[account]}.`];
+function confirmMessage(name: string, date: string, preview: PaymentPreview): string {
+  const lines = [`${name} membayar ${formatRupiah(preview.amount)} pada ${formatDate(date)}, masuk ke Tunai.`];
   if (preview.weekCount > 0) lines.push(`Menyentuh ${preview.weekCount} pertemuan.`);
   if (preview.settledWeeks.length > 0) lines.push(`Akan melunasi ${describeWeeks(preview.settledWeeks)}.`);
   if (preview.partialWeek !== null) lines.push(`Pertemuan ${preview.partialWeek} baru terbayar sebagian.`);
@@ -63,7 +53,6 @@ export default function PayScreen() {
 
   const [date, setDate] = useState(todayIso());
   const [amountText, setAmountText] = useState('');
-  const [account, setAccount] = useState<Account>('tunai');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -78,7 +67,7 @@ export default function PayScreen() {
   async function save(amount: number) {
     setBusy(true);
     try {
-      await repos.payments.record({ periodId: id, memberId, date, amount, account });
+      await repos.payments.record({ periodId: id, memberId, date, amount, account: RECEIVING_ACCOUNT });
       toast(toasts.payment(amount, memberName));
       router.back(); // back to wherever the form was opened from (the payment list or the member detail)
     } catch (e) {
@@ -102,7 +91,7 @@ export default function PayScreen() {
         preview.creditAmount > 0
           ? `Sebagian menjadi titipan - ${formatRupiah(preview.amount)}`
           : `Konfirmasi pembayaran ${formatRupiah(preview.amount)}`,
-        confirmMessage(memberName, date, account, preview),
+        confirmMessage(memberName, date, preview),
         [
           { text: 'Batal', style: 'cancel' },
           { text: 'Simpan', onPress: () => void save(amount) },
@@ -136,19 +125,7 @@ export default function PayScreen() {
         {remainderNote ? <Text style={styles.hint}>{remainderNote}</Text> : null}
         <AmountField label="Jumlah (kelipatan Rp15.000)" value={amountText} onChangeText={setAmountText} placeholder="15000" />
 
-        <Text style={styles.label}>Uang masuk ke</Text>
-        <View style={styles.accounts}>
-          {(['tunai', 'debit'] as const).map((a) => (
-            <Button
-              key={a}
-              label={ACCOUNT_LABEL[a]}
-              variant={account === a ? 'primary' : 'secondary'}
-              selected={account === a}
-              style={styles.flex}
-              onPress={() => setAccount(a)}
-            />
-          ))}
-        </View>
+        <Text style={styles.hint}>Uang masuk ke Tunai. Untuk memindahkannya ke Debit, gunakan transfer di menu Kas.</Text>
 
         {error ? <Notice tone="danger">{error}</Notice> : null}
 
@@ -167,5 +144,4 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: colors.text },
   hint: { ...type.caption, color: colors.textMuted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  accounts: { flexDirection: 'row', gap: spacing.sm },
 });

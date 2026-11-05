@@ -1,7 +1,7 @@
 // Indonesian texts that are built from numbers the repositories and domain already computed (dialogs, toasts,
 // chip labels). Display only: nothing here calculates money. Kept out of the screens so the wording is tested.
 import { daysBetween } from '@/domain/schedule';
-import type { PaymentChoice } from '@/domain/payment-preview';
+import type { PaymentChoice, PaymentPreview } from '@/domain/payment-preview';
 import { formatDate, formatDayMonth } from './dates';
 import { formatRupiah } from './format';
 
@@ -43,6 +43,40 @@ export function paymentChoiceLabel(choice: PaymentChoice, arrearsIsPartial: bool
 export function arrearsRemainderNote(remainder: number): string | null {
   if (remainder <= 0) return null;
   return `Sisa tunggakan ${formatRupiah(remainder)} tidak bisa dibayar sendiri karena pembayaran harus kelipatan Rp15.000. Pembayaran berikutnya melunasinya lebih dulu.`;
+}
+
+/** "pertemuan 2", "pertemuan 1 sampai 3", or "pertemuan 1, 3" when the meetings are not consecutive. */
+export function describeWeeks(weeks: readonly number[]): string {
+  const first = weeks[0];
+  const last = weeks[weeks.length - 1];
+  if (first === undefined || last === undefined) return '';
+  if (weeks.length === 1) return `pertemuan ${first}`;
+  const consecutive = last - first + 1 === weeks.length;
+  return consecutive ? `pertemuan ${first} sampai ${last}` : `pertemuan ${weeks.join(', ')}`;
+}
+
+/**
+ * Toast after a swipe payment, built from the payment preview so it only says what really happened: which meetings
+ * were settled, a meeting that is only partly paid, and any part that became member credit.
+ */
+export function swipePaymentToast(memberName: string, preview: PaymentPreview): string {
+  const parts: string[] = [];
+  if (preview.settledWeeks.length > 0) parts.push(`melunasi ${describeWeeks(preview.settledWeeks)}`);
+  if (preview.partialWeek !== null) {
+    parts.push(
+      preview.settledWeeks.length > 0
+        ? `dan sebagian pertemuan ${preview.partialWeek}`
+        : `masuk ke pertemuan ${preview.partialWeek}, baru terbayar sebagian`,
+    );
+  }
+  if (preview.creditAmount > 0) {
+    parts.push(
+      preview.allocatedAmount === 0
+        ? 'menjadi titipan'
+        : `(${formatRupiah(preview.creditAmount)} menjadi titipan)`,
+    );
+  }
+  return `${memberName}: ${formatRupiah(preview.amount)} ${parts.join(' ')}`.trimEnd();
 }
 
 // Success toasts, shown after every save.

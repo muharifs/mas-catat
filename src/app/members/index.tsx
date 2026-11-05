@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
+import { sortByName } from '@/domain/sort';
 import { Button } from '@/ui/components/Button';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
@@ -16,7 +17,8 @@ import { useLoad } from '@/ui/useLoad';
 export default function MembersScreen() {
   const repos = useRepos();
   const load = useCallback(() => repos.members.list(), [repos]);
-  const { data: members, error: loadError, reload } = useLoad(load);
+  const { data, error: loadError, reload } = useLoad(load);
+  const members = useMemo(() => (data ? sortByName(data, (m) => m.name) : null), [data]);
 
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);

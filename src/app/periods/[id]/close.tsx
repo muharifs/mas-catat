@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { endDateProblem, type EndDateProblem } from '@/domain/close';
+import { sortByName } from '@/domain/sort';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
@@ -67,7 +68,10 @@ export default function ClosePeriodScreen() {
   const hostOf = (week: number) => nameOf(weeks.find((w) => w.number === week)?.hostMemberId ?? null);
   const problem = endDateProblem(endDate, period.startDate, todayIso());
   const canClose = preview.canClose && problem === null && !busy;
-  const shown = preview.members.filter((m) => m.arrearsBefore > 0 || m.credit > 0);
+  const shown = sortByName(
+    preview.members.filter((m) => m.arrearsBefore > 0 || m.credit > 0),
+    (m) => nameOf(m.memberId),
+  );
 
   async function performClose() {
     setBusy(true);

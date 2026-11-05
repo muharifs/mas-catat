@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { sortByName } from '@/domain/sort';
 import {
   defaultMeetingDate,
   eligibleHostIds,
@@ -72,7 +73,7 @@ export default function MeetingHostScreen() {
   const host = pickedHost ?? week.hostMemberId;
   const date = dateInput ?? (week.hostMemberId ? week.date : defaultMeetingDate(weeks, number));
   const problem = meetingDateProblem(weeks, number, date);
-  const eligible = eligibleHostIds(weeks, memberIds);
+  const eligible = sortByName(eligibleHostIds(weeks, memberIds), (memberId) => nameOf(memberId));
   // The picked member may already hold another open meeting: saving then exchanges the two hosts.
   const holder = host ? weeks.find((w) => w.status === 'open' && w.number !== number && w.hostMemberId === host) : undefined;
   const canSave = !busy && host !== null && problem === null;

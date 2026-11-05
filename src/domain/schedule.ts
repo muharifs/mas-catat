@@ -29,16 +29,46 @@ export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((toUtc(to) - toUtc(from)) / 86_400_000);
 }
 
+/** Weekday of the meetings: 0 = Sunday ... 2 = Tuesday ... 6 = Saturday. A constant, not a setting. */
+export const MEETING_WEEKDAY = 2;
+
+/** Day of week of an ISO date (0 = Sunday), as a calendar date in UTC. */
+export function weekdayOf(iso: IsoDate): number {
+  return new Date(`${addDays(iso, 0)}T00:00:00Z`).getUTCDay();
+}
+
+/** The nearest meeting weekday (Tuesday) on or after `iso`. Used for the default start date of a period. */
+export function nearestMeetingDayOnOrAfter(iso: IsoDate): IsoDate {
+  return addDays(iso, (MEETING_WEEKDAY - weekdayOf(iso) + 7) % 7);
+}
+
+/**
+ * Default date of the meeting after `previous`: the Tuesday closest to 7 days later. A Tuesday gives +7, Wednesday
+ * +6, Monday +8, Saturday +10. Always at least 4 days after `previous`, so the result is always later.
+ */
+export function nextMeetingDate(previous: IsoDate): IsoDate {
+  const sevenLater = addDays(previous, 7);
+  let offset = (MEETING_WEEKDAY - weekdayOf(sevenLater) + 7) % 7; // 0..6 days forward to a Tuesday
+  if (offset > 3) offset -= 7; // 4..6 forward is closer going backward
+  return addDays(sevenLater, offset);
+}
+
 export interface MeetingDatePreviewRow {
   /** 1-based meeting (week) number. */
   week: number;
   date: IsoDate;
 }
 
-/** Estimated dates for a new period: meeting 1 on startDate, every next meeting 7 days later. */
+/** Estimated dates for a new period: meeting 1 on startDate, every next meeting on nextMeetingDate (Tuesdays). */
 export function previewMeetingDates(startDate: IsoDate, meetingCount: number): MeetingDatePreviewRow[] {
   if (!isRealDate(startDate)) throw new DomainError(`startDate is not a real calendar date: ${startDate}`);
-  return Array.from({ length: Math.max(0, meetingCount) }, (_, i) => ({ week: i + 1, date: addDays(startDate, 7 * i) }));
+  const rows: MeetingDatePreviewRow[] = [];
+  let date = startDate;
+  for (let week = 1; week <= meetingCount; week += 1) {
+    if (week > 1) date = nextMeetingDate(date);
+    rows.push({ week, date });
+  }
+  return rows;
 }
 
 /** The minimum a schedule rule needs to know about one meeting. */
@@ -73,12 +103,12 @@ export function eligibleHostIds(weeks: readonly ScheduleWeek[], memberIds: reado
   return memberIds.filter((id) => !hosted.has(id));
 }
 
-/** Date offered by default: 7 days after the previous meeting; for meeting 1 its own current date. */
+/** Date offered by default: the Tuesday closest to 7 days after the previous meeting; for meeting 1 its own date. */
 export function defaultMeetingDate(weeks: readonly ScheduleWeek[], number: number): IsoDate {
   const week = weeks.find((w) => w.number === number);
   if (!week) throw new DomainError(`week ${number} not found`);
   const previous = weeks.find((w) => w.number === number - 1);
-  return previous ? addDays(previous.date, 7) : week.date;
+  return previous ? nextMeetingDate(previous.date) : week.date;
 }
 
 export type MeetingDateProblem =
@@ -117,14 +147,18 @@ function assertMeetingDate(weeks: readonly ScheduleWeek[], number: number, date:
 }
 
 /**
- * Open meetings after the last meeting that has a host keep ESTIMATED dates: 7 days apart, counted from that
- * last chosen date. Meetings before it, closed meetings and meetings with a host are never shifted.
+ * Open meetings after the last meeting that has a host keep ESTIMATED dates: each the Tuesday closest to 7 days
+ * after the one before, counted from that last chosen date. Meetings before it, closed meetings and meetings with a host are never shifted.
  */
 function shiftEstimates(state: ScheduleWeek[]): void {
   const anchor = [...state].reverse().find((w) => w.hostMemberId !== null);
   if (!anchor) return;
+  let previous = anchor.date;
   for (const w of state) {
-    if (w.number > anchor.number && w.status === 'open') w.date = addDays(anchor.date, 7 * (w.number - anchor.number));
+    if (w.number > anchor.number && w.status === 'open') {
+      w.date = nextMeetingDate(previous);
+      previous = w.date;
+    }
   }
 }
 

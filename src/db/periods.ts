@@ -3,7 +3,7 @@
 import { endDateProblem, previewPeriodClose, type PeriodClosePreview } from '@/domain/close';
 import { assertIsoDate, DomainError } from '@/domain/money';
 import { periodWeekCount } from '@/domain/dues';
-import { addDays, isRealDate, planAutoAssignment, type ScheduleWeek } from '@/domain/schedule';
+import { isRealDate, nextMeetingDate, planAutoAssignment, type ScheduleWeek } from '@/domain/schedule';
 import { insertCreditApplication, loadAvailableCredit, planMemberCarryOvers, type MemberCarryOver } from './credits';
 import type { Db, Queryable } from './db';
 import { defaultDeps, todayOf, type RepoDeps } from './deps';
@@ -134,8 +134,9 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           ]);
         }
         const planned: ScheduleWeek[] = [];
+        let date = period.startDate;
         for (let i = 0; i < weekCount; i += 1) {
-          const date = addDays(period.startDate, 7 * i);
+          if (i > 0) date = nextMeetingDate(date);
           planned.push({ number: i + 1, date, hostMemberId: null, status: 'open' });
           await tx.run('INSERT INTO weeks (period_id, number, date, host_member_id, status) VALUES (?, ?, ?, ?, ?)', [
             period.id,

@@ -133,7 +133,7 @@ describe('migration 0002 (ledger account)', () => {
     await db.run(ledgerInsert, ['old', 15000, 'in']);
 
     expect(await migrate(db)).toEqual({ from: 1, to: MIGRATIONS.length });
-    expect(await userVersion(db)).toBe(2);
+    expect(await userVersion(db)).toBe(MIGRATIONS.length);
     const old = await db.getFirst<{ amount: number; account: string | null }>(
       "SELECT amount, account FROM ledger_entries WHERE id = 'old'",
     );

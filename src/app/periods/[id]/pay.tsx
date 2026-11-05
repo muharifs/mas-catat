@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { parseRupiahInput, type PaymentPreview } from '@/domain/payment-preview';
+import { AMOUNT_FORMAT_HINT, parseRupiahInput, type PaymentPreview } from '@/domain/payment-preview';
 import { useRepos } from '@/db/provider';
+import { AmountField } from '@/ui/components/AmountField';
 import { Button } from '@/ui/components/Button';
 import { TextField } from '@/ui/components/TextField';
 import { formatDate, todayIso } from '@/ui/dates';
@@ -26,6 +27,7 @@ function describeWeeks(weeks: readonly number[]): string {
 /** Confirmation text. Every number comes from the preview; nothing is calculated here. */
 function confirmMessage(name: string, date: string, account: Account, preview: PaymentPreview): string {
   const lines = [`${name} membayar ${formatRupiah(preview.amount)} pada ${formatDate(date)}, masuk ke ${ACCOUNT_LABEL[account]}.`];
+  if (preview.weekCount > 0) lines.push(`Menyentuh ${preview.weekCount} pertemuan.`);
   if (preview.settledWeeks.length > 0) lines.push(`Akan melunasi ${describeWeeks(preview.settledWeeks)}.`);
   if (preview.partialWeek !== null) lines.push(`Pertemuan ${preview.partialWeek} baru terbayar sebagian.`);
   if (preview.creditAmount > 0) {
@@ -35,7 +37,7 @@ function confirmMessage(name: string, date: string, account: Account, preview: P
         : `${formatRupiah(preview.creditAmount)} dari pembayaran ini menjadi kredit anggota.`,
     );
   }
-  lines.push('Pembayaran belum bisa dikoreksi setelah disimpan.');
+  lines.push('Kalau salah, pembayaran bisa dikoreksi dari halaman anggota (dengan alasan).');
   return lines.join('\n\n');
 }
 
@@ -73,7 +75,7 @@ export default function PayScreen() {
     setError(null);
     const amount = parseRupiahInput(amountText);
     if (amount === null) {
-      setError('Isi jumlah pembayaran dengan angka, misalnya 15000.');
+      setError(amountText.trim().length === 0 ? 'Isi jumlah pembayaran, misalnya 15000.' : AMOUNT_FORMAT_HINT);
       return;
     }
     setBusy(true);
@@ -81,7 +83,9 @@ export default function PayScreen() {
       const preview = await repos.payments.preview({ periodId: id, memberId, date, amount });
       setBusy(false);
       Alert.alert(
-        preview.creditAmount > 0 ? 'Sebagian menjadi kredit' : 'Konfirmasi pembayaran',
+        preview.creditAmount > 0
+          ? `Sebagian menjadi kredit - ${formatRupiah(preview.amount)}`
+          : `Konfirmasi pembayaran ${formatRupiah(preview.amount)}`,
         confirmMessage(memberName, date, account, preview),
         [
           { text: 'Batal', style: 'cancel' },
@@ -101,13 +105,7 @@ export default function PayScreen() {
         <Text style={styles.name}>{memberName}</Text>
 
         <TextField label="Tanggal bayar (TTTT-BB-HH)" value={date} onChangeText={setDate} keyboardType="numbers-and-punctuation" />
-        <TextField
-          label="Jumlah (kelipatan Rp15.000)"
-          value={amountText}
-          onChangeText={setAmountText}
-          keyboardType="number-pad"
-          placeholder="15000"
-        />
+        <AmountField label="Jumlah (kelipatan Rp15.000)" value={amountText} onChangeText={setAmountText} placeholder="15000" />
 
         <Text style={styles.label}>Uang masuk ke</Text>
         <View style={styles.accounts}>

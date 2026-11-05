@@ -20,7 +20,12 @@ export default function PeriodDetailScreen() {
       repos.weeks.listByPeriod(id),
       repos.members.list(),
     ]);
-    return { period, weeks, members };
+    // Which meetings already have a host payout in force (a corrected payout does not count).
+    const paidWeeks = new Set<number>();
+    for (const w of weeks) {
+      if (await repos.ledger.getWeekPayout(id, w.number)) paidWeeks.add(w.number);
+    }
+    return { period, weeks, members, paidWeeks };
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
@@ -31,7 +36,7 @@ export default function PeriodDetailScreen() {
   if (!data) return <Text style={styles.muted}>Memuat...</Text>;
   if (!data.period) return <Text style={styles.error}>Periode tidak ditemukan.</Text>;
 
-  const { period, weeks, members } = data;
+  const { period, weeks, members, paidWeeks } = data;
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const selectable = selectableWeekNumbers(weeks);
@@ -123,6 +128,9 @@ export default function PeriodDetailScreen() {
       <Text style={styles.section}>Jadwal</Text>
       {weeks.map((w) => {
         const canPick = isActive && w.status === 'open' && selectable.includes(w.number);
+        const isPaid = paidWeeks.has(w.number);
+        // Same rule as the repository: a host payout is possible for the current meeting or a closed one.
+        const canPay = isActive && !isPaid && w.hostMemberId !== null && (w.status === 'closed' || w.number === oldestOpen?.number);
         return (
           <View key={w.number} style={styles.row}>
             <View style={styles.flex}>
@@ -135,15 +143,31 @@ export default function PeriodDetailScreen() {
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
             </View>
-            {canPick ? (
-              <Button
-                label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
-                variant="secondary"
-                onPress={() =>
-                  router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
-                }
-              />
-            ) : null}
+            <View style={styles.actions}>
+              {canPick ? (
+                <Button
+                  label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
+                  }
+                />
+              ) : null}
+              {canPay ? (
+                <Button
+                  label="Bayar tuan rumah"
+                  onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
+                />
+              ) : null}
+              {isPaid && isActive ? (
+                <Button
+                  label="Sudah dibayar"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
+                />
+              ) : null}
+              {isPaid && !isActive ? <Text style={styles.open}>Sudah dibayar</Text> : null}
+            </View>
           </View>
         );
       })}
@@ -171,6 +195,7 @@ const styles = StyleSheet.create({
   section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3' },
   flex: { flex: 1 },
+  actions: { gap: 6 },
   weekTitle: { fontWeight: '600' },
   open: { color: '#1f6f50' },
   closed: { color: '#666' },

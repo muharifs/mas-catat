@@ -89,7 +89,11 @@ interface WeekAmountRow {
   total: number;
 }
 
-/** Stored amounts per week for one member: paid via allocations and settled via host offsets. */
+/**
+ * Stored amounts per week for one member: paid via allocations and settled via host offsets.
+ * Corrected things are ignored but never deleted: allocations of a reversed payment, and offset credits of an
+ * offset entry that has a reversal.
+ */
 export async function loadWeekAmounts(
   db: Queryable,
   periodId: string,
@@ -97,11 +101,14 @@ export async function loadWeekAmounts(
 ): Promise<{ paid: WeekCredit[]; offset: WeekCredit[] }> {
   const toCredits = (rows: WeekAmountRow[]): WeekCredit[] => rows.map((r) => ({ week: r.week, amount: r.total }));
   const paid = await db.getAll<WeekAmountRow>(
-    'SELECT week, SUM(amount) AS total FROM allocations WHERE period_id = ? AND member_id = ? GROUP BY week ORDER BY week',
+    'SELECT week, SUM(amount) AS total FROM allocations WHERE period_id = ? AND member_id = ? AND payment_id NOT IN (SELECT payment_id FROM payment_reversals) GROUP BY week ORDER BY week',
     [periodId, memberId],
   );
   const offset = await db.getAll<WeekAmountRow>(
-    'SELECT week, SUM(amount) AS total FROM offset_credits WHERE period_id = ? AND member_id = ? GROUP BY week ORDER BY week',
+    `SELECT week, SUM(amount) AS total FROM offset_credits
+      WHERE period_id = ? AND member_id = ?
+        AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.reverses_entry_id = offset_credits.ledger_entry_id)
+      GROUP BY week ORDER BY week`,
     [periodId, memberId],
   );
   return { paid: toCredits(paid), offset: toCredits(offset) };

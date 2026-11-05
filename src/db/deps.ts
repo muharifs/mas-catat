@@ -22,3 +22,10 @@ export const defaultDeps: RepoDeps = {
   newId: defaultNewId,
   now: () => new Date().toISOString(),
 };
+
+/** Local calendar date of the injected clock, as ISO. The phone's own timezone is what the owner sees. */
+export function todayOf(deps: RepoDeps): string {
+  const d = new Date(deps.now());
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}

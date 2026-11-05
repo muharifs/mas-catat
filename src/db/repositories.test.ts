@@ -606,7 +606,7 @@ describe('M4: recording payments', () => {
     await f.repos.payments.record(pay(f, 0, 15_000));
     const settled = await f.repos.ledger.settleHost(f.periodId, 1, '2026-01-04');
     expect(settled.entries.map((e) => e.type)).toEqual(['host_payout']);
-    expect(settled.entries[0]?.account).toBeNull();
+    expect(settled.entries[0]?.account).toBe('tunai');
   });
 });
 

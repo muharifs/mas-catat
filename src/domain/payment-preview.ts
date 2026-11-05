@@ -11,6 +11,8 @@ export interface PaymentPreview {
   amount: Rupiah;
   /** Weeks this payment fills, oldest first. Same rows that will be stored in `allocations`. */
   allocations: Allocation[];
+  /** Number of weeks (pertemuan) this payment touches, fully or partly. */
+  weekCount: number;
   /** Part of the amount applied to weekly dues. */
   allocatedAmount: Rupiah;
   /** Part beyond the remaining dues of the period: becomes member credit (0 if none). */
@@ -52,6 +54,7 @@ export function previewPayment(payment: Payment, statuses: readonly WeekStatus[]
   return {
     amount: payment.amount,
     allocations: result.allocations,
+    weekCount: touched.size,
     allocatedAmount: payment.amount - result.credit,
     creditAmount: result.credit,
     settledWeeks,
@@ -73,12 +76,22 @@ export function weekState(s: WeekStatus): WeekState {
   return 'unpaid';
 }
 
+/** Message shown when the amount text is not plain digits or correctly grouped thousands. */
+export const AMOUNT_FORMAT_HINT = 'Tulis jumlah tanpa koma, misalnya 45000 atau 45.000.';
+
+const PLAIN_DIGITS = /^\d+$/;
+const DOT_GROUPED = /^\d{1,3}(\.\d{3})+$/;
+
 /**
- * Turns text typed in the amount field into integer rupiah, or null when it is empty or not whole digits.
- * Dots, commas and spaces are accepted as thousands separators ("45.000"). No floating point is used.
+ * Turns text typed in the amount field into integer rupiah, or null when it is empty or not a clean number.
+ * Accepted: plain digits ("45000") or dots as correctly grouped thousands ("45.000", "1.045.000").
+ * Rejected: commas, decimals ("15.00", "15000,00"), wrong grouping ("1.5000"), spaces inside, letters, signs.
+ * Spaces around the whole text are ignored (phone keyboards add them). No floating point is used.
  */
 export function parseRupiahInput(text: string): Rupiah | null {
-  const cleaned = text.replace(/[.,\s]/g, '');
-  if (!/^\d+$/.test(cleaned) || cleaned.length > 12) return null;
-  return Number(cleaned);
+  const trimmed = text.trim();
+  if (!PLAIN_DIGITS.test(trimmed) && !DOT_GROUPED.test(trimmed)) return null;
+  const digits = trimmed.replace(/\./g, '');
+  if (digits.length > 12) return null;
+  return Number(digits);
 }

@@ -88,14 +88,39 @@ describe('weekState', () => {
 });
 
 describe('parseRupiahInput', () => {
-  it('reads whole digits with optional separators', () => {
+  it('reads plain digits and correctly grouped thousands', () => {
     expect(parseRupiahInput('45000')).toBe(45_000);
-    expect(parseRupiahInput(' 45.000 ')).toBe(45_000);
+    expect(parseRupiahInput('45.000')).toBe(45_000);
+    expect(parseRupiahInput('1.045.000')).toBe(1_045_000);
+    expect(parseRupiahInput('999')).toBe(999);
+    expect(parseRupiahInput('0')).toBe(0);
   });
-  it('returns null for empty or non-numeric text', () => {
-    expect(parseRupiahInput('')).toBeNull();
-    expect(parseRupiahInput('abc')).toBeNull();
-    expect(parseRupiahInput('-15000')).toBeNull();
-    expect(parseRupiahInput('1x')).toBeNull();
+
+  it('ignores spaces around the whole text only', () => {
+    expect(parseRupiahInput(' 45.000 ')).toBe(45_000);
+    expect(parseRupiahInput('45 000')).toBeNull();
+  });
+
+  it.each(['15000,00', '1,5', '15,000', '15.00', '1.5000', '.000', '15.', '1..000', '1234.000', '15.0000', '', '   ', 'abc', '-15000', '1x', '+15000', '1e3', '15000.5'])(
+    'rejects %j',
+    (text) => {
+      expect(parseRupiahInput(text)).toBeNull();
+    },
+  );
+
+  it('rejects numbers longer than 12 digits', () => {
+    expect(parseRupiahInput('1234567890123')).toBeNull();
+    expect(parseRupiahInput('123456789012')).toBe(123_456_789_012);
+  });
+});
+
+describe('previewPayment weekCount', () => {
+  it('counts the weeks the payment touches, credit weeks excluded', () => {
+    expect(previewPayment(pay(45_000), blank(4)).weekCount).toBe(3);
+    expect(previewPayment(pay(15_000), blank(4)).weekCount).toBe(1);
+    const s = blank(2);
+    expect(previewPayment(pay(60_000), s).weekCount).toBe(2); // 2 weeks, 30.000 credit
+    const settled = s.map((w) => ({ ...w, paid: 15_000, outstanding: 0 }));
+    expect(previewPayment(pay(30_000), settled).weekCount).toBe(0); // everything is credit
   });
 });

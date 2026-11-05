@@ -1,7 +1,8 @@
 // Host payout and debt offset, recorded as two separate ledger entries. Pure.
 import { hostPayoutAmount } from './dues';
 import { assertIsoDate, assertPositiveInt, assertRupiah } from './money';
-import type { IsoDate, LedgerEntry, Rupiah, UnpaidWeek, WeekCredit } from './types';
+import type { KasBalances } from './kas';
+import type { Account, IsoDate, LedgerEntry, Rupiah, UnpaidWeek, WeekCredit } from './types';
 
 export interface HostSettlement {
   /** [payout] or [payout, offset]. Never a single silently reduced number. */
@@ -33,8 +34,10 @@ export function buildHostSettlement(params: {
   week: number;
   date: IsoDate;
   hostUnpaidWeeks: readonly UnpaidWeek[];
+  /** Pos both entries are booked on (payout out, offset in). Omit for an entry without pos. */
+  account?: Account;
 }): HostSettlement {
-  const { memberCount, hostMemberId, week, date, hostUnpaidWeeks } = params;
+  const { memberCount, hostMemberId, week, date, hostUnpaidWeeks, account } = params;
   assertPositiveInt(week, 'week');
   assertIsoDate(date, 'date');
   const payout = hostPayoutAmount(memberCount);
@@ -67,6 +70,7 @@ export function buildHostSettlement(params: {
       memberId: hostMemberId,
       week,
       note: `Host payout week ${week}`,
+      ...(account ? { account } : {}),
     },
   ];
 
@@ -88,8 +92,53 @@ export function buildHostSettlement(params: {
       memberId: hostMemberId,
       week,
       note: `Offset of unpaid dues, weeks ${weekList}${capNote}`,
+      ...(account ? { account } : {}),
     });
   }
 
   return { entries, offsetWeeks, netCash: payout - offsetTotal, remainingDebt: totalDebt - offsetTotal };
+}
+
+export interface PayoutPreview extends HostSettlement {
+  account: 'tunai' | 'debit';
+  /** Full host payout, 10.000 x N. */
+  payout: Rupiah;
+  /** Debt offset against the payout (0 when the host has no debt). */
+  offset: Rupiah;
+  /** Tunai + Debit before the payout. */
+  kasBefore: Rupiah;
+  /** Balance of the chosen pos before the payout. */
+  accountBefore: Rupiah;
+  /** Warning: Tunai + Debit is below the net cash out. Never a block. */
+  kasShort: boolean;
+  /** Warning: the chosen pos alone is below the net cash out. Never a block. */
+  accountShort: boolean;
+}
+
+/**
+ * What paying out the host would do, including the balance warnings. Uses buildHostSettlement, so the preview
+ * equals what is saved. Both entries are on the SAME pos, so that pos loses the net cash out (payout - offset).
+ */
+export function previewHostPayout(params: {
+  memberCount: number;
+  hostMemberId: string;
+  week: number;
+  date: IsoDate;
+  hostUnpaidWeeks: readonly UnpaidWeek[];
+  account: 'tunai' | 'debit';
+  balances: KasBalances;
+}): PayoutPreview {
+  const settlement = buildHostSettlement(params);
+  const payout = settlement.entries[0]?.amount ?? 0;
+  const accountBefore = params.balances[params.account];
+  return {
+    ...settlement,
+    account: params.account,
+    payout,
+    offset: payout - settlement.netCash,
+    kasBefore: params.balances.actual,
+    accountBefore,
+    kasShort: params.balances.actual < settlement.netCash,
+    accountShort: accountBefore < settlement.netCash,
+  };
 }

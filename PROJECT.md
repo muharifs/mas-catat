@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-05 (M3b added). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-05 (M5 split into M5a/M5b, M5a implemented). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -27,7 +27,8 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M3 | Members and periods | Add/edit members, create period, editable host schedule per week, start/end period | 2-3 days | M2 | Done (2026-11-05); owner reported trying it on the phone on 2026-11-05 with no problem reported |
 | M4 | Dues and payments | Record payments (advance or late, always multiples of Rp15.000), allocate to weekly dues, show per-member balance and arrears, warn before saving when part of a payment becomes credit, payment money enters Tunai/Debit on receipt; "Tutup minggu"; migration 0002 (ledger account) | 2-3 days | M3 | Implemented 2026-11-05, not yet verified on the phone |
 | M3b | Meetings and host selection | Hosts chosen per meeting within a two-meeting window instead of a fixed order set at creation; meeting date set with the host; "Minggu" renamed "Pertemuan" in the UI; no migration (decisions in section 5) | 1-2 days | M4 | Implemented 2026-11-05, not yet verified on the phone |
-| M5 | Payout and kas ledger | Host payout, offset against debt as two entries, kas in/out across pos (Tunai, Debit, Piutang), transfers, shared-goal cash-out, corrections with change trail, credit carry-over (migration 0003), credit refund entry; payout must work on an already CLOSED week; the offset uses arrears at payout time | 2-3 days | M4 | Not started |
+| M5a | Payout and kas ledger | Host payout + offset as two entries (works on an already CLOSED week; offset uses arrears at payout time), kas ledger across pos (Tunai, Debit, Piutang) with opening balances, transfers, loans and repayments, shared-goal cash-out, corrections by reversal with change trail, migration 0003, strict amount parser | 1.5-2 days | M4 | Implemented 2026-11-05, not yet verified on the phone |
+| M5b | Period close and credit | Write-off (one entry per member), pre-close screen, credit carry-over, credit refund entry, migration 0004, and blocking period close until every host is paid | 1-1.5 days | M5a | Not started, needs its own owner approval |
 | M6 | Reports | Per-member history, per-week summary, kas balance, period summary, "Titipan kredit anggota" line, expected kas = actual + outstanding dues - credit held | 2 days | M5 | Not started |
 | M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
 | M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
@@ -35,7 +36,19 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 
 Total v1 estimate: about 2-3 weeks of part-time work (assumption: a few hours per day).
 
-M5 status: M5 was proposed and split into M5a and M5b; it still awaits owner approval and nothing has been started. The owner's phone check result for M4 has not been received.
+M5 status: M5 is split into M5a and M5b. M5a was approved by the owner ("approved M5a, ikut usul") and is implemented but NOT verified on the phone. M5b has not started and needs its own approval. The phone checks of M4 and M3b are still unverified (no result received).
+
+### M5a phone checklist (owner, Expo Go; none of these has been checked yet)
+1. Opening the app after the update runs migration 0003 silently, with no error screen; old data is still there.
+2. Kas screen: balances of Tunai, Debit and Piutang match what is expected from existing payments.
+3. Opening balance per pos can be entered; amount fields show the parser hints; commas are rejected, "15.000" and "15000" are accepted.
+4. Transfer Tunai to Debit and Debit to Tunai; loan to a member (Piutang); repayment goes into Tunai; shared-goal spending with a note.
+5. "Koreksi" requires a reason; an entry cannot be corrected twice.
+6. A payment can be corrected with "Koreksi" and then re-entered; weeks and credit shown are right afterwards.
+7. "Bayar tuan rumah": the preview shows payout and offset as two lines; balance warnings appear but do not block; paying from Debit works.
+8. Payout works on a CLOSED meeting, is not offered for a future meeting; after "Sudah dibayar" the payout can be corrected and paid again.
+9. Old entries without a pos show "tanpa pos".
+10. All user-visible texts say "Pertemuan" (no "Minggu").
 
 ### M3b phone checklist (owner, Expo Go; none of these has been checked yet)
 1. Old period is still complete with the same hosts and dates, and texts say "Pertemuan N".
@@ -122,9 +135,31 @@ Developer assumptions in M3b, to be reviewed by the owner:
 - A period with N=1 auto-assigns its only meeting.
 - Expo docs for nested dynamic routes were inferred from existing screens, not re-read.
 
+Decided (owner, 2026-11-05, M5a: "approved M5a, ikut usul"):
+- M5 is split. M5a = payout + offset, kas ledger across pos, corrections, migration 0003, strict amount parser. M5b = write-off, pre-close screen, credit carry-over, credit refund, migration 0004.
+- M5b decision: closing a period is BLOCKED until every host has been paid.
+- Opening balance is recorded as an `opening_balance` entry per pos (Tunai, Debit, Piutang) and is corrected by reversal like any other entry.
+- Host payout is allowed only for the current meeting or a closed meeting (not a future one).
+- Balance warning compares the amount with net cash out and never blocks saving.
+- Corrections (reversal) are only possible in the active period.
+- Loans (Piutang) are only for members of the active period.
+- Transfers, loans and opening balances attach to the active period and cannot be recorded when no period is active.
+- Commas are rejected in amounts. The parser accepts only plain digits or correctly grouped thousands with dots (e.g. 15000, 15.000).
+- CLAUDE.md got one sentence: `week` is null on member_payment entries.
+
+Developer assumptions in M5a, to be reviewed by the owner:
+- The offset counts the host's arrears through the host's OWN meeting number, not through the current week.
+- shared_goal and loan_repayment entries attach to the active period (period_id is NOT NULL); the member of a repayment must belong to the active period.
+- Entries of a closed period cannot be corrected.
+- Balance warnings are extended to transfers, loans, repayments and shared goals (not only payouts).
+- Payments whose ledger backfill cannot find a match keep ledger_entry_id NULL and cannot be corrected.
+- The reversal date is today (phone date).
+- Reversal entries have their own type 'reversal'.
+
 Still open: none for v1. New questions will be added here as they come up.
 
 ## 6. Progress log (newest first)
+- 2026-11-05: M5a implemented (owner approved: "approved M5a, ikut usul"), status "implemented, NOT yet verified on the phone". Scope: host payout + offset, kas ledger across Tunai/Debit/Piutang, corrections by reversal, migration 0003, strict amount parser. Decisions and developer assumptions are in section 5; phone checklist is under the milestone table. Verified: `npm test` 317 passed in 14 suites (baseline 201 in 9); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundled OK (about 2.8MB). Tests run on sql.js, so migration 0003 SQL on expo-sqlite is UNPROVEN until the phone. Existing tests whose assertions changed: migrate.test.ts (userVersion now MIGRATIONS.length), repositories.test.ts (settleHost account is now 'tunai' by default), payment-preview.test.ts (parseRupiahInput block rewritten for the strict parser). NOT verified: all M5a screens on the phone. M5b not started. M4 and M3b phone checks also remain unverified. Next: owner phone check (M3b, M4, M5a), then M5b proposal.
 - 2026-11-05: M3b implemented (owner approved: "approved M3b, ikut usul tampilan minggu diganti pertemuan pada poin 9"), status "implemented, NOT yet verified on the phone". Decisions and developer assumptions are in section 5; phone checklist is under the milestone table. Files: CLAUDE.md, src/domain/schedule.ts (+test), src/db/periods.ts, weeks.ts, ledger.ts, repositories.test.ts, src/ui/errors.ts (+test), src/ui/meetingDate.ts (+test), src/app/index.tsx, _layout.tsx, periods/new.tsx, periods/[id]/index.tsx, periods/[id]/meetings/[number].tsx, pay.tsx, payments.tsx, members/[memberId].tsx. No migration, no app.json change, no dependency added. Verified: `npm test` 201 passed in 9 suites (was 156 in 8: +45 tests, +1 suite); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundled OK (1 android bundle, about 2.7MB, output in a temp folder outside the project, removed). Test assertions changed: repositories.test.ts creation test now expects host [null x4]; three tests only had the param renamed from hostOrder to memberIds; the setup() fixture now writes a full schedule via SQL to mimic old periods; errors.test.ts four assertions "minggu" to "pertemuan" plus 10 new cases; schedule.test.ts moveItem/previewSchedule tests removed (functions removed) and replaced. NOT verified: the screens on the phone / Expo Go, and the expo-sqlite adapter for the new queries (tests use sql.js). M5 was proposed and split into M5a and M5b, still awaiting owner approval, nothing started. The owner's M4 phone check result has not been received. Next: owner phone check of M3b (and M4), then M5 approval.
 - 2026-11-05: M4 implemented (owner approved: "approved m4 ikut usul"), status "implemented, NOT yet verified on the phone". Owner also reported that M3 was tried on the phone ("sudah saya coba di m3") with no problem reported on 2026-11-05, so the expo-sqlite adapter and the M3 screens count as working on a device; M4 itself and migration 0002 are not yet seen on the phone. Added: migration 0002 (ledger_entries.account), src/domain/payment-preview.ts (+ test: previewPayment, assertPaymentDate, weekState, parseRupiahInput), screens periods/[id]/payments.tsx (payment list with arrears flag), periods/[id]/members/[memberId].tsx (per-week status, payment history with real dates and settled weeks, "Catat pembayaran"), periods/[id]/pay.tsx (form: date, amount, Tunai/Debit, confirmation with settled weeks and credit warning), "Tutup minggu" on period detail and Home, Home arrears summary (members in arrears and total through the current week), src/ui/format.ts (formatRupiah). periods/[id].tsx moved to periods/[id]/index.tsx. Changed: payments.ts (record now requires `account`, rejects ended period and future/invalid date, writes the payment, allocations and ONE member_payment ledger entry for the whole amount in one transaction; new preview, listBalances, getArrearsSummary), ledger.ts (account column, insertEntry exported), weeks.ts (closeOldest, currentWeek; per-member week status loaders moved here from payments.ts to avoid a payments/ledger import cycle, payments.ts re-exports them), types.ts (Account, optional LedgerEntry.account), ui/errors.ts (+ test). Preview and record use the same domain function, and a test checks they match. Existing repository tests: `now` in the fixture clock moved to 2026-12-31 (so test payment dates are not "in the future") and record calls got `account: 'tunai'`; no assertion was changed. Verified: 156 tests in 8 suites pass (110 old + 46 new), lint and typecheck clean, `expo export --platform android` bundles (output in a temp folder). The tests use sql.js, so they do NOT prove migration 0002 or the new screens work on the phone (the expo-sqlite adapter applies the same SQL, but only the phone proves it). Not done: settleHost untouched (M5), no correction of wrong payments (M5), no credit carry-over (M5), `weeks.close(number)` still allows closing out of order (only the UI path closeOldest enforces order). Next: owner phone check of M4, then M5 proposal.
 - 2026-11-05: Owner marked M3 done and will run the Expo Go checklist later. So the expo-sqlite adapter and all M3 screens are STILL UNVERIFIED on a device; only tests (sql.js), typecheck, lint and bundling passed. Any phone findings are to be fixed before or alongside M4. Next: M4 proposal, waiting for owner "approved".

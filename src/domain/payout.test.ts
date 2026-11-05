@@ -1,6 +1,7 @@
 import { allocatePayments } from './allocation';
 import { unpaidWeeksThrough } from './dues';
-import { buildHostSettlement } from './payout';
+import { buildHostSettlement, previewHostPayout } from './payout';
+import { computeKasBalances } from './kas';
 
 const base = { memberCount: 5, hostMemberId: 'h', week: 3, date: '2026-01-15' };
 
@@ -145,5 +146,56 @@ describe('buildHostSettlement', () => {
     expect(() => buildHostSettlement({ ...base, date: 'x', hostUnpaidWeeks: [] })).toThrow(/ISO date/);
     expect(() => buildHostSettlement({ ...base, hostUnpaidWeeks: [{ week: 1, amount: -1 }] })).toThrow(/unpaid amount/);
     expect(() => buildHostSettlement({ ...base, hostUnpaidWeeks: [{ week: 1, amount: 1.5 }] })).toThrow(/unpaid amount/);
+  });
+});
+
+describe('buildHostSettlement account', () => {
+  it('books payout and offset on the SAME pos', () => {
+    const r = buildHostSettlement({ ...base, hostUnpaidWeeks: [{ week: 1, amount: 15_000 }], account: 'debit' });
+    expect(r.entries.map((e) => [e.type, e.account])).toEqual([
+      ['host_payout', 'debit'],
+      ['host_offset', 'debit'],
+    ]);
+  });
+});
+
+describe('previewHostPayout', () => {
+  const balances = (tunai: number, debit: number) =>
+    computeKasBalances([
+      { direction: 'in', amount: tunai, account: 'tunai' },
+      { direction: 'in', amount: debit, account: 'debit' },
+    ]);
+  const input = { ...base, memberCount: 4, hostUnpaidWeeks: [{ week: 1, amount: 15_000 }], account: 'tunai' as const };
+
+  it('shows payout, offset, net cash out and remaining debt', () => {
+    const p = previewHostPayout({ ...input, balances: balances(100_000, 0) });
+    expect(p).toMatchObject({ payout: 40_000, offset: 15_000, netCash: 25_000, remainingDebt: 0, account: 'tunai' });
+    expect(p.offsetWeeks).toEqual([{ week: 1, amount: 15_000 }]);
+    expect(p.kasShort).toBe(false);
+    expect(p.accountShort).toBe(false);
+  });
+
+  it('warns on the NET cash out, not on the full payout', () => {
+    // Net 25.000: kas of 30.000 covers it although the full payout is 40.000.
+    expect(previewHostPayout({ ...input, balances: balances(30_000, 0) }).kasShort).toBe(false);
+    expect(previewHostPayout({ ...input, balances: balances(20_000, 0) }).kasShort).toBe(true);
+  });
+
+  it('warns separately when only the chosen pos is short', () => {
+    const p = previewHostPayout({ ...input, balances: balances(10_000, 100_000) });
+    expect(p.kasShort).toBe(false);
+    expect(p.accountShort).toBe(true);
+    const onDebit = previewHostPayout({ ...input, account: 'debit', balances: balances(10_000, 100_000) });
+    expect(onDebit.accountShort).toBe(false);
+  });
+
+  it('without debt the net cash out equals the payout', () => {
+    const p = previewHostPayout({ ...input, hostUnpaidWeeks: [], balances: balances(39_999, 0) });
+    expect(p).toMatchObject({ offset: 0, netCash: 40_000, kasShort: true });
+  });
+
+  it('keeps the remaining debt when it is capped', () => {
+    const p = previewHostPayout({ ...input, hostUnpaidWeeks: [1, 2, 3, 4].map((week) => ({ week, amount: 15_000 })), balances: balances(0, 0) });
+    expect(p).toMatchObject({ payout: 40_000, offset: 40_000, netCash: 0, remainingDebt: 20_000, kasShort: false });
   });
 });

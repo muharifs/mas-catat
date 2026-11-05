@@ -4,12 +4,13 @@
 // and then stored. It is never recomputed, so entering a back-dated payment later cannot move what was
 // already allocated. The repository only reads/writes rows; the money rules stay in src/domain.
 import { memberBalance } from '@/domain/dues';
+import { buildReversal, requireReason } from '@/domain/reversal';
 import { assertPaymentDate, previewPayment, type PaymentPreview } from '@/domain/payment-preview';
 import type { Account, Allocation, Payment, WeekStatus } from '@/domain/types';
 import type { Db, Queryable } from './db';
-import { defaultDeps, type RepoDeps } from './deps';
+import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
-import { insertEntry } from './ledger';
+import { insertEntry, loadEntry, requireActivePeriod, type StoredLedgerEntry } from './ledger';
 import { loadCurrentWeek, loadWeekStatuses } from './weeks';
 
 export { loadWeekAmounts, loadWeekStatuses } from './weeks';
@@ -61,7 +62,11 @@ export interface RecordedPayment {
 
 /** A payment with its derived credit: amount minus everything allocated from it. */
 export interface PaymentWithCredit extends Payment {
+  /** Amount beyond the allocations. Always 0 for a corrected payment. */
   credit: number;
+  /** True when the payment was corrected (reversed). It stays visible but counts for nothing. */
+  reversed: boolean;
+  reversalReason: string | null;
 }
 
 /** One member's position in a period, counted through the current week (the oldest open week). */
@@ -80,13 +85,6 @@ export interface ArrearsSummary {
   throughWeek: number;
   membersInArrears: number;
   totalArrears: number;
-}
-
-/** Local calendar date of the injected clock, as ISO. The phone's own timezone is what the owner sees. */
-function todayOf(deps: RepoDeps): string {
-  const d = new Date(deps.now());
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /** Shared by preview and record, so both reject exactly the same things. Reads through the given handle. */
@@ -137,23 +135,9 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return db.transaction(async (tx) => {
         const { payment, preview } = await validateAndPreview(tx, deps, input, deps.newId());
 
-        await tx.run('INSERT INTO payments (id, period_id, member_id, date, amount, created_at) VALUES (?, ?, ?, ?, ?, ?)', [
-          payment.id,
-          input.periodId,
-          payment.memberId,
-          payment.date,
-          payment.amount,
-          deps.now(),
-        ]);
-        // Any surplus (preview.creditAmount) is NOT stored: it is derived later as amount - SUM(allocations).
-        for (const a of preview.allocations) {
-          await tx.run(
-            'INSERT INTO allocations (payment_id, period_id, member_id, week, amount, payment_date) VALUES (?, ?, ?, ?, ?, ?)',
-            [a.paymentId, input.periodId, a.memberId, a.week, a.amount, a.paymentDate],
-          );
-        }
-        // week is null on purpose: one payment can span several weeks; the detail lives in allocations.
-        await insertEntry(tx, deps, {
+        // The ledger entry goes first so the payment row can point at it (payments.ledger_entry_id). Week is null
+        // on purpose: one payment can span several weeks; the detail lives in allocations.
+        const entry = await insertEntry(tx, deps, {
           periodId: input.periodId,
           type: 'member_payment',
           direction: 'in',
@@ -164,6 +148,17 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           note: '',
           account: input.account,
         });
+        await tx.run(
+          'INSERT INTO payments (id, period_id, member_id, date, amount, created_at, ledger_entry_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [payment.id, input.periodId, payment.memberId, payment.date, payment.amount, deps.now(), entry.id],
+        );
+        // Any surplus (preview.creditAmount) is NOT stored: it is derived later as amount - SUM(allocations).
+        for (const a of preview.allocations) {
+          await tx.run(
+            'INSERT INTO allocations (payment_id, period_id, member_id, week, amount, payment_date) VALUES (?, ?, ?, ?, ?, ?)',
+            [a.paymentId, input.periodId, a.memberId, a.week, a.amount, a.paymentDate],
+          );
+        }
         return { payment, allocations: preview.allocations, credit: preview.creditAmount };
       });
     },
@@ -228,26 +223,72 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return rows.map(toAllocation);
     },
 
-    /** Payments with their credit (amount - allocated), oldest date first. Read-only; allocations never move. */
+    /**
+     * Payments with their credit (amount - allocated), oldest date first. Read-only; allocations never move.
+     * Corrected payments are included (marked reversed, credit 0) so the history stays complete.
+     */
     async listWithCredit(periodId: string, memberId: string): Promise<PaymentWithCredit[]> {
-      const rows = await db.getAll<PaymentRow & { allocated: number }>(
-        `SELECT p.id, p.member_id, p.date, p.amount,
+      const rows = await db.getAll<PaymentRow & { allocated: number; reversal_reason: string | null }>(
+        `SELECT p.id, p.member_id, p.date, p.amount, pr.reason AS reversal_reason,
                 COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id), 0) AS allocated
-           FROM payments p WHERE p.period_id = ? AND p.member_id = ? ORDER BY p.date, p.rowid`,
+           FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
+          WHERE p.period_id = ? AND p.member_id = ? ORDER BY p.date, p.rowid`,
         [periodId, memberId],
       );
-      return rows.map((r) => ({ ...toPayment(r), credit: r.amount - r.allocated }));
+      return rows.map((r) => ({
+        ...toPayment(r),
+        credit: r.reversal_reason === null ? r.amount - r.allocated : 0,
+        reversed: r.reversal_reason !== null,
+        reversalReason: r.reversal_reason,
+      }));
     },
 
-    /** Total credit of a member in a period (integer rupiah): sum over payments of amount - allocated. */
+    /** Total credit of a member in a period (integer rupiah). Corrected payments count for nothing. */
     async getCredit(periodId: string, memberId: string): Promise<number> {
       const row = await db.getFirst<{ credit: number }>(
         `SELECT COALESCE(SUM(p.amount), 0)
-                - COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.period_id = ? AND a.member_id = ?), 0) AS credit
-           FROM payments p WHERE p.period_id = ? AND p.member_id = ?`,
+                - COALESCE((SELECT SUM(a.amount) FROM allocations a
+                             WHERE a.period_id = ? AND a.member_id = ?
+                               AND a.payment_id NOT IN (SELECT payment_id FROM payment_reversals)), 0) AS credit
+           FROM payments p
+          WHERE p.period_id = ? AND p.member_id = ? AND p.id NOT IN (SELECT payment_id FROM payment_reversals)`,
         [periodId, memberId, periodId, memberId],
       );
       return row?.credit ?? 0;
+    },
+
+    /**
+     * Corrects a wrong payment in ONE transaction: appends the reversal of its ledger entry (same pos, opposite
+     * direction) and records the payment as reversed. Its allocations stay in the table but stop counting, so
+     * those dues are unpaid again; other payments' allocations do not move. The correct payment is then entered
+     * through record(). Only in an active period, only once, reason required.
+     */
+    async reverse(paymentId: string, reason: string): Promise<StoredLedgerEntry> {
+      const cleanReason = requireReason(reason);
+      return db.transaction(async (tx) => {
+        const payment = await tx.getFirst<{ period_id: string; ledger_entry_id: string | null }>(
+          'SELECT period_id, ledger_entry_id FROM payments WHERE id = ?',
+          [paymentId],
+        );
+        if (!payment) throw new RepositoryError(`payment ${paymentId} not found`);
+        await requireActivePeriod(tx, payment.period_id, 'a correction');
+        const done = await tx.getFirst('SELECT 1 AS ok FROM payment_reversals WHERE payment_id = ?', [paymentId]);
+        if (done) throw new RepositoryError(`payment ${paymentId} is already corrected`);
+        if (!payment.ledger_entry_id) throw new RepositoryError(`payment ${paymentId} has no ledger entry to reverse`);
+        const entry = await loadEntry(tx, payment.ledger_entry_id);
+        if (!entry) throw new RepositoryError(`ledger entry ${payment.ledger_entry_id} not found`);
+        if (entry.reversedById) throw new RepositoryError(`payment ${paymentId} is already corrected`);
+
+        const reversal = buildReversal(entry, { reason: cleanReason, date: todayOf(deps) });
+        const stored = await insertEntry(tx, deps, { ...reversal, periodId: payment.period_id });
+        await tx.run('INSERT INTO payment_reversals (payment_id, reversal_entry_id, reason, created_at) VALUES (?, ?, ?, ?)', [
+          paymentId,
+          stored.id,
+          cleanReason,
+          deps.now(),
+        ]);
+        return stored;
+      });
     },
 
     /** Per-week paid / offset / outstanding for one member, weeks 1..N. */

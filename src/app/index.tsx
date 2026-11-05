@@ -132,6 +132,7 @@ export default function HomeScreen() {
 
       <View style={styles.links}>
         <Button label="Anggota" variant="secondary" onPress={() => router.push('/members')} />
+        <Button label="Kas" variant="secondary" onPress={() => router.push('/kas')} />
         <Button label="Periode" variant="secondary" onPress={() => router.push('/periods')} />
         <Button label="Buat Periode" onPress={() => router.push('/periods/new')} />
       </View>

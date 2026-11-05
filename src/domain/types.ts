@@ -44,10 +44,19 @@ export interface UnpaidWeek {
 }
 
 /**
- * Ledger entry types. M5 will extend this union (transfer, loan, repayment,
- * shared-goal spending, reversal) and add an account (pos) field.
+ * Ledger entry types. Move types (transfer, loan, loan_repayment) are ONE entry with account (source) and
+ * toAccount (destination). 'reversal' cancels an earlier entry (see reversal.ts).
  */
-export type LedgerEntryType = 'member_payment' | 'host_payout' | 'host_offset';
+export type LedgerEntryType =
+  | 'member_payment'
+  | 'host_payout'
+  | 'host_offset'
+  | 'opening_balance'
+  | 'transfer'
+  | 'loan'
+  | 'loan_repayment'
+  | 'shared_goal'
+  | 'reversal';
 
 /** Kas pos (account): Tunai (cash), Debit (bank/e-wallet), Piutang (lent to members). */
 export type Account = 'tunai' | 'debit' | 'piutang';
@@ -63,4 +72,6 @@ export interface LedgerEntry {
   note: string;
   /** Pos the money moves in or out of. Optional: entries from before migration 0002 have none. */
   account?: Account | null;
+  /** Destination pos of a move entry (transfer, loan, repayment); null for every other entry. */
+  toAccount?: Account | null;
 }

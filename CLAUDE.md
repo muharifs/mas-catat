@@ -30,7 +30,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - Transfers between Tunai and Debit go in either direction (one transfer entry). Piutang has no interest or deadline; repayments go into Tunai. Shared-goal spending is a plain cash-out entry with a note.
 - Ledger is append-only. Corrections of closed weeks are reversal + new entry with a change trail; never overwrite.
 - App name: Mas Catat, icon: small book. Tested on the owner's phone via Expo Go (no APK yet).
-- Ledger: cash in / cash out entries, each with date, amount, type, member, week, note.
+- Ledger: cash in / cash out entries, each with date, amount, type, member, week, note. The week is NULL on member_payment entries (one payment can span weeks; the detail lives in allocations).
 - Money is stored as integer rupiah. Never use floating point.
 
 ## Technical decisions

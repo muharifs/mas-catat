@@ -4,6 +4,7 @@
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
 import { createCreditsRepo } from './credits';
+import { createExportsRepo } from './exports';
 import { createLedgerRepo } from './ledger';
 import { createMembersRepo } from './members';
 import { createPaymentsRepo } from './payments';
@@ -21,6 +22,7 @@ export type { RecordPaymentInput, RecordedPayment } from './payments';
 export type { StoredLedgerEntry, AppendEntryInput, SettledHost } from './ledger';
 export type { RefundableCredit, MemberCarryOver } from './credits';
 export type { KasReport, PeriodReport } from './reports';
+export type { LedgerExportRow, PaymentExportRow, MeetingDueExportRow, PeriodExportRow } from './exports';
 
 export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
   return {
@@ -31,6 +33,7 @@ export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
     ledger: createLedgerRepo(db, deps),
     credits: createCreditsRepo(db, deps),
     reports: createReportsRepo(db, deps),
+    exports: createExportsRepo(db, deps),
   };
 }
 

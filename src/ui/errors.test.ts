@@ -1,6 +1,7 @@
 import { MigrationError, RepositoryError } from '@/db/errors';
+import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { DomainError } from '@/domain/money';
-import { GENERIC_ERROR, toIndonesian } from './errors';
+import { BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
   it.each([
@@ -72,5 +73,45 @@ describe('toIndonesian', () => {
     expect(toIndonesian(new RepositoryError('something new'))).toBe(GENERIC_ERROR);
     expect(toIndonesian(new Error('raw'))).toBe(GENERIC_ERROR);
     expect(toIndonesian('text')).toBe(GENERIC_ERROR);
+  });
+});
+
+describe('toIndonesian: backup and restore (M7)', () => {
+  const codes = Object.keys(BACKUP_ERROR_TEXT) as BackupErrorCode[];
+
+  it.each(codes)('maps the code %s to Indonesian text', (code) => {
+    const text = toIndonesian(new BackupError(code, 'English detail with a path C:\\data\\file.db'));
+    expect(text).toBe(BACKUP_ERROR_TEXT[code]);
+    expect(text).not.toMatch(/[\\/]/);
+    expect(text).not.toMatch(/\.db\b/);
+    expect(text.toLowerCase()).not.toContain('kredit');
+  });
+
+  it('covers every code of the domain', () => {
+    expect(codes.length).toBe(17);
+  });
+
+  it('never shows the English detail', () => {
+    expect(toIndonesian(new BackupError('unreadable', 'opening the file failed: disk I/O error'))).not.toMatch(/disk|opening/);
+  });
+});
+
+describe('restoreErrorNeedsReload', () => {
+  it('keeps the screens only when the live data is certainly untouched', () => {
+    expect(restoreErrorNeedsReload(new BackupError('safety_failed', 'x'))).toBe(false);
+    expect(restoreErrorNeedsReload(new BackupError('busy', 'x'))).toBe(false);
+  });
+
+  it.each(['restore_failed', 'unreadable', 'integrity'] as const)('reloads after %s', (code) => {
+    expect(restoreErrorNeedsReload(new BackupError(code, 'x'))).toBe(true);
+  });
+
+  it('reloads after an unknown error (the data may have changed)', () => {
+    expect(restoreErrorNeedsReload(new Error('boom'))).toBe(true);
+  });
+
+  it('the restore_failed text names the safety copy and holds no path', () => {
+    expect(BACKUP_ERROR_TEXT.restore_failed).toContain('Salinan pengaman');
+    expect(BACKUP_ERROR_TEXT.restore_failed).not.toMatch(/[\/]/);
   });
 });

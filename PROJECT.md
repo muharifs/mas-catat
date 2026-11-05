@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone; M5d, M6 and M5e implemented, not yet verified on the phone). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-06 (M2-M6, M3b, M5a-M5e verified on the owner's phone; M7 approved and implemented, NOT yet verified on the phone; M7b proposed, not approved). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -30,10 +30,11 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M5a | Payout and kas ledger | Host payout + offset as two entries (works on an already CLOSED week; offset uses arrears at payout time), kas ledger across pos (Tunai, Debit, Piutang) with opening balances, transfers, loans and repayments, shared-goal cash-out, corrections by reversal with change trail, migration 0003, strict amount parser | 1.5-2 days | M4 | Done (2026-11-05); verified on the owner's phone via Expo Go (combined checklist), migration 0003 ran there |
 | M5b | Period close and credit | Write-off (one entry per member), pre-close screen, credit carry-over, credit refund entry, migration 0004, and blocking period close until every host is paid | 1-1.5 days | M5a | Done (2026-11-06); verified on the owner's phone via Expo Go (M5b checklist), migration 0004 ran there |
 | M5c | UX fixes before M6 | Home with kas cards and one primary button, first-run checklist, DateField on 7 screens, payment amount chips (domain helper paymentChoices), "Kredit" wording becomes "Titipan" in the UI, toasts, loading/error states, Buat Periode defaults and redirect, Kas plus/minus colors; no migration, no money rule change | 1 day (estimate) | M5b | Done (2026-11-06); verified on the owner's phone via Expo Go (M5c checklist) |
-| M5d | Revisions from real use | Alphabetical member lists, swipe-right instant Rp15.000 payment on Pembayaran, Tuesday meetings, member dues into Tunai only; no migration; domain additions sort.ts, swipe-pay.ts, MEETING_WEEKDAY | 1 day (estimate) | M5c | Implemented, not yet verified on the phone |
-| M6 | Reports | Per-member history, per-meeting summary, kas balance, period summary, "Titipan anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan anggota" until its meeting is closed | 2 days | M5 | Implemented, not yet verified on the phone |
-| M5e | Paid-today marker on Pembayaran | "Sudah bayar hari ini" per member, summary "Sudah bayar hari ini: X dari N", swipe limited to once per member per day (`canSwipePay` gets required input `paidToday`), query `listMemberIdsPaidOn`; no migration, no money rule change | 0.5 day (estimate) | M5d | Implemented, not yet verified on the phone |
-| M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
+| M5d | Revisions from real use | Alphabetical member lists, swipe-right instant Rp15.000 payment on Pembayaran, Tuesday meetings, member dues into Tunai only; no migration; domain additions sort.ts, swipe-pay.ts, MEETING_WEEKDAY | 1 day (estimate) | M5c | Done (2026-11-06); verified on the owner's phone via Expo Go (M5d checklist; swipe threshold 70% of row width, minimum 180, confirmed right) |
+| M6 | Reports | Per-member history, per-meeting summary, kas balance, period summary, "Titipan anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan anggota" until its meeting is closed | 2 days | M5 | Done (2026-11-06); verified on the owner's phone via Expo Go (M6 checklist) |
+| M5e | Paid-today marker on Pembayaran | "Sudah bayar hari ini" per member, summary "Sudah bayar hari ini: X dari N", swipe limited to once per member per day (`canSwipePay` gets required input `paidToday`), query `listMemberIdsPaidOn`; no migration, no money rule change | 0.5 day (estimate) | M5d | Done (2026-11-06); verified on the owner's phone via Expo Go (M5e checklist) |
+| M7 | Backup and export | Four CSV files via share sheet, full database backup/restore ("Mulai dari nol" included), backup reminder; no migration, no app.json change | 1-2 days | M6 | Implemented (2026-11-06), NOT yet verified on the phone (695 tests, lint, typecheck, export OK; sql.js proves logic only) |
+| M7b | APK build | APK with fixed android.package and a stored keystore, allowBackup decision, check of the expo-sharing plugin in app.json; BEFORE real money | TBD (estimate 0.5-1 day) | M7 | Proposed, NOT approved (waits for "approved M7b") |
 | M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
 | P2 | Google Sheets | Export/publish read-only report | TBD | M8 | Backlog |
 
@@ -43,13 +44,27 @@ M5 status: M5 is split into M5a and M5b. M5a was approved by the owner ("approve
 
 M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06, together with M5b.
 
-M5d status: M5d (revisions from real use) was approved by the owner in the main session ("approved M5d, ikut usul") and is implemented, but NOT yet verified on the phone.
+M5d status: M5d (revisions from real use) was approved by the owner in the main session ("approved M5d, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 ("sudah lolos").
 
-M6 status: M6 (Reports) was approved by the owner in the main session ("approved M6, ikut usul") and is implemented, but NOT yet verified on the phone. M5d is also still not verified on the phone. M7 is NOT approved and not started.
+M6 status: M6 (Reports) was approved by the owner in the main session ("approved M6, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 ("sudah lolos"). (M7 was approved later the same day, see the M7 status.)
 
-M5e status: M5e (paid-today marker) was approved by the owner in the main session ("approved M5e, ikut usul") and is implemented, but NOT yet verified on the phone. M5d and M6 are also still not verified on the phone. M7 is NOT approved and not started.
+M5e status: M5e (paid-today marker) was approved by the owner in the main session ("approved M5e, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 ("sudah lolos").
 
-### M5e phone checklist (owner, Expo Go; not yet run)
+M7 status: M7 was approved by the owner in the main session on 2026-11-06 ("approved m7, ikut usul dan checklist m5d, m6, dan m5e sudah lolos. ambang geser pas"), is implemented, and is NOT yet verified on the phone. M7b (APK) is proposed, NOT approved.
+
+### M7 phone checklist (owner, Expo Go; NOT yet run; use DUMMY data only; plan A items first)
+1. Share a backup to Drive and check that the file arrives whole (compare size).
+2. Check PRAGMA journal_mode on the phone (WAL bytes 18/19, risk L1). Full cycle on dummy data: share, "Mulai dari nol", restore from the Drive file via the picker, compare kas before and after.
+3. Restore onto the same phone: the result says "sama".
+4. A foreign or non-SQLite file is rejected.
+5. Test the "lebih lama" case by typing PULIHKAN.
+6. "Pulihkan salinan pengaman" works.
+7. "Mulai dari nol" 3 times (type HAPUS SEMUA), then confirm a safety copy with the data still exists.
+8. The 7-day backup reminder appears and disappears.
+9. Share all four CSVs and open them in a spreadsheet: separator ';', BOM, names starting with = + - @ do not become formulas.
+10. After a restore, navigation returns to Home with the new data.
+
+### M5e phone checklist (owner, Expo Go; passed on 2026-11-06: "sudah lolos")
 1. A member with a valid payment dated today shows "Sudah bayar hari ini" on Pembayaran; the arrears amount is still shown.
 2. The summary shows "Sudah bayar hari ini: X dari N" and X matches the marked rows.
 3. A second swipe on a marked member does nothing (swipe disabled); a fast double swipe records only one payment.
@@ -57,7 +72,7 @@ M5e status: M5e (paid-today marker) was approved by the owner in the main sessio
 5. Correct today's payment on the member detail: the marker disappears and the swipe works again.
 6. A payment dated a past day does not mark the member.
 
-### M6 phone checklist (owner, Expo Go; not yet run)
+### M6 phone checklist (owner, Expo Go; passed on 2026-11-06: "sudah lolos")
 1. Home has a "Laporan" link that opens the reports screen.
 2. Tunai, Debit and total actual kas on the report equal the Kas screen.
 3. Expected kas = actual kas + outstanding dues - titipan held; check the numbers by hand. "Dibayar di muka" is shown as an info row and is not part of the sum.
@@ -69,7 +84,7 @@ M5e status: M5e (paid-today marker) was approved by the owner in the main sessio
 9. Member lists are in A-Z order.
 10. The word "kredit" appears on no report screen (only "Titipan").
 
-### M5d phone checklist (owner, Expo Go; not yet run)
+### M5d phone checklist (owner, Expo Go; passed on 2026-11-06: "sudah lolos"; swipe threshold 70% min 180 confirmed right)
 1. Member lists are sorted alphabetically (case-insensitive) in all six places: Anggota, Pembayaran, Buat Periode, host choices, pre-close, Titipan.
 2. Swipe right past the threshold on a Pembayaran row records Rp15.000 into Tunai and shows a toast naming the meeting.
 3. A short swipe springs back and nothing is saved.
@@ -137,7 +152,10 @@ M5e status: M5e (paid-today marker) was approved by the owner in the main sessio
 ## 4. Risks and assumptions
 - Owner is new to React Native: first milestones may run slower; agents explain RN specifics.
 - Money must be integer rupiah; floating point bugs are the main correctness risk. Mitigation: M1 tests first.
-- Phone-only storage: losing the phone loses data. Mitigation: M7 backup/export.
+- Phone-only storage: losing the phone loses data. Mitigation: M7 backup/export (implemented, not yet proven on the phone).
+- M7 open review debts (database-engineer, NOT fixed): M1 verifyLive compares only counts + integrity, not content; M2 backup does not check the health of the live DB; M4 healthCheck invariants must be updated together with business rules (consider hard vs soft split); L1 WAL header bytes 18/19, verify PRAGMA journal_mode on the phone; L2 the sql fingerprint is brittle if a migration from 0005 on uses RENAME/DROP COLUMN; L3 TOCTOU between prepare and commit (closed by recreating the safety copy inside runExclusive); L5 runExclusive has no timeout or reentrancy guard; L6 no "restore in progress" marker if the app dies midway.
+- M7 security debts (security-reviewer, no critical/high): Android Auto Backup (allowBackup) must be decided consciously at APK time (M7b); backups carry no signature (a forged file with a valid schema is accepted, risk accepted); no size cap on bytes() after the picker; npm audit shows 31 findings in dev tooling (do NOT run `npm audit fix --force`; its suggestion to downgrade to expo@52 is wrong); backups and safety copies are unencrypted and contain member names and money.
+- M7 uncertainties provable only on the phone: serializeAsync, deserializeDatabaseAsync, backupDatabaseAsync (expo-sqlite ignores the backup_step result, hence the post-restore verification), File.pickFileAsync (content:// size/bytes; if unreliable, replace pickBackupFile() in src/ui/shareFile.ts with expo-document-picker), Sharing.shareAsync from cache (does the file reach Drive whole?), navigation after restore, screen layout. Plan B is NOT built: if plan A fails on the phone, the main session reports to the owner first.
 - Assumption: the host also pays Rp15.000 in their own week.
 - Flexible payments (advance/late/partial) are the main modelling risk; M1 must define allocation rules with tests before any UI.
 - Assumption: Expo managed workflow is enough (no custom native code).
@@ -264,6 +282,7 @@ Decided (owner, 2026-11-06, M5d: "approved M5d, ikut usul"):
 3. Meetings are on Tuesday: constant MEETING_WEEKDAY in src/domain/schedule.ts, no setting screen. The start date of a new period defaults to the nearest Tuesday. The next default date and the estimates for later meetings are the Tuesday closest to 7 days after the previous date. Stored dates are never rewritten.
 4. Member dues always go into Tunai. Debit is reached through a Kas transfer. "Bayar tuan rumah" keeps the Tunai/Debit choice, default Tunai. This replaces the M4 decision "pos chosen on the form" for member payments.
 5. CLAUDE.md was updated accordingly (Tuesday rule, member payments to Tunai).
+6. Phone check (2026-11-06): the swipe threshold of 70% of the row width, minimum 180, was confirmed right by the owner (commit b936a35 raised it).
 
 Developer assumptions in M5d, to be reviewed by the owner:
 - The swipe toast is built from payments.preview just before record (not atomic; acceptable for a single user).
@@ -309,6 +328,23 @@ Implementation facts of M5e:
 - No migration, dependency or app.json change.
 - Known limit: a screen left open past midnight refreshes the "today" marker only on the next reload or focus.
 
+Decided (owner, 2026-11-06, M7: "approved m7, ikut usul"):
+1. Export is four CSV files, separator ';', shared only through the share sheet.
+2. A safety copy is always made before a restore or "Mulai dari nol"; sharing is offered without blocking.
+3. Restore replaces ALL data. Two separate checks apply. (a) Schema version: a backup whose user_version is NEWER than the app's schema version (or is 0) is REFUSED. (b) Data content is classified against the live data as same/older/newer/diverged: "newer" (the candidate's ids are a superset of live) and "same" are accepted with two dialogs, like closing a period; "older" and "diverged" show the number of entries that will be lost and require typing PULIHKAN. "Mulai dari nol" needs typing HAPUS SEMUA.
+4. Backup reminder on Home when the last backup is over 7 days old or none exists.
+5. No encryption, with a warning shown.
+6. One active phone: to move, back up, restore on the new phone, stop using the old one. No merge, ever.
+7. CSV is not a backup and never a restore source.
+8. CLAUDE.md got one sentence (restore/"Mulai dari nol" replace all data, append-only is for normal use; one active phone, no merge). Done in the working tree; this PM did not edit it.
+9. No migration, no app.json change (expo install added the expo-sharing plugin to app.json; it was reverted).
+
+Implementation facts of M7:
+- Created: src/app/backup/index.tsx, src/app/backup/restore.tsx, src/domain/csv.ts, src/domain/backup.ts, src/db/backup.ts, src/db/exports.ts, src/db/testing/sqlJsBridge.ts, src/db/testing/backupFixtures.ts, src/ui/shareFile.ts, src/ui/csvFiles.ts, src/ui/backupLabels.ts (each with tests where applicable).
+- Changed: src/db/db.ts (runExclusive), src/db/openDatabase.ts, src/db/provider.tsx (dataVersion), src/ui/errors.ts, src/app/_layout.tsx, src/app/index.tsx, .gitignore, CLAUDE.md, package.json and package-lock.json (expo-file-system ~58.0.13, expo-sharing ~58.0.22).
+- Review fixes: H1 (UI reload when restore throws after live data changed: closeQuietly, restoreErrorNeedsReload), H2 (pruning could drop the only copy holding real data: SAFETY_KEEP raised to 5 plus 1 empty copy, no pruning on rolled_back, "Mulai dari nol" 3x test), M3 (memory DB leak on unmount), M5 (healthCheck invariant: amounts positive integer and multiples of Rp15.000), L4 (byte verification of the safety copy). Security: cache file is not deleted right after sharing but swept when the Cadangan screen opens; "last shared" text is neutral ("Menu bagikan terakhir dibuka... pastikan terkirim"); warning that a safety copy with old data stays on the phone; CSV formula prefix now also covers '\n' and leading space/BOM.
+- Deviations: safety copies are SAFETY_KEEP 5 plus 1 empty copy (the original brief said "2 terakhir"; no "simpan 2" reference exists in PROJECT.md or CLAUDE.md); "empty" = ledger, payments, members and periods all 0; the fingerprint is also checked against the schema of the file's version before migration (stricter); the Home reminder is hidden when the DB has no members and no kas; step 7 re-enables foreign_keys if off; the cash-book CSV puts transfers/loans/repayments in the Keluar column (do not sum it as net flow); classification is by id only (renaming a member without a new entry is not detected).
+
 Deferred UX (NOT done in M5c):
 - Live payment preview without a dialog.
 - Inline multiple errors.
@@ -334,9 +370,13 @@ Developer deviations and assumptions in M5c, to be reviewed by the owner:
 - (l) The DB error screen title is now "Terjadi masalah".
 - (m) CLAUDE.md gets one extra clause: the UI calls member credit "Titipan". (Noted here only; this PM did not edit CLAUDE.md. Check that the clause is actually in the file.)
 
-Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M5d and M6 were implemented afterwards (see the progress log); neither is verified on the phone.
+Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M5d, M6 and M5e were implemented afterwards (see the progress log) and were also verified on the owner's phone on 2026-11-06 ("sudah lolos"). M7 (backup and export) was approved afterwards and is implemented, NOT yet verified on the phone (npm test 33 suites, 695 tests; sql.js proves logic only). M7b (APK) is proposed, not approved.
+
+Planned cutover order (real money): (a) M7 proven on the phone with dummy data; (b) "Mulai dari nol" only after a separate "ya" from the owner; (c) enter the paper meetings: opening balance = kas BEFORE meeting 1, then per meeting: payments, pay the host, only then close; (d) take a backup off the phone after every closed meeting; (e) never test restore on real data.
 
 ## 6. Progress log (newest first)
+- 2026-11-06: M7 (backup and export) implemented by fullstack-developer after the owner approved in the main session ("approved m7, ikut usul dan checklist m5d, m6, dan m5e sudah lolos. ambang geser pas"). Status "implemented, NOT yet verified on the phone". Decisions, implementation facts, deviations, review fixes and debts are in sections 4 and 5; the phone checklist (10 items, plan A first) is under the milestone table. Verified (real results): `npm test` 33 suites, 695 tests pass (was 28 suites, 490: +205); `npm run lint` clean; `npm run typecheck` clean; `npx expo-doctor` 20/20 (on the initial build); `npx expo export --platform android` succeeded (Hermes bundle about 3.1 MB, output in a temp folder outside the project, deleted). Reviews: database-engineer found no critical; HIGH H1 and H2 fixed, M3, M5, L4 fixed; M1, M2, M4, L1, L2, L3, L5, L6 left as debt (section 4). Security-reviewer found no critical/high; medium and low items fixed, debts in section 4. Old assertions changed (all due to review fixes, not old behaviour): csv.test.ts csvCell(' =x') is now "' =x"; domain backup.test.ts "2 newest" became 5 newest plus an empty-copy test; db/backup.test.ts "keeps only the 2 newest" became 5 (7 restores) and "failed cleanup" became 7 restores; backupLabels.test.ts lastSharedText regex follows the new text; errors.test.ts only an import and a new test block. NOT verified: everything that needs the phone (see section 4 uncertainties). Plan B is not built. Proposed, NOT approved: M7b (APK with fixed android.package and stored keystore, allowBackup decision, expo-sharing plugin check in app.json), to be done BEFORE real money; waits for "approved M7b". Not committed by this PM. Next: owner phone run of the M7 checklist with dummy data, then the M7b decision.
+- 2026-11-06: Phone verification. Owner ran the Expo Go checklists for M5d (12 steps), M6 (10 steps) and M5e (6 steps) and reported "sudah lolos"; the swipe threshold of 70% of the row width (minimum 180) was confirmed right. Evidence: owner confirmation. Marked Done: M5d, M6, M5e. HEAD at this point: b936a35, no code change. Next: M7 (backup and export) proposal; starts only after the owner says "approved M7".
 - 2026-11-06: M5e (paid-today marker on Pembayaran) implemented by fullstack-developer after the owner approved in the main session ("approved M5e, ikut usul"). Status "implemented, not yet verified on the phone"; M5d and M6 also stay "not verified on the phone"; M7 stays proposed, NOT approved. Decisions and implementation facts are in section 5; phone checklist (6 items) is under the milestone table. Verified (real results): `npm test` 28 suites, 490 tests pass (was 483); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK. The owner's 19-member sheet was simulated by test (kas akhir 1.580.000, offset 210.000, write-off 225.000); one assertion flipped (double swipe: accepted became rejected). Not committed yet. NOT verified: the screen on the phone (no automated UI tests). Known limit: a screen left open past midnight refreshes the "today" marker only on the next reload or focus. Next: owner phone check of M5d, M6 and M5e; M7 only after owner approval.
 - 2026-11-06: M6 (Reports) implemented by fullstack-developer after the owner approved in the main session ("approved M6, ikut usul"). Status "implemented, not yet verified on the phone"; M5d also stays "not verified on the phone". Decisions, implementation facts and developer assumptions are in section 5; the M6 phone checklist (10 items) is under the milestone table. Verified (real results): `npm test` 26 suites, 472 tests pass (was 23 suites, 435: +37 tests, no existing assertion changed); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK. No migration, dependency or app.json change. Tests run on sql.js, not the expo-sqlite adapter; the screens were not tried on the phone. Naming: "Titipan kredit anggota" became "Titipan anggota". Next: owner phone verification of M5d and M6; M7 starts only after owner approval.
 - 2026-11-06: M5d implemented (owner approved in the main session: "approved M5d, ikut usul"), status "implemented, not yet verified on the phone". Scope: alphabetical member lists, swipe-right instant payment on Pembayaran, Tuesday meetings, member dues into Tunai only. Decisions and assumptions are in section 5; phone checklist (12 items) is under the milestone table. Verified (real results): `npm test` 23 suites, 435 tests pass (413 before + 22 new, none removed); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK (temp output, deleted). Files: new src/domain/sort.ts (+test), src/domain/swipe-pay.ts (+test), src/ui/components/SwipeRow.tsx; changed CLAUDE.md, src/domain/schedule.ts, src/db/periods.ts, src/ui/messages.ts, src/app/periods/[id]/payments.tsx, pay.tsx, src/app/periods/new.tsx, src/app/members/index.tsx, src/app/periods/[id]/meetings/[number].tsx, close.tsx, src/app/credits/index.tsx, and tests schedule.test.ts, repositories.test.ts, messages.test.ts. Changed assertions: fixtures moved from Sunday dates to Tuesday (Sunday+7 became +9) and date estimates shifted accordingly; the planAssignment test was split into a shift case and a no-change case. NOT verified on the phone: swipe feel and threshold, vertical scroll, toast, background label (no automated UI tests). M6 stays proposed, NOT approved. Next: owner phone check of M5d, then the M6 decision.

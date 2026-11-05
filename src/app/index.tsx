@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { backupReminder } from '@/domain/backup';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
@@ -10,9 +11,11 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
+import { reminderText } from '@/ui/backupLabels';
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
+import { readLastShared } from '@/ui/shareFile';
 import { closeWeekMessage, overdueNotice, toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -33,8 +36,10 @@ export default function HomeScreen() {
     ]);
     const hasOpeningBalance = kasEntries.some((e) => e.type === 'opening_balance' && !e.reversedById);
     const hasEndedPeriod = periods.some((p) => p.status === 'closed');
+    // Nothing to remind about while the database holds no data at all.
+    const reminder = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
     if (!period) {
-      return { members, period: null, week: null, hostName: null, arrears: null, hostPaid: false, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks: [] };
+      return { members, period: null, week: null, hostName: null, arrears: null, hostPaid: false, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks: [], reminder };
     }
     const weeks = await repos.weeks.listByPeriod(period.id);
     const week = weeks.find((w) => w.status === 'open') ?? null;
@@ -47,7 +52,7 @@ export default function HomeScreen() {
       repos.payments.getArrearsSummary(period.id),
       week ? repos.ledger.getWeekPayout(period.id, week.number) : Promise.resolve(null),
     ]);
-    return { members, period, week, hostName, arrears, hostPaid: Boolean(paid), balances, periods, hasEndedPeriod, hasOpeningBalance, weeks };
+    return { members, period, week, hostName, arrears, hostPaid: Boolean(paid), balances, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder };
   }, [repos]);
 
   const { data, error, reload } = useLoad(load);
@@ -56,7 +61,7 @@ export default function HomeScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { period, week, hostName, members, arrears, hostPaid, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks } = data;
+  const { period, week, hostName, members, arrears, hostPaid, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder } = data;
   const memberCount = members.length;
   const checklist = firstRunChecklist({
     memberCount,
@@ -115,6 +120,13 @@ export default function HomeScreen() {
           </View>
         </View>
       </Card>
+
+      {reminder.due ? (
+        <Card tone="alt">
+          <Notice tone="warn">{reminderText(reminder)}</Notice>
+          <Button label="Buka Cadangan dan ekspor" variant="secondary" onPress={() => router.push('/backup')} />
+        </Card>
+      ) : null}
 
       {checklist.visible ? (
         <Card tone="alt">
@@ -199,6 +211,7 @@ export default function HomeScreen() {
         <ListRow title="Laporan" tone="alt" onPress={() => router.push('/reports')} />
         <ListRow title="Titipan anggota" tone="alt" onPress={() => router.push('/credits')} />
         <ListRow title="Periode" tone="alt" onPress={() => router.push('/periods')} />
+        <ListRow title="Cadangan dan ekspor" tone="alt" onPress={() => router.push('/backup')} />
         {period ? (
           <ListRow
             title="Jadwal periode"

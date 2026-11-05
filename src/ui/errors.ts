@@ -1,6 +1,7 @@
 // The ONE place where English error messages from the data and domain layers become Indonesian UI text.
 // Repositories and domain functions throw English messages (for logs and tests); screens call toIndonesian().
 import { MigrationError, RepositoryError } from '@/db/errors';
+import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { DomainError } from '@/domain/money';
 
 export const GENERIC_ERROR = 'Terjadi kesalahan. Coba lagi.';
@@ -66,12 +67,43 @@ const RULES: readonly { pattern: RegExp; text: string }[] = [
   { pattern: /amount must be a positive integer/, text: 'Jumlah harus lebih dari nol.' },
 ];
 
+// Backup and restore problems (M7), by code. No file path or file name is ever put in these texts.
+export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
+  file_empty: 'Berkas kosong. Pilih berkas cadangan yang benar.',
+  file_too_small: 'Berkas terlalu kecil untuk menjadi cadangan Mas Catat.',
+  file_too_large: 'Berkas terlalu besar (lebih dari 50 MB), jadi bukan cadangan Mas Catat.',
+  not_sqlite: 'Berkas ini bukan cadangan Mas Catat.',
+  size_mismatch: 'Berkas cadangan rusak atau terpotong. Ambil lagi salinan cadangan yang utuh.',
+  version_missing: 'Berkas ini bukan cadangan Mas Catat (versinya tidak dikenal).',
+  version_newer: 'Cadangan ini dibuat oleh aplikasi yang lebih baru. Perbarui aplikasi dulu.',
+  tables_missing: 'Isi berkas tidak lengkap, jadi tidak bisa dipakai.',
+  schema_mismatch: 'Susunan data berkas ini tidak cocok dengan Mas Catat, jadi ditolak demi keamanan.',
+  integrity: 'Berkas cadangan rusak: pemeriksaan keutuhan gagal.',
+  foreign_keys: 'Data dalam berkas tidak konsisten: ada catatan yang merujuk ke data yang tidak ada.',
+  invariant: 'Angka dalam berkas tidak cocok dengan aturan iuran, jadi ditolak.',
+  unreadable: 'Berkas tidak bisa dibaca. Pastikan itu berkas cadangan Mas Catat yang utuh.',
+  busy: 'Proses lain masih berjalan. Tunggu sebentar.',
+  safety_failed: 'Salinan pengaman gagal dibuat, jadi data Anda tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
+  restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari layar Pulihkan Data.',
+  share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
+};
+
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
 export function toIndonesian(error: unknown): string {
+  if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MigrationError) return 'Database gagal disiapkan. Tutup lalu buka lagi aplikasinya.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
     const rule = RULES.find((r) => r.pattern.test(error.message));
     return rule ? rule.text : GENERIC_ERROR;
   }
   return GENERIC_ERROR;
+}
+
+/**
+ * After a failed restore: must every screen be rebuilt? Only when the live data is certainly untouched
+ * (no safety copy could be made, or another job is running) can the screens stay. Any other error may have
+ * happened after the data changed, so the screens must reload.
+ */
+export function restoreErrorNeedsReload(error: unknown): boolean {
+  return !(error instanceof BackupError && (error.code === 'safety_failed' || error.code === 'busy'));
 }

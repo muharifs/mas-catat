@@ -14,21 +14,21 @@ function loadSqlJs(): Promise<SqlJsStatic> {
   return sqlJsPromise;
 }
 
-/** Creates a fresh in-memory database. Foreign keys are NOT enabled until migrate() runs. */
-export async function createSqlJsDb(): Promise<Db> {
-  const SQL = await loadSqlJs();
-  const database = new SQL.Database();
+type SqlJsDatabase = InstanceType<SqlJsStatic['Database']>;
 
+/** Raw driver over a sql.js database. The getter is a function so a test bridge can swap the database underneath. */
+export function createSqlJsRawDriver(getDatabase: () => SqlJsDatabase): RawDriver {
   const driver: RawDriver = {
     exec: async (sql) => {
-      database.exec(sql);
+      getDatabase().exec(sql);
     },
     run: async (sql, params = []) => {
+      const database = getDatabase();
       database.run(sql, params as SqlValue[]);
       return { changes: database.getRowsModified() };
     },
     getAll: async <T>(sql: string, params: readonly SqlValue[] = []) => {
-      const statement = database.prepare(sql);
+      const statement = getDatabase().prepare(sql);
       try {
         statement.bind(params as SqlValue[]);
         const rows: T[] = [];
@@ -43,7 +43,19 @@ export async function createSqlJsDb(): Promise<Db> {
       return rows[0] ?? null;
     },
   };
-  return createDb(driver);
+  return driver;
+}
+
+/** The sql.js engine itself (for the backup test bridge, which needs export and import of bytes). */
+export function loadSqlJsEngine(): Promise<SqlJsStatic> {
+  return loadSqlJs();
+}
+
+/** Creates a fresh in-memory database. Foreign keys are NOT enabled until migrate() runs. */
+export async function createSqlJsDb(): Promise<Db> {
+  const SQL = await loadSqlJs();
+  const database = new SQL.Database();
+  return createDb(createSqlJsRawDriver(() => database));
 }
 
 /** Fresh in-memory database with all migrations applied. */

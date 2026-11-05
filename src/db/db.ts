@@ -28,6 +28,12 @@ export interface Db extends Queryable {
    * Use the `tx` handle inside `fn`. Calling `tx.transaction` joins the outer transaction.
    */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
+  /**
+   * Runs `fn` while no other call through this Db is running (same queue as transactions, but no BEGIN/COMMIT).
+   * Used for work on the whole database file: serialize for a backup, and restore. `fn` must NOT call methods of
+   * this Db (they would wait for `fn` itself and never finish); it works on a native handle or another database.
+   */
+  runExclusive<T>(fn: () => Promise<T>): Promise<T>;
 }
 
 /** What a driver must provide. No locking or transactions: createDb adds those. */
@@ -53,6 +59,8 @@ export function createDb(raw: RawDriver): Db {
     getAll: (sql, params) => raw.getAll(sql, params),
     getFirst: (sql, params) => raw.getFirst(sql, params),
     transaction: (fn) => fn(tx),
+    // Already inside the queue (a transaction or runExclusive): just run it.
+    runExclusive: (fn) => fn(),
   };
 
   return {
@@ -60,6 +68,7 @@ export function createDb(raw: RawDriver): Db {
     run: (sql, params) => locked(() => raw.run(sql, params)),
     getAll: (sql, params) => locked(() => raw.getAll(sql, params)),
     getFirst: (sql, params) => locked(() => raw.getFirst(sql, params)),
+    runExclusive: <T>(fn: () => Promise<T>) => locked(fn),
     transaction: <T>(fn: (tx: Db) => Promise<T>) =>
       locked(async () => {
         await raw.exec('BEGIN');

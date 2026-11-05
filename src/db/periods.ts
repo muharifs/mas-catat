@@ -1,7 +1,7 @@
-// Periods repository: creates a period with its fixed member list and host schedule.
+// Periods repository: creates a period with its fixed member list and its (host-less) meeting slots.
 import { assertIsoDate, DomainError } from '@/domain/money';
 import { periodWeekCount } from '@/domain/dues';
-import { addDays, isRealDate } from '@/domain/schedule';
+import { addDays, isRealDate, planAutoAssignment, type ScheduleWeek } from '@/domain/schedule';
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
@@ -21,7 +21,7 @@ export interface Period {
 
 export interface PeriodMember {
   memberId: string;
-  /** Position in the originally planned rotation (1-based). The real host can differ (see weeks). */
+  /** Order in which the members were selected when the period was created (1-based). Not a host order. */
   initialOrder: number;
 }
 
@@ -47,16 +47,17 @@ const toPeriod = (r: PeriodRow): Period => ({
 
 export interface CreatePeriodInput {
   name: string;
-  /** Date of week 1; later weeks are 7 days apart. */
+  /** Estimated date of meeting 1; later meetings are estimated 7 days apart. */
   startDate: string;
-  /** Member ids in planned host order: index 0 hosts week 1. Its length is N. */
-  hostOrder: readonly string[];
+  /** The members of the period, each exactly once. Its length is N. No host order: hosts are picked per meeting. */
+  memberIds: readonly string[];
 }
 
 export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
   return {
     /**
-     * Creates the period, its N members and its N weeks (one planned host each) in ONE transaction.
+     * Creates the period, its N members and its N meetings (host NULL, estimated dates) in ONE transaction.
+     * With a single member, the only meeting gets that member automatically.
      * Anything invalid (duplicate or unknown member, bad date) rolls back and leaves no rows behind.
      */
     async create(input: CreatePeriodInput): Promise<Period> {
@@ -66,10 +67,10 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       if (!isRealDate(input.startDate)) {
         throw new DomainError(`startDate is not a real calendar date: ${input.startDate}`);
       }
-      const memberCount = input.hostOrder.length;
+      const memberCount = input.memberIds.length;
       const weekCount = periodWeekCount(memberCount); // throws DomainError when N is 0
-      if (new Set(input.hostOrder).size !== memberCount) {
-        throw new RepositoryError('hostOrder must list each member exactly once');
+      if (new Set(input.memberIds).size !== memberCount) {
+        throw new RepositoryError('memberIds must list each member exactly once');
       }
 
       const period: Period = {
@@ -91,20 +92,31 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           [period.id, period.name, period.memberCount, period.status, period.startDate, null, period.createdAt],
         );
         for (let i = 0; i < weekCount; i += 1) {
-          const memberId = input.hostOrder[i] as string; // i < length, checked above
+          const memberId = input.memberIds[i] as string; // i < length, checked above
           await tx.run('INSERT INTO period_members (period_id, member_id, initial_order) VALUES (?, ?, ?)', [
             period.id,
             memberId,
             i + 1,
           ]);
         }
+        const planned: ScheduleWeek[] = [];
         for (let i = 0; i < weekCount; i += 1) {
+          const date = addDays(period.startDate, 7 * i);
+          planned.push({ number: i + 1, date, hostMemberId: null, status: 'open' });
           await tx.run('INSERT INTO weeks (period_id, number, date, host_member_id, status) VALUES (?, ?, ?, ?, ?)', [
             period.id,
             i + 1,
-            addDays(period.startDate, 7 * i),
-            input.hostOrder[i] as string,
+            date,
+            null,
             'open',
+          ]);
+        }
+        // Single member: the only meeting is the "last meeting" and is assigned automatically.
+        for (const change of planAutoAssignment(planned, input.memberIds)) {
+          await tx.run('UPDATE weeks SET host_member_id = ? WHERE period_id = ? AND number = ?', [
+            change.hostMemberId,
+            period.id,
+            change.number,
           ]);
         }
       });
@@ -159,7 +171,7 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return rows.map(toPeriod);
     },
 
-    /** Members of the period in planned rotation order. */
+    /** Members of the period in the order they were selected. */
     async getMembers(periodId: string): Promise<PeriodMember[]> {
       const rows = await db.getAll<{ member_id: string; initial_order: number }>(
         'SELECT member_id, initial_order FROM period_members WHERE period_id = ? ORDER BY initial_order',

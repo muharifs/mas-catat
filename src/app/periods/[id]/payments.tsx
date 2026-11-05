@@ -38,7 +38,7 @@ export default function PeriodPaymentsScreen() {
       ListHeaderComponent={
         <View style={styles.header}>
           <Text style={styles.title}>{data.period.name}</Text>
-          {throughWeek ? <Text style={styles.muted}>Tunggakan dihitung sampai minggu {throughWeek}.</Text> : null}
+          {throughWeek ? <Text style={styles.muted}>Tunggakan dihitung sampai pertemuan {throughWeek}.</Text> : null}
         </View>
       }
       ListEmptyComponent={<EmptyState title="Belum ada anggota di periode ini" />}

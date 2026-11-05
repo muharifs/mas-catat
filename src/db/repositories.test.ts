@@ -7,17 +7,26 @@ interface Fixture {
   db: Db;
   repos: Repositories;
   periodId: string;
-  /** Member ids in planned host order: index 0 hosts week 1. */
+  /** Member ids in selection order. With `scheduled` (default) index 0 hosts week 1, like an old period. */
   ids: string[];
 }
 
-async function setup(memberCount = 4): Promise<Fixture> {
+/**
+ * `scheduled: true` (default) writes a full host schedule straight into the table, the way periods created
+ * before M3b look on the phone (every week has a host). `scheduled: false` is a new period: all hosts NULL.
+ */
+async function setup(memberCount = 4, scheduled = true): Promise<Fixture> {
   const db = await createMigratedTestDb();
   let n = 0;
   const repos = createRepositories(db, { newId: () => `id${(n += 1)}`, now: () => '2026-12-31T12:00:00.000Z' });
   const ids: string[] = [];
   for (let i = 0; i < memberCount; i += 1) ids.push((await repos.members.create(`Member ${i + 1}`)).id);
-  const period = await repos.periods.create({ name: 'Periode 1', startDate: '2026-01-04', hostOrder: ids });
+  const period = await repos.periods.create({ name: 'Periode 1', startDate: '2026-01-04', memberIds: ids });
+  if (scheduled) {
+    for (let i = 0; i < ids.length; i += 1) {
+      await db.run('UPDATE weeks SET host_member_id = ? WHERE period_id = ? AND number = ?', [ids[i] as string, period.id, i + 1]);
+    }
+  }
   return { db, repos, periodId: period.id, ids };
 }
 
@@ -25,15 +34,15 @@ const count = async (db: Db, table: string): Promise<number> =>
   (await db.getFirst<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table}`))?.n ?? -1;
 
 describe('periods and weeks', () => {
-  it('creates N members and N weekly slots, 7 days apart, one host each', async () => {
-    const { repos, periodId, ids } = await setup(4);
+  it('creates N members and N meeting slots, 7 days apart, with NO host yet', async () => {
+    const { repos, periodId, ids } = await setup(4, false);
     const period = await repos.periods.getById(periodId);
     expect(period).toMatchObject({ memberCount: 4, status: 'active', startDate: '2026-01-04' });
     expect((await repos.periods.getMembers(periodId)).map((m) => m.memberId)).toEqual(ids);
 
     const weeks = await repos.weeks.listByPeriod(periodId);
     expect(weeks.map((w) => w.date)).toEqual(['2026-01-04', '2026-01-11', '2026-01-18', '2026-01-25']);
-    expect(weeks.map((w) => w.hostMemberId)).toEqual(ids);
+    expect(weeks.map((w) => w.hostMemberId)).toEqual([null, null, null, null]);
     expect(weeks.every((w) => w.status === 'open')).toBe(true);
   });
 
@@ -44,23 +53,23 @@ describe('periods and weeks', () => {
     await repos.weeks.close(periodId, 2);
     await repos.periods.close(periodId, '2026-01-11');
     const before = { periods: await count(db, 'periods'), pm: await count(db, 'period_members'), weeks: await count(db, 'weeks') };
-    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', hostOrder: [ids[0] as string, 'ghost'] })).rejects.toThrow();
-    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', hostOrder: [ids[0] as string, ids[0] as string] })).rejects.toThrow(
+    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', memberIds: [ids[0] as string, 'ghost'] })).rejects.toThrow();
+    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', memberIds: [ids[0] as string, ids[0] as string] })).rejects.toThrow(
       RepositoryError,
     );
-    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-31', hostOrder: ids })).rejects.toThrow(DomainError);
+    await expect(repos.periods.create({ name: 'X', startDate: '2026-02-31', memberIds: ids })).rejects.toThrow(DomainError);
     expect({ periods: await count(db, 'periods'), pm: await count(db, 'period_members'), weeks: await count(db, 'weeks') }).toEqual(before);
   });
 
   it('allows only one active period at a time', async () => {
     const { repos, periodId, ids } = await setup(2);
-    await expect(repos.periods.create({ name: 'Dua', startDate: '2026-03-01', hostOrder: ids })).rejects.toThrow(/still active/);
+    await expect(repos.periods.create({ name: 'Dua', startDate: '2026-03-01', memberIds: ids })).rejects.toThrow(/still active/);
     expect((await repos.periods.getActive())?.id).toBe(periodId);
     await repos.weeks.close(periodId, 1);
     await repos.weeks.close(periodId, 2);
     await repos.periods.close(periodId, '2026-01-11');
     expect(await repos.periods.getActive()).toBeNull();
-    const next = await repos.periods.create({ name: 'Dua', startDate: '2026-03-01', hostOrder: ids });
+    const next = await repos.periods.create({ name: 'Dua', startDate: '2026-03-01', memberIds: ids });
     expect((await repos.periods.getActive())?.id).toBe(next.id);
   });
 
@@ -116,6 +125,166 @@ describe('periods and weeks', () => {
     await expect(
       db.run('UPDATE weeks SET host_member_id = ? WHERE period_id = ? AND number = 2', [ids[0] as string, periodId]),
     ).rejects.toThrow(/UNIQUE/i);
+  });
+});
+
+describe('M3b: host and date per meeting', () => {
+  const hostsOf = async (f: Fixture) => (await f.repos.weeks.listByPeriod(f.periodId)).map((w) => w.hostMemberId);
+  const datesOf = async (f: Fixture) => (await f.repos.weeks.listByPeriod(f.periodId)).map((w) => w.date);
+
+  it('assigns the only meeting automatically in a period of one member', async () => {
+    const f = await setup(1, false);
+    expect(await hostsOf(f)).toEqual([f.ids[0]]);
+  });
+
+  it('allows a host for the current and next meeting only; later meetings stay undecided', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-11');
+    await expect(f.repos.weeks.assignHost(f.periodId, 3, f.ids[2] as string, '2026-01-18')).rejects.toThrow(/outside the selectable window/);
+    expect(await hostsOf(f)).toEqual([f.ids[0], f.ids[1], null, null]);
+    // after closing meeting 1 the window moves on to meetings 2 and 3
+    await f.repos.weeks.closeOldest(f.periodId);
+    await f.repos.weeks.assignHost(f.periodId, 3, f.ids[2] as string, '2026-01-18');
+    expect(await hostsOf(f)).toEqual([f.ids[0], f.ids[1], f.ids[2], f.ids[3]]); // meeting 4 was the last one: automatic
+  });
+
+  it('never accepts a member who hosted a closed meeting', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    await f.repos.weeks.closeOldest(f.periodId);
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[0] as string, '2026-01-11')).rejects.toThrow(/already hosted a closed week/);
+    await expect(f.repos.weeks.assignHost(f.periodId, 1, f.ids[1] as string, '2026-01-04')).rejects.toThrow(/closed/);
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, 'ghost', '2026-01-11')).rejects.toThrow(/not found/);
+  });
+
+  it('refuses to close a meeting without a host and closes it once the host is picked', async () => {
+    const f = await setup(3, false);
+    await expect(f.repos.weeks.closeOldest(f.periodId)).rejects.toThrow(/has no host/);
+    await expect(f.repos.weeks.close(f.periodId, 1)).rejects.toThrow(/has no host/);
+    expect((await f.repos.weeks.get(f.periodId, 1))?.status).toBe('open');
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    expect(await f.repos.weeks.closeOldest(f.periodId)).toBe(1);
+  });
+
+  it('assigns the last meeting to the last member automatically', async () => {
+    const f = await setup(3, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[1] as string, '2026-01-04');
+    expect(await hostsOf(f)).toEqual([f.ids[1], null, null]); // two members left for two meetings: not automatic yet
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[2] as string, '2026-01-11');
+    expect(await hostsOf(f)).toEqual([f.ids[1], f.ids[2], f.ids[0]]);
+  });
+
+  it('re-picking the host of an open meeting frees the previous host', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[2] as string, '2026-01-04');
+    expect(await hostsOf(f)).toEqual([f.ids[2], null, null, null]);
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[0] as string, '2026-01-11'); // freed member can be picked again
+    expect(await hostsOf(f)).toEqual([f.ids[2], f.ids[0], null, null]);
+  });
+
+  it('exchanges the hosts when the picked member already holds another open meeting (new period)', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-11');
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[0] as string, '2026-01-11'); // holder: meeting 1
+    expect(await hostsOf(f)).toEqual([f.ids[1], f.ids[0], null, null]);
+  });
+
+  describe('old, fully scheduled periods', () => {
+    it('keep their stored hosts and dates untouched', async () => {
+      const f = await setup(4);
+      expect(await hostsOf(f)).toEqual(f.ids);
+      expect(await datesOf(f)).toEqual(['2026-01-04', '2026-01-11', '2026-01-18', '2026-01-25']);
+    });
+
+    it('exchange two hosts atomically, even with a meeting outside the window', async () => {
+      const f = await setup(4);
+      await f.repos.weeks.assignHost(f.periodId, 1, f.ids[3] as string, '2026-01-04'); // holder: meeting 4
+      expect(await hostsOf(f)).toEqual([f.ids[3], f.ids[1], f.ids[2], f.ids[0]]);
+      await f.repos.weeks.assignHost(f.periodId, 2, f.ids[3] as string, '2026-01-11');
+      expect(await hostsOf(f)).toEqual([f.ids[1], f.ids[3], f.ids[2], f.ids[0]]);
+    });
+
+    it('apply the window limit to changes: meeting 3 cannot be changed while 1 and 2 are open', async () => {
+      const f = await setup(4);
+      await expect(f.repos.weeks.assignHost(f.periodId, 3, f.ids[0] as string, '2026-01-18')).rejects.toThrow(/outside the selectable window/);
+      expect(await hostsOf(f)).toEqual(f.ids);
+    });
+
+    it('never accept a member of a closed meeting, and exchange with a later open meeting', async () => {
+      const f = await setup(4);
+      await f.repos.weeks.closeOldest(f.periodId);
+      await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[0] as string, '2026-01-11')).rejects.toThrow(/already hosted a closed week/);
+      await f.repos.weeks.assignHost(f.periodId, 2, f.ids[2] as string, '2026-01-11'); // exchange with meeting 3
+      expect(await hostsOf(f)).toEqual([f.ids[0], f.ids[2], f.ids[1], f.ids[3]]);
+    });
+
+    it('do not shift the stored dates of meetings that already have a host', async () => {
+      const f = await setup(4);
+      await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-06');
+      expect(await datesOf(f)).toEqual(['2026-01-06', '2026-01-11', '2026-01-18', '2026-01-25']);
+      await expect(f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-11')).rejects.toThrow(/earlier than the next/);
+    });
+  });
+
+  it('shifts the estimated dates of later undecided meetings, 7 days apart from the last chosen date', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-20'); // a break of a week and a half
+    expect(await datesOf(f)).toEqual(['2026-01-04', '2026-01-20', '2026-01-27', '2026-02-03']);
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-14'); // moved back
+    expect(await datesOf(f)).toEqual(['2026-01-04', '2026-01-14', '2026-01-21', '2026-01-28']);
+  });
+
+  it('never changes the date of a closed meeting', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-05');
+    await f.repos.weeks.closeOldest(f.periodId);
+    await f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-03-01');
+    expect(await datesOf(f)).toEqual(['2026-01-05', '2026-03-01', '2026-03-08', '2026-03-15']);
+    await expect(f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-06')).rejects.toThrow(/closed/);
+    expect((await datesOf(f))[0]).toBe('2026-01-05');
+  });
+
+  it('requires a real date later than the previous meeting, and writes nothing when it refuses', async () => {
+    const f = await setup(4, false);
+    await f.repos.weeks.assignHost(f.periodId, 1, f.ids[0] as string, '2026-01-04');
+    const before = { hosts: await hostsOf(f), dates: await datesOf(f) };
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-04')).rejects.toThrow(/later than the previous/);
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-01-03')).rejects.toThrow(DomainError);
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, '2026-02-31')).rejects.toThrow(/not a real calendar date/);
+    await expect(f.repos.weeks.assignHost(f.periodId, 2, f.ids[1] as string, 'besok')).rejects.toThrow(DomainError);
+    expect({ hosts: await hostsOf(f), dates: await datesOf(f) }).toEqual(before);
+  });
+
+  it('keeps everything when a write fails halfway (one transaction)', async () => {
+    const f = await setup(4);
+    await f.db.exec(
+      "CREATE TRIGGER boom BEFORE UPDATE OF host_member_id ON weeks WHEN NEW.number = 4 AND NEW.host_member_id IS NOT NULL BEGIN SELECT RAISE(ABORT, 'boom'); END;",
+    );
+    await expect(f.repos.weeks.assignHost(f.periodId, 1, f.ids[3] as string, '2026-01-05')).rejects.toThrow(/boom/);
+    expect(await hostsOf(f)).toEqual(f.ids);
+    expect((await datesOf(f))[0]).toBe('2026-01-04');
+  });
+
+  it('refuses to pay out a host for a meeting without a host', async () => {
+    const f = await setup(3, false);
+    await expect(f.repos.ledger.settleHost(f.periodId, 1, '2026-01-04')).rejects.toThrow(/has no host/);
+    expect(await count(f.db, 'ledger_entries')).toBe(0);
+  });
+
+  it('still accepts payments while meetings have no host (a break)', async () => {
+    const f = await setup(3, false);
+    const { allocations } = await f.repos.payments.record({
+      periodId: f.periodId,
+      memberId: f.ids[0] as string,
+      date: '2026-01-04',
+      amount: 30_000,
+      account: 'tunai',
+    });
+    expect(allocations.map((a) => [a.week, a.amount])).toEqual([[1, 15_000], [2, 15_000]]);
   });
 });
 

@@ -57,7 +57,7 @@ export default function MemberInPeriodScreen() {
       {balance ? (
         <View style={styles.summary}>
           <Text>
-            Tunggakan sampai minggu {balance.throughWeek}: {formatRupiah(balance.arrears)}
+            Tunggakan sampai pertemuan {balance.throughWeek}: {formatRupiah(balance.arrears)}
           </Text>
           <Text>Bayar di muka: {formatRupiah(balance.prepaid)}</Text>
           <Text>Kredit: {formatRupiah(balance.credit)}</Text>
@@ -73,7 +73,7 @@ export default function MemberInPeriodScreen() {
         <Text style={styles.muted}>Periode sudah berakhir, pembayaran tidak bisa dicatat.</Text>
       )}
 
-      <Text style={styles.section}>Status per minggu</Text>
+      <Text style={styles.section}>Status per pertemuan</Text>
       {statuses.map((s) => {
         const state = weekState(s);
         const week = weeks.find((w) => w.number === s.week);
@@ -81,7 +81,7 @@ export default function MemberInPeriodScreen() {
           <View key={s.week} style={styles.row}>
             <View style={styles.head}>
               <Text style={styles.weekTitle}>
-                Minggu {s.week}
+                Pertemuan {s.week}
                 {week ? ` - ${formatDate(week.date)}` : ''}
               </Text>
               <Text style={state === 'paid' || state === 'offset' ? styles.ok : styles.bad}>{STATE_LABEL[state]}</Text>
@@ -101,7 +101,7 @@ export default function MemberInPeriodScreen() {
               {formatDate(p.date)} - {formatRupiah(p.amount)}
             </Text>
             {own.length > 0 ? (
-              <Text>Melunasi: {own.map((a) => `minggu ${a.week} (${formatRupiah(a.amount)})`).join(', ')}</Text>
+              <Text>Melunasi: {own.map((a) => `pertemuan ${a.week} (${formatRupiah(a.amount)})`).join(', ')}</Text>
             ) : null}
             {p.credit > 0 ? <Text style={styles.bad}>Menjadi kredit: {formatRupiah(p.credit)}</Text> : null}
           </View>

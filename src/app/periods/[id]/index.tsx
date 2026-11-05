@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isRealDate } from '@/domain/schedule';
+import { isRealDate, selectableWeekNumbers } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { TextField } from '@/ui/components/TextField';
@@ -9,7 +9,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { useLoad } from '@/ui/useLoad';
 
-// Period detail: schedule per week, payments entry, "Tutup minggu", host change (swap of two open weeks) and "Akhiri periode".
+// Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and "Akhiri periode".
 export default function PeriodDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const repos = useRepos();
@@ -24,8 +24,6 @@ export default function PeriodDetailScreen() {
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
-  const [swapMode, setSwapMode] = useState(false);
-  const [picked, setPicked] = useState<number[]>([]); // selected week numbers, max 2
   const [actionError, setActionError] = useState<string | null>(null);
   const [endDate, setEndDate] = useState(todayIso());
 
@@ -34,53 +32,23 @@ export default function PeriodDetailScreen() {
   if (!data.period) return <Text style={styles.error}>Periode tidak ditemukan.</Text>;
 
   const { period, weeks, members } = data;
-  const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
-  const label = (n: number) => `Minggu ${n} (${nameOf(weeks.find((w) => w.number === n)?.hostMemberId ?? '')})`;
+  const nameOf = (memberId: string | null) =>
+    memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
+  const selectable = selectableWeekNumbers(weeks);
   const isActive = period.status === 'active';
   const openWeeks = weeks.filter((w) => w.status === 'open').length;
-
-  function pick(n: number) {
-    setActionError(null);
-    setPicked((p) => (p.includes(n) ? p.filter((x) => x !== n) : p.length >= 2 ? [p[1] as number, n] : [...p, n]));
-  }
-
-  function cancelSwap() {
-    setSwapMode(false);
-    setPicked([]);
-  }
-
-  function confirmSwap() {
-    const [a, b] = picked;
-    if (a === undefined || b === undefined) return;
-    Alert.alert('Ganti tuan rumah', `${label(a)} <-> ${label(b)}`, [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Tukar',
-        onPress: async () => {
-          try {
-            await repos.weeks.swapHosts(period.id, a, b);
-            cancelSwap();
-            setActionError(null);
-            await reload();
-          } catch (e) {
-            setActionError(toIndonesian(e));
-          }
-        },
-      },
-    ]);
-  }
 
   const oldestOpen = weeks.find((w) => w.status === 'open');
 
   function confirmCloseWeek() {
     if (!oldestOpen) return;
     Alert.alert(
-      `Tutup minggu ${oldestOpen.number}`,
-      `Tutup minggu ${oldestOpen.number} (${formatDate(oldestOpen.date)})? Tuan rumah minggu ini tidak bisa diganti lagi dan penutupan tidak bisa dibatalkan.`,
+      `Tutup pertemuan ${oldestOpen.number}`,
+      `Tutup pertemuan ${oldestOpen.number} (${formatDate(oldestOpen.date)})? Tuan rumah dan tanggal pertemuan ini tidak bisa diubah lagi dan penutupan tidak bisa dibatalkan.`,
       [
         { text: 'Batal', style: 'cancel' },
         {
-          text: 'Tutup minggu',
+          text: 'Tutup pertemuan',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -119,8 +87,6 @@ export default function PeriodDetailScreen() {
     ]);
   }
 
-  const [pa, pb] = picked;
-
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{period.name}</Text>
@@ -136,63 +102,57 @@ export default function PeriodDetailScreen() {
 
       {isActive && oldestOpen ? (
         <View style={styles.box}>
-          <Text style={styles.section}>Tutup minggu</Text>
+          <Text style={styles.section}>Tutup pertemuan</Text>
           <Text style={styles.hint}>
-            Minggu yang ditutup selalu yang paling awal yang masih terbuka (minggu {oldestOpen.number}). Tunggakan
-            dihitung sampai minggu ini.
+            Pertemuan yang ditutup selalu yang paling awal yang masih terbuka (pertemuan {oldestOpen.number}) dan harus
+            sudah punya tuan rumah. Tunggakan dihitung sampai pertemuan ini. Saat libur (misalnya Ramadan) tidak ada iuran:
+            cukup jangan tutup pertemuan.
           </Text>
-          <Button label={`Tutup minggu ${oldestOpen.number}`} variant="danger" onPress={confirmCloseWeek} />
+          <Button
+            label={`Tutup pertemuan ${oldestOpen.number}`}
+            variant="danger"
+            disabled={oldestOpen.hostMemberId === null}
+            onPress={confirmCloseWeek}
+          />
+          {oldestOpen.hostMemberId === null ? (
+            <Text style={styles.hint}>Tentukan tuan rumah pertemuan {oldestOpen.number} dulu.</Text>
+          ) : null}
         </View>
       ) : null}
 
       <Text style={styles.section}>Jadwal</Text>
       {weeks.map((w) => {
-        const selectable = swapMode && w.status === 'open';
-        const selected = picked.includes(w.number);
+        const canPick = isActive && w.status === 'open' && selectable.includes(w.number);
         return (
-          <View key={w.number} style={[styles.row, selected && styles.rowSelected]}>
+          <View key={w.number} style={styles.row}>
             <View style={styles.flex}>
               <Text style={styles.weekTitle}>
-                Minggu {w.number} - {formatDate(w.date)}
+                Pertemuan {w.number} - {formatDate(w.date)}
+                {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
               </Text>
-              <Text>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
+              <Text style={w.hostMemberId ? undefined : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
               <Text style={w.status === 'open' ? styles.open : styles.closed}>
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
             </View>
-            {swapMode ? (
+            {canPick ? (
               <Button
-                label={selected ? 'Dipilih' : 'Pilih'}
-                variant={selected ? 'primary' : 'secondary'}
-                disabled={!selectable}
-                onPress={() => pick(w.number)}
+                label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
+                }
               />
             ) : null}
           </View>
         );
       })}
 
-      {isActive && !swapMode ? (
-        <Button label="Ganti tuan rumah" variant="secondary" disabled={openWeeks < 2} onPress={() => setSwapMode(true)} />
-      ) : null}
-      {swapMode ? (
-        <View style={styles.box}>
-          <Text>Pilih dua minggu yang masih terbuka untuk saling ditukar.</Text>
-          {pa !== undefined && pb !== undefined ? (
-            <Text style={styles.weekTitle}>
-              {label(pa)} {'<->'} {label(pb)}
-            </Text>
-          ) : null}
-          <Button label="Tukar" disabled={picked.length !== 2} onPress={confirmSwap} />
-          <Button label="Batal" variant="secondary" onPress={cancelSwap} />
-        </View>
-      ) : null}
-
       {isActive ? (
         <View style={styles.box}>
           <Text style={styles.section}>Akhiri periode</Text>
           <Text style={styles.hint}>
-            Periode hanya bisa diakhiri setelah semua minggu ditutup ({openWeeks} minggu masih terbuka). Penghapusan
+            Periode hanya bisa diakhiri setelah semua pertemuan ditutup ({openWeeks} pertemuan masih terbuka). Penghapusan
             tunggakan dan sisa kredit anggota belum tersedia; itu dikerjakan di tahap berikutnya.
           </Text>
           <TextField label="Tanggal berakhir (TTTT-BB-HH)" value={endDate} onChangeText={setEndDate} />
@@ -210,7 +170,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700' },
   section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3' },
-  rowSelected: { borderWidth: 2, borderColor: '#1f6f50' },
   flex: { flex: 1 },
   weekTitle: { fontWeight: '600' },
   open: { color: '#1f6f50' },

@@ -125,7 +125,8 @@ export function createLedgerRepo(db: Db, deps: RepoDeps = defaultDeps) {
           'SELECT host_member_id FROM weeks WHERE period_id = ? AND number = ?',
           [periodId, week],
         );
-        if (!weekRow?.host_member_id) throw new RepositoryError(`week ${week} not found in period ${periodId}`);
+        if (!weekRow) throw new RepositoryError(`week ${week} not found in period ${periodId}`);
+        if (!weekRow.host_member_id) throw new RepositoryError(`week ${week} has no host; pick a host first`);
         const hostMemberId = weekRow.host_member_id;
 
         const already = await tx.getFirst(

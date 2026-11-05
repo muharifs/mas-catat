@@ -14,10 +14,11 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - A period has N members. The gathering rotates house to house, one host per week,
   until every member has hosted once, then the period ends.
 - Host of a week can be changed on member request (until the week is closed). No member leaves mid-period; N is fixed.
+- The host is picked per meeting, not at period creation: only the current (oldest open) and the next week can be given a host, each member exactly once, and a week cannot be closed without a host. The meeting date is set together with the host (default 7 days after the previous meeting); later meetings keep estimated dates 7 days apart. Breaks (e.g. Ramadan) carry no dues: the week simply stays open. In the UI a "week" is shown as "Pertemuan".
 - Payments are separate records (member, date, amount), may be advance or late, and are allocated to weekly dues. Every payment MUST be a positive multiple of Rp15.000 (e.g. absent 2 weeks pays 30.000); partial payments are rejected. A payment above the remaining dues of the period is accepted and the excess is member credit, carried over to the member's next period as advance dues. The payment form warns before saving when part or all of a payment becomes credit. Credit may be a non-multiple of Rp15.000 (e.g. after a capped host offset), so carry-over can settle part of a week. If the member does not join the next period, the credit is refunded with one append-only cash-out entry.
 - Lump-sum payments are allocated to the oldest unpaid week first; each payment keeps its own date/week so the UI can show when it was actually paid.
 - Host payout offset covers the host's unpaid weeks so far (oldest first), capped at the payout (10.000 x N); any debt beyond the cap stays as debt. Recorded as a separate entry.
-- Every week, EVERY member (including that week's host) owes Rp15.000.
+- Every meeting (week), EVERY member (including that meeting's host) owes Rp15.000.
   - Total collected = 15.000 x N.
   - Host receives 10.000 x N.
   - Group cash (kas) increases by 5.000 x N.

@@ -13,25 +13,25 @@ import { useLoad } from '@/ui/useLoad';
 type Account = 'tunai' | 'debit';
 const ACCOUNT_LABEL: Record<Account, string> = { tunai: 'Tunai', debit: 'Debit' };
 
-/** "minggu 2", "minggu 1 sampai 3", or "minggu 1, 3" when the weeks are not consecutive. */
+/** "pertemuan 2", "pertemuan 1 sampai 3", or "pertemuan 1, 3" when the meetings are not consecutive. */
 function describeWeeks(weeks: readonly number[]): string {
   const first = weeks[0];
   const last = weeks[weeks.length - 1];
   if (first === undefined || last === undefined) return '';
-  if (weeks.length === 1) return `minggu ${first}`;
+  if (weeks.length === 1) return `pertemuan ${first}`;
   const consecutive = last - first + 1 === weeks.length;
-  return consecutive ? `minggu ${first} sampai ${last}` : `minggu ${weeks.join(', ')}`;
+  return consecutive ? `pertemuan ${first} sampai ${last}` : `pertemuan ${weeks.join(', ')}`;
 }
 
 /** Confirmation text. Every number comes from the preview; nothing is calculated here. */
 function confirmMessage(name: string, date: string, account: Account, preview: PaymentPreview): string {
   const lines = [`${name} membayar ${formatRupiah(preview.amount)} pada ${formatDate(date)}, masuk ke ${ACCOUNT_LABEL[account]}.`];
   if (preview.settledWeeks.length > 0) lines.push(`Akan melunasi ${describeWeeks(preview.settledWeeks)}.`);
-  if (preview.partialWeek !== null) lines.push(`Minggu ${preview.partialWeek} baru terbayar sebagian.`);
+  if (preview.partialWeek !== null) lines.push(`Pertemuan ${preview.partialWeek} baru terbayar sebagian.`);
   if (preview.creditAmount > 0) {
     lines.push(
       preview.allocatedAmount === 0
-        ? `Seluruh pembayaran ini (${formatRupiah(preview.creditAmount)}) menjadi kredit anggota karena semua minggu sudah lunas.`
+        ? `Seluruh pembayaran ini (${formatRupiah(preview.creditAmount)}) menjadi kredit anggota karena semua pertemuan sudah lunas.`
         : `${formatRupiah(preview.creditAmount)} dari pembayaran ini menjadi kredit anggota.`,
     );
   }

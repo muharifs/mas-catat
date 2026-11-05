@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-05. Estimates are rough ranges, not commitments.
+Last updated: 2026-11-05 (M3b added). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -26,6 +26,7 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M2 | Database | expo-sqlite schema + versioned migrations; repository layer; tests | 1-2 days | M1 | Implemented 2026-11-05; expo-sqlite adapter still to be checked on the phone (first run of M3 screens) |
 | M3 | Members and periods | Add/edit members, create period, editable host schedule per week, start/end period | 2-3 days | M2 | Done (2026-11-05); owner reported trying it on the phone on 2026-11-05 with no problem reported |
 | M4 | Dues and payments | Record payments (advance or late, always multiples of Rp15.000), allocate to weekly dues, show per-member balance and arrears, warn before saving when part of a payment becomes credit, payment money enters Tunai/Debit on receipt; "Tutup minggu"; migration 0002 (ledger account) | 2-3 days | M3 | Implemented 2026-11-05, not yet verified on the phone |
+| M3b | Meetings and host selection | Hosts chosen per meeting within a two-meeting window instead of a fixed order set at creation; meeting date set with the host; "Minggu" renamed "Pertemuan" in the UI; no migration (decisions in section 5) | 1-2 days | M4 | Implemented 2026-11-05, not yet verified on the phone |
 | M5 | Payout and kas ledger | Host payout, offset against debt as two entries, kas in/out across pos (Tunai, Debit, Piutang), transfers, shared-goal cash-out, corrections with change trail, credit carry-over (migration 0003), credit refund entry; payout must work on an already CLOSED week; the offset uses arrears at payout time | 2-3 days | M4 | Not started |
 | M6 | Reports | Per-member history, per-week summary, kas balance, period summary, "Titipan kredit anggota" line, expected kas = actual + outstanding dues - credit held | 2 days | M5 | Not started |
 | M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
@@ -33,6 +34,18 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | P2 | Google Sheets | Export/publish read-only report | TBD | M8 | Backlog |
 
 Total v1 estimate: about 2-3 weeks of part-time work (assumption: a few hours per day).
+
+M5 status: M5 was proposed and split into M5a and M5b; it still awaits owner approval and nothing has been started. The owner's phone check result for M4 has not been received.
+
+### M3b phone checklist (owner, Expo Go; none of these has been checked yet)
+1. Old period is still complete with the same hosts and dates, and texts say "Pertemuan N".
+2. In an old period, "Ubah" appears only on the first two open meetings; picking a member who holds another meeting shows a swap confirmation and the result is right.
+3. New period: no Naik/Turun buttons, estimated date preview is shown, all hosts are "Belum ditentukan".
+4. "Tutup pertemuan" is disabled without a host; an invalid date, or a date not after the previous meeting, shows an Indonesian message.
+5. Pick hosts for meetings 1 and 2; meeting 3 has no button. After closing meeting 1, meeting 3 can be set. Members who hosted a closed meeting are not offered.
+6. 3-member period: the third meeting is auto-filled after two hosts are chosen.
+7. Change the date of meeting 2: later meetings shift by 7 days. A payment is still possible while the host is undecided.
+8. All user-visible texts use "Pertemuan" (no "Minggu" left).
 
 ## 4. Risks and assumptions
 - Owner is new to React Native: first milestones may run slower; agents explain RN specifics.
@@ -86,9 +99,33 @@ Decided (owner, 2026-11-05, M4 proposal "approved m4 ikut usul"):
 - A payment above the remaining dues, even when every week is settled, is accepted as credit with a warning (decided earlier).
 - Plan changes: migration 0002 (nullable `account` column on ledger_entries, CHECK tunai/debit/piutang) moved from M5 to M4; the credit carry-over migration in M5 becomes 0003. The ledger `week` is NULL on member_payment entries (one payment can span weeks; the week detail lives in `allocations`). Credit stays tied to one period in M4; carry-over stays in M5.
 
+Decided (owner, 2026-11-05, M3b: "approved M3b, ikut usul tampilan minggu diganti pertemuan pada poin 9"):
+1. Creating a period needs only name, start date and members. Host order is not set up front; all weeks start with host NULL.
+2. Only the current meeting (oldest open) and the next one can be given a host. Later meetings show "Belum ditentukan". Choices are limited to members who have not had a turn.
+3. A meeting cannot be closed without a host.
+4. The last meeting is auto-assigned when one member and one meeting remain.
+5. The two-week swap UI is replaced by re-picking the host of an open meeting within the window.
+6. Existing periods keep their full schedule; stored data is unchanged. The window limit applies to changes only. Picking a member who holds another open meeting exchanges the two hosts atomically. Members who hosted a closed meeting are never selectable.
+7. Dues are per meeting. No dues during a break; there is no "libur" button, the owner simply does not close the meeting. Total dues and payout are unchanged.
+8. The meeting date is set together with the host, default 7 days after the previous meeting, changeable only while open and within the window. Later open meetings keep estimated dates, shifting 7 days from the last chosen date. The date must be real and later than the previous meeting. Dates of closed meetings never change. Payment dates are unrelated; payments during a break are allowed.
+9. UI wording "Minggu" becomes "Pertemuan" everywhere user-visible. Code identifiers stay week/weeks.
+
+Developer assumptions in M3b, to be reviewed by the owner:
+- The window is the first two open meetings by number.
+- A meeting with a host counts as having a "chosen" date (not auto-shifted, so old periods are unchanged). Only open host-less meetings after the last hosted one shift by 7 days.
+- Changing a date is rejected if it reaches the date of the next hosted meeting.
+- No DB column distinguishes a chosen date from an estimated one.
+- Meeting 1 has no lower date bound (not compared to the period start date).
+- The swap also applies in new periods; the old slot becomes unassigned if the target had no host.
+- swapHosts is kept in code but unused by the UI.
+- weeks.close(number) also rejects a meeting without a host.
+- A period with N=1 auto-assigns its only meeting.
+- Expo docs for nested dynamic routes were inferred from existing screens, not re-read.
+
 Still open: none for v1. New questions will be added here as they come up.
 
 ## 6. Progress log (newest first)
+- 2026-11-05: M3b implemented (owner approved: "approved M3b, ikut usul tampilan minggu diganti pertemuan pada poin 9"), status "implemented, NOT yet verified on the phone". Decisions and developer assumptions are in section 5; phone checklist is under the milestone table. Files: CLAUDE.md, src/domain/schedule.ts (+test), src/db/periods.ts, weeks.ts, ledger.ts, repositories.test.ts, src/ui/errors.ts (+test), src/ui/meetingDate.ts (+test), src/app/index.tsx, _layout.tsx, periods/new.tsx, periods/[id]/index.tsx, periods/[id]/meetings/[number].tsx, pay.tsx, payments.tsx, members/[memberId].tsx. No migration, no app.json change, no dependency added. Verified: `npm test` 201 passed in 9 suites (was 156 in 8: +45 tests, +1 suite); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundled OK (1 android bundle, about 2.7MB, output in a temp folder outside the project, removed). Test assertions changed: repositories.test.ts creation test now expects host [null x4]; three tests only had the param renamed from hostOrder to memberIds; the setup() fixture now writes a full schedule via SQL to mimic old periods; errors.test.ts four assertions "minggu" to "pertemuan" plus 10 new cases; schedule.test.ts moveItem/previewSchedule tests removed (functions removed) and replaced. NOT verified: the screens on the phone / Expo Go, and the expo-sqlite adapter for the new queries (tests use sql.js). M5 was proposed and split into M5a and M5b, still awaiting owner approval, nothing started. The owner's M4 phone check result has not been received. Next: owner phone check of M3b (and M4), then M5 approval.
 - 2026-11-05: M4 implemented (owner approved: "approved m4 ikut usul"), status "implemented, NOT yet verified on the phone". Owner also reported that M3 was tried on the phone ("sudah saya coba di m3") with no problem reported on 2026-11-05, so the expo-sqlite adapter and the M3 screens count as working on a device; M4 itself and migration 0002 are not yet seen on the phone. Added: migration 0002 (ledger_entries.account), src/domain/payment-preview.ts (+ test: previewPayment, assertPaymentDate, weekState, parseRupiahInput), screens periods/[id]/payments.tsx (payment list with arrears flag), periods/[id]/members/[memberId].tsx (per-week status, payment history with real dates and settled weeks, "Catat pembayaran"), periods/[id]/pay.tsx (form: date, amount, Tunai/Debit, confirmation with settled weeks and credit warning), "Tutup minggu" on period detail and Home, Home arrears summary (members in arrears and total through the current week), src/ui/format.ts (formatRupiah). periods/[id].tsx moved to periods/[id]/index.tsx. Changed: payments.ts (record now requires `account`, rejects ended period and future/invalid date, writes the payment, allocations and ONE member_payment ledger entry for the whole amount in one transaction; new preview, listBalances, getArrearsSummary), ledger.ts (account column, insertEntry exported), weeks.ts (closeOldest, currentWeek; per-member week status loaders moved here from payments.ts to avoid a payments/ledger import cycle, payments.ts re-exports them), types.ts (Account, optional LedgerEntry.account), ui/errors.ts (+ test). Preview and record use the same domain function, and a test checks they match. Existing repository tests: `now` in the fixture clock moved to 2026-12-31 (so test payment dates are not "in the future") and record calls got `account: 'tunai'`; no assertion was changed. Verified: 156 tests in 8 suites pass (110 old + 46 new), lint and typecheck clean, `expo export --platform android` bundles (output in a temp folder). The tests use sql.js, so they do NOT prove migration 0002 or the new screens work on the phone (the expo-sqlite adapter applies the same SQL, but only the phone proves it). Not done: settleHost untouched (M5), no correction of wrong payments (M5), no credit carry-over (M5), `weeks.close(number)` still allows closing out of order (only the UI path closeOldest enforces order). Next: owner phone check of M4, then M5 proposal.
 - 2026-11-05: Owner marked M3 done and will run the Expo Go checklist later. So the expo-sqlite adapter and all M3 screens are STILL UNVERIFIED on a device; only tests (sql.js), typecheck, lint and bundling passed. Any phone findings are to be fixed before or alongside M4. Next: M4 proposal, waiting for owner "approved".
 - 2026-11-05: M3 implemented (owner approved), status "implemented, not yet verified on the phone". Added: src/db/provider.tsx (database opened once at startup via context, "Memuat..." and an Indonesian error screen with retry), screens src/app/index.tsx (home), members/index.tsx, periods/index.tsx, periods/new.tsx (host order with up/down buttons, schedule preview), periods/[id].tsx (schedule, host swap with confirmation text, "Akhiri periode"), src/ui/errors.ts (+ test; the single English-to-Indonesian mapper), src/ui/components/ (Button, TextField, EmptyState), src/ui/dates.ts, src/ui/useLoad.ts, src/domain/schedule.ts (+ test; moveItem, previewSchedule, addDays, isRealDate; addDays moved out of periods.ts). Changed: members.ts (duplicate names), periods.ts (one active period, getActive, close), repositories.test.ts. Verified: 110 tests in 7 suites pass (89 old + 21 new), lint and typecheck clean, `expo export --platform android` bundles. The tests use sql.js, so they do NOT prove the expo-sqlite adapter (openDatabase.ts) works: that is only proven when the app opens on the phone. Not done: no migration, no dependency or app.json change, no M4 work.

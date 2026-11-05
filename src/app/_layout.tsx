@@ -15,6 +15,7 @@ export default function RootLayout() {
         <Stack.Screen name="periods/[id]/payments" options={{ title: 'Pembayaran' }} />
         <Stack.Screen name="periods/[id]/members/[memberId]" options={{ title: 'Anggota di Periode' }} />
         <Stack.Screen name="periods/[id]/pay" options={{ title: 'Catat Pembayaran' }} />
+        <Stack.Screen name="periods/[id]/meetings/[number]" options={{ title: 'Tuan Rumah Pertemuan' }} />
       </Stack>
     </DatabaseProvider>
   );

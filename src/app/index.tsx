@@ -18,7 +18,11 @@ export default function HomeScreen() {
     if (!period) return { memberCount: members.length, period: null, week: null, hostName: null, arrears: null };
     const weeks = await repos.weeks.listByPeriod(period.id);
     const week = weeks.find((w) => w.status === 'open') ?? null;
-    const hostName = week ? (members.find((m) => m.id === week.hostMemberId)?.name ?? '-') : null;
+    const hostName = week
+      ? week.hostMemberId === null
+        ? 'Belum ditentukan'
+        : (members.find((m) => m.id === week.hostMemberId)?.name ?? '-')
+      : null;
     const arrears = await repos.payments.getArrearsSummary(period.id);
     return { memberCount: members.length, period, week, hostName, arrears };
   }, [repos]);
@@ -35,12 +39,12 @@ export default function HomeScreen() {
     if (!period || !week) return;
     const periodId = period.id;
     Alert.alert(
-      `Tutup minggu ${week.number}`,
-      `Tutup minggu ${week.number} (${formatDate(week.date)})? Tuan rumah minggu ini tidak bisa diganti lagi dan penutupan tidak bisa dibatalkan.`,
+      `Tutup pertemuan ${week.number}`,
+      `Tutup pertemuan ${week.number} (${formatDate(week.date)})? Tuan rumah dan tanggal pertemuan ini tidak bisa diubah lagi dan penutupan tidak bisa dibatalkan.`,
       [
         { text: 'Batal', style: 'cancel' },
         {
-          text: 'Tutup minggu',
+          text: 'Tutup pertemuan',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -65,25 +69,44 @@ export default function HomeScreen() {
           {week ? (
             <>
               <Text>
-                Minggu ke-{week.number} ({formatDate(week.date)})
+                Pertemuan ke-{week.number} ({formatDate(week.date)})
               </Text>
               <Text>Tuan rumah: {hostName}</Text>
             </>
           ) : (
-            <Text>Semua minggu sudah ditutup.</Text>
+            <Text>Semua pertemuan sudah ditutup.</Text>
           )}
           {arrears ? (
             <Text style={arrears.membersInArrears > 0 ? styles.arrears : undefined}>
               {arrears.membersInArrears > 0
-                ? `Menunggak sampai minggu ${arrears.throughWeek}: ${arrears.membersInArrears} anggota, total ${formatRupiah(arrears.totalArrears)}`
-                : `Tidak ada tunggakan sampai minggu ${arrears.throughWeek}.`}
+                ? `Menunggak sampai pertemuan ${arrears.throughWeek}: ${arrears.membersInArrears} anggota, total ${formatRupiah(arrears.totalArrears)}`
+                : `Tidak ada tunggakan sampai pertemuan ${arrears.throughWeek}.`}
             </Text>
           ) : null}
           <Button
             label="Pembayaran"
             onPress={() => router.push({ pathname: '/periods/[id]/payments', params: { id: period.id } })}
           />
-          {week ? <Button label={`Tutup minggu ${week.number}`} variant="danger" onPress={confirmCloseWeek} /> : null}
+          {week ? (
+            <Button
+              label={week.hostMemberId === null ? `Tentukan tuan rumah pertemuan ${week.number}` : `Ubah tuan rumah / tanggal`}
+              variant={week.hostMemberId === null ? 'primary' : 'secondary'}
+              onPress={() =>
+                router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(week.number) } })
+              }
+            />
+          ) : null}
+          {week ? (
+            <Button
+              label={`Tutup pertemuan ${week.number}`}
+              variant="danger"
+              disabled={week.hostMemberId === null}
+              onPress={confirmCloseWeek}
+            />
+          ) : null}
+          {week && week.hostMemberId === null ? (
+            <Text style={styles.hint}>Pertemuan belum bisa ditutup sebelum tuan rumahnya ditentukan.</Text>
+          ) : null}
           {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
           <Button
             label="Lihat jadwal"
@@ -121,6 +144,7 @@ const styles = StyleSheet.create({
   card: { padding: 16, borderRadius: 12, backgroundColor: '#f2f6f3', gap: 6 },
   cardTitle: { fontSize: 20, fontWeight: '700' },
   links: { gap: 10 },
+  hint: { color: '#666', fontSize: 13 },
   arrears: { color: '#b3261e', fontWeight: '600' },
   error: { padding: 16, color: '#b3261e' },
   muted: { padding: 16, color: '#666' },

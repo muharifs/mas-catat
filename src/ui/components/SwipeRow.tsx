@@ -17,8 +17,8 @@ const CLAIM_DISTANCE = 12;
 /** Horizontal movement must beat vertical movement by this factor, so a vertical scroll is never stolen. */
 const HORIZONTAL_BIAS = 2;
 /** Release past this share of the row width (or the minimum below) to fire. */
-const THRESHOLD_RATIO = 0.45;
-const MIN_THRESHOLD = 120;
+const THRESHOLD_RATIO = 0.7;
+const MIN_THRESHOLD = 180;
 
 /**
  * A row that can be dragged to the RIGHT. Past the threshold the release fires onSwipe; before it the row springs

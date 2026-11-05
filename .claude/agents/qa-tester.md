@@ -24,3 +24,6 @@ Untuk tiap temuan: judul, tingkat (kritis, tinggi, sedang, rendah), langkah repr
 - Jangan mengklaim sesuatu lolos tanpa benar-benar menjalankannya. Pisahkan dengan jelas apa yang terbukti otomatis, apa yang dibaca dari kode, dan apa yang belum diverifikasi.
 - Jangan menyentuh data nyata. Gunakan data uji. Minta konfirmasi sebelum tindakan yang tidak bisa dibatalkan.
 - Jangan membesar-besarkan temuan. Bedakan bug nyata, risiko, dan saran.
+
+## Konteks proyek
+Sebelum bekerja, baca sendiri `CLAUDE.md` serta bagian keputusan dan entri log terbaru di rencana proyek (misalnya `PROJECT.md`). Brief bukan satu-satunya sumber: bila brief bertentangan dengan dokumen itu, sebutkan dan jangan menebak. Keputusan baru dicatat di rencana proyek yang sama, bukan di salinan lain.

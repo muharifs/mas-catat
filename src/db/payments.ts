@@ -206,6 +206,20 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return rows.map(toPayment);
     },
 
+    /**
+     * Ids of the members who have a valid payment dated exactly `date` in this period. Corrected (reversed) payments
+     * do not count, so correcting today's payment frees the member again. Read-only; no money is computed.
+     */
+    async listMemberIdsPaidOn(periodId: string, date: string): Promise<string[]> {
+      const rows = await db.getAll<{ member_id: string }>(
+        `SELECT DISTINCT p.member_id
+           FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
+          WHERE p.period_id = ? AND p.date = ? AND pr.payment_id IS NULL`,
+        [periodId, date],
+      );
+      return rows.map((r) => r.member_id);
+    },
+
     /** Stored allocations of one member, in the order they were written (oldest week first per payment). */
     async listAllocations(periodId: string, memberId: string): Promise<Allocation[]> {
       const rows = await db.getAll<AllocationRow>(

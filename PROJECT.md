@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone; M5d and M6 implemented, not yet verified on the phone). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-06 (M2, M3, M4, M3b, M5a, M5b, M5c verified on the owner's phone; M5d, M6 and M5e implemented, not yet verified on the phone). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -32,6 +32,7 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M5c | UX fixes before M6 | Home with kas cards and one primary button, first-run checklist, DateField on 7 screens, payment amount chips (domain helper paymentChoices), "Kredit" wording becomes "Titipan" in the UI, toasts, loading/error states, Buat Periode defaults and redirect, Kas plus/minus colors; no migration, no money rule change | 1 day (estimate) | M5b | Done (2026-11-06); verified on the owner's phone via Expo Go (M5c checklist) |
 | M5d | Revisions from real use | Alphabetical member lists, swipe-right instant Rp15.000 payment on Pembayaran, Tuesday meetings, member dues into Tunai only; no migration; domain additions sort.ts, swipe-pay.ts, MEETING_WEEKDAY | 1 day (estimate) | M5c | Implemented, not yet verified on the phone |
 | M6 | Reports | Per-member history, per-meeting summary, kas balance, period summary, "Titipan anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan anggota" until its meeting is closed | 2 days | M5 | Implemented, not yet verified on the phone |
+| M5e | Paid-today marker on Pembayaran | "Sudah bayar hari ini" per member, summary "Sudah bayar hari ini: X dari N", swipe limited to once per member per day (`canSwipePay` gets required input `paidToday`), query `listMemberIdsPaidOn`; no migration, no money rule change | 0.5 day (estimate) | M5d | Implemented, not yet verified on the phone |
 | M7 | Backup and export | CSV export (share sheet), local backup/restore of the database | 1-2 days | M6 | Not started |
 | M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
 | P2 | Google Sheets | Export/publish read-only report | TBD | M8 | Backlog |
@@ -45,6 +46,16 @@ M5c status: M5c (UX fixes before M6) was approved by the owner ("approved M5c, i
 M5d status: M5d (revisions from real use) was approved by the owner in the main session ("approved M5d, ikut usul") and is implemented, but NOT yet verified on the phone.
 
 M6 status: M6 (Reports) was approved by the owner in the main session ("approved M6, ikut usul") and is implemented, but NOT yet verified on the phone. M5d is also still not verified on the phone. M7 is NOT approved and not started.
+
+M5e status: M5e (paid-today marker) was approved by the owner in the main session ("approved M5e, ikut usul") and is implemented, but NOT yet verified on the phone. M5d and M6 are also still not verified on the phone. M7 is NOT approved and not started.
+
+### M5e phone checklist (owner, Expo Go; not yet run)
+1. A member with a valid payment dated today shows "Sudah bayar hari ini" on Pembayaran; the arrears amount is still shown.
+2. The summary shows "Sudah bayar hari ini: X dari N" and X matches the marked rows.
+3. A second swipe on a marked member does nothing (swipe disabled); a fast double swipe records only one payment.
+4. The full "Catat pembayaran" form still allows a second payment on the same day.
+5. Correct today's payment on the member detail: the marker disappears and the swipe works again.
+6. A payment dated a past day does not mark the member.
 
 ### M6 phone checklist (owner, Expo Go; not yet run)
 1. Home has a "Laporan" link that opens the reports screen.
@@ -284,6 +295,20 @@ Developer assumptions in M6, to be reviewed by the owner:
 - Member Piutang loans are taken across all periods.
 - Member history is extended with payout and carry-in/out/settle events.
 
+Decided (owner, 2026-11-06, M5e: "approved M5e, ikut usul"):
+1. Pembayaran shows "Sudah bayar hari ini" per member who has a valid payment dated today in the period. Reversed (corrected) payments are not counted. The arrears amount is still shown.
+2. Summary line "Sudah bayar hari ini: X dari N".
+3. Swipe is limited to once per member per day: `canSwipePay` got a required input `paidToday`. A second payment on the same day is still possible through the full form. Correcting today's payment frees the swipe again.
+4. Repository query `listMemberIdsPaidOn(periodId, date)` in src/db/payments.ts, called with `todayIso()`.
+5. A ref-based lock in src/app/periods/[id]/payments.tsx blocks repeat swipes between a swipe and the list reload.
+6. No separate attendance record: on the owner's sheet, attending and paying mean the same thing.
+
+Implementation facts of M5e:
+- Changed: src/app/periods/[id]/payments.tsx, src/db/payments.ts, src/domain/swipe-pay.ts, src/domain/swipe-pay.test.ts. New tests: src/db/paid-today.test.ts, src/db/attendance-scenario.test.ts.
+- The owner's 19-member attendance sheet was simulated by test (src/db/attendance-scenario.test.ts, no member names): final kas 1.580.000, offset 210.000, write-off 225.000. The double-swipe assertion in that scenario flipped from accepted to rejected because of the new once-per-day rule.
+- No migration, dependency or app.json change.
+- Known limit: a screen left open past midnight refreshes the "today" marker only on the next reload or focus.
+
 Deferred UX (NOT done in M5c):
 - Live payment preview without a dialog.
 - Inline multiple errors.
@@ -312,6 +337,7 @@ Developer deviations and assumptions in M5c, to be reviewed by the owner:
 Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M5d and M6 were implemented afterwards (see the progress log); neither is verified on the phone.
 
 ## 6. Progress log (newest first)
+- 2026-11-06: M5e (paid-today marker on Pembayaran) implemented by fullstack-developer after the owner approved in the main session ("approved M5e, ikut usul"). Status "implemented, not yet verified on the phone"; M5d and M6 also stay "not verified on the phone"; M7 stays proposed, NOT approved. Decisions and implementation facts are in section 5; phone checklist (6 items) is under the milestone table. Verified (real results): `npm test` 28 suites, 490 tests pass (was 483); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK. The owner's 19-member sheet was simulated by test (kas akhir 1.580.000, offset 210.000, write-off 225.000); one assertion flipped (double swipe: accepted became rejected). Not committed yet. NOT verified: the screen on the phone (no automated UI tests). Known limit: a screen left open past midnight refreshes the "today" marker only on the next reload or focus. Next: owner phone check of M5d, M6 and M5e; M7 only after owner approval.
 - 2026-11-06: M6 (Reports) implemented by fullstack-developer after the owner approved in the main session ("approved M6, ikut usul"). Status "implemented, not yet verified on the phone"; M5d also stays "not verified on the phone". Decisions, implementation facts and developer assumptions are in section 5; the M6 phone checklist (10 items) is under the milestone table. Verified (real results): `npm test` 26 suites, 472 tests pass (was 23 suites, 435: +37 tests, no existing assertion changed); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK. No migration, dependency or app.json change. Tests run on sql.js, not the expo-sqlite adapter; the screens were not tried on the phone. Naming: "Titipan kredit anggota" became "Titipan anggota". Next: owner phone verification of M5d and M6; M7 starts only after owner approval.
 - 2026-11-06: M5d implemented (owner approved in the main session: "approved M5d, ikut usul"), status "implemented, not yet verified on the phone". Scope: alphabetical member lists, swipe-right instant payment on Pembayaran, Tuesday meetings, member dues into Tunai only. Decisions and assumptions are in section 5; phone checklist (12 items) is under the milestone table. Verified (real results): `npm test` 23 suites, 435 tests pass (413 before + 22 new, none removed); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK (temp output, deleted). Files: new src/domain/sort.ts (+test), src/domain/swipe-pay.ts (+test), src/ui/components/SwipeRow.tsx; changed CLAUDE.md, src/domain/schedule.ts, src/db/periods.ts, src/ui/messages.ts, src/app/periods/[id]/payments.tsx, pay.tsx, src/app/periods/new.tsx, src/app/members/index.tsx, src/app/periods/[id]/meetings/[number].tsx, close.tsx, src/app/credits/index.tsx, and tests schedule.test.ts, repositories.test.ts, messages.test.ts. Changed assertions: fixtures moved from Sunday dates to Tuesday (Sunday+7 became +9) and date estimates shifted accordingly; the planAssignment test was split into a shift case and a no-change case. NOT verified on the phone: swipe feel and threshold, vertical scroll, toast, background label (no automated UI tests). M6 stays proposed, NOT approved. Next: owner phone check of M5d, then the M6 decision.
 - 2026-11-06: Phone verification. Owner ran the Expo Go checklists for M5b (12 steps, including migration 0004 on expo-sqlite) and M5c (13 steps) and reported "lolos semua lanjut". Evidence: owner confirmation. Marked Done: M5b and M5c. HEAD at this point: 3b8c4b6, no code change. Next: the owner's small revisions are handled as a separate milestone (M5d) by the main session; M6 proposal awaits "approved M6".

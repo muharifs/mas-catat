@@ -10,12 +10,15 @@ export interface SwipePayInput {
   arrears: Rupiah;
   /** True while the period is active; an ended period accepts no payments. */
   periodActive: boolean;
+  /** True when the member already has a valid (not corrected) payment dated today in this period. */
+  paidToday: boolean;
 }
 
 /**
  * Whether a swipe may record a payment. Only a member who owes something through the current meeting, in an active
- * period: otherwise a repeated swipe would silently become an advance payment, which belongs in the full form.
+ * period, and who has not paid today yet: otherwise a repeated swipe would silently become an extra or advance
+ * payment, which belongs in the full form. Correcting today's payment makes paidToday false again.
  */
-export function canSwipePay({ arrears, periodActive }: SwipePayInput): boolean {
-  return periodActive && arrears > 0;
+export function canSwipePay({ arrears, periodActive, paidToday }: SwipePayInput): boolean {
+  return periodActive && arrears > 0 && !paidToday;
 }

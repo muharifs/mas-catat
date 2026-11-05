@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
 import { sortByName } from '@/domain/sort';
@@ -25,13 +25,21 @@ export default function PeriodPaymentsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const repos = useRepos();
 
+  // Members with a valid payment dated today, as last read from the database. A ref (not state) on purpose: the swipe
+  // handler must see it synchronously. It is replaced on every load and extended right after a swipe is saved, so the
+  // lock never waits for the list to re-render (the row's own enabled flag lags one render behind a reload).
+  const paidTodayRef = useRef<Set<string>>(new Set());
+
   const load = useCallback(async () => {
-    const [period, balances, members] = await Promise.all([
+    const [period, balances, members, paidIds] = await Promise.all([
       repos.periods.getById(id),
       repos.payments.listBalances(id),
       repos.members.list(),
+      repos.payments.listMemberIdsPaidOn(id, todayIso()),
     ]);
-    return { period, balances, members };
+    const paidToday = new Set(paidIds);
+    paidTodayRef.current = paidToday;
+    return { period, balances, members, paidToday };
   }, [repos, id]);
   const { data, error, reload } = useLoad(load);
   const sortedBalances = useMemo(() => {
@@ -44,13 +52,16 @@ export default function PeriodPaymentsScreen() {
   if (!data) return <Loading />;
   if (!data.period) return <ErrorState message="Periode tidak ditemukan." />;
 
-  const { balances, members, period } = data;
+  const { balances, members, period, paidToday } = data;
+  const paidTodayCount = balances.filter((b) => paidToday.has(b.memberId)).length;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
   const throughWeek = balances[0]?.throughWeek;
   const periodActive = period.status === 'active';
 
   // Preview first (same domain function as record) so the toast can name exactly what was settled.
   async function swipePay(memberId: string) {
+    if (paidTodayRef.current.has(memberId)) return; // already paid today (or a swipe is being saved): use the form
+    paidTodayRef.current.add(memberId); // lock first, before any await
     const name = nameOf(memberId);
     const input = { periodId: period.id, memberId, date: todayIso(), amount: SWIPE_PAYMENT_AMOUNT };
     try {
@@ -58,6 +69,7 @@ export default function PeriodPaymentsScreen() {
       await repos.payments.record({ ...input, account: 'tunai' });
       toast(swipePaymentToast(name, preview));
     } catch (e) {
+      paidTodayRef.current.delete(memberId); // nothing was saved: release the lock
       Alert.alert('Pembayaran gagal', toIndonesian(e));
     }
     await reload();
@@ -73,9 +85,14 @@ export default function PeriodPaymentsScreen() {
           <Text style={styles.title}>{period.name}</Text>
           {throughWeek ? <Text style={styles.muted}>Tunggakan dihitung sampai pertemuan {throughWeek}.</Text> : null}
           {periodActive ? (
-            <Text style={styles.muted}>
-              Geser baris ke kanan untuk mencatat {formatRupiah(SWIPE_PAYMENT_AMOUNT)} (Tunai, hari ini) bagi anggota yang menunggak. Ketuk baris untuk detail dan form lengkap.
-            </Text>
+            <>
+              <Text style={styles.summary}>
+                Sudah bayar hari ini: {paidTodayCount} dari {balances.length}
+              </Text>
+              <Text style={styles.muted}>
+                Geser baris ke kanan untuk mencatat {formatRupiah(SWIPE_PAYMENT_AMOUNT)} (Tunai, hari ini) bagi anggota yang menunggak dan belum bayar hari ini. Pembayaran kedua di hari yang sama lewat form lengkap (ketuk baris).
+              </Text>
+            </>
           ) : null}
         </View>
       }
@@ -83,9 +100,10 @@ export default function PeriodPaymentsScreen() {
       renderItem={({ item }) => {
         const inArrears = item.arrears > 0;
         const name = nameOf(item.memberId);
+        const paidNow = paidToday.has(item.memberId);
         return (
           <SwipeRow
-            enabled={canSwipePay({ arrears: item.arrears, periodActive })}
+            enabled={canSwipePay({ arrears: item.arrears, periodActive, paidToday: paidNow })}
             label={`Bayar ${formatRupiah(SWIPE_PAYMENT_AMOUNT)}`}
             onSwipe={() => swipePay(item.memberId)}
           >
@@ -101,6 +119,7 @@ export default function PeriodPaymentsScreen() {
                 <View style={styles.flex}>
                   <Text style={styles.name}>{name}</Text>
                   <Text style={inArrears ? styles.flag : styles.ok}>{inArrears ? 'Menunggak' : 'Lancar'}</Text>
+                  {paidNow ? <Text style={styles.paidToday}>Sudah bayar hari ini</Text> : null}
                   {item.prepaid > 0 ? <Text style={styles.muted}>Bayar di muka: {formatRupiah(item.prepaid)}</Text> : null}
                   {item.credit > 0 ? <Text style={styles.muted}>Titipan: {formatRupiah(item.credit)}</Text> : null}
                 </View>
@@ -127,5 +146,7 @@ const styles = StyleSheet.create({
   amount: { textAlign: 'right' },
   flag: { ...type.label, color: colors.danger },
   ok: { ...type.label, color: colors.primary },
+  paidToday: { ...type.label, color: colors.primary },
+  summary: { ...type.heading, color: colors.text },
   muted: { ...type.caption, color: colors.textMuted },
 });

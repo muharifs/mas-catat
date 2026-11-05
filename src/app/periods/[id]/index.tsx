@@ -1,15 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isRealDate, selectableWeekNumbers } from '@/domain/schedule';
+import { selectableWeekNumbers } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
-import { TextField } from '@/ui/components/TextField';
-import { formatDate, todayIso } from '@/ui/dates';
+import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { useLoad } from '@/ui/useLoad';
 
-// Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and "Akhiri periode".
+// Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and the way to the
+// pre-close screen ("Akhiri periode").
 export default function PeriodDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const repos = useRepos();
@@ -30,7 +30,6 @@ export default function PeriodDetailScreen() {
   const { data, error: loadError, reload } = useLoad(load);
 
   const [actionError, setActionError] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState(todayIso());
 
   if (loadError) return <Text style={styles.error}>{loadError}</Text>;
   if (!data) return <Text style={styles.muted}>Memuat...</Text>;
@@ -67,29 +66,6 @@ export default function PeriodDetailScreen() {
         },
       ],
     );
-  }
-
-  function confirmEnd() {
-    if (!isRealDate(endDate)) {
-      setActionError('Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.');
-      return;
-    }
-    Alert.alert('Akhiri periode', `Akhiri "${period.name}" pada ${formatDate(endDate)}? Ini tidak bisa dibatalkan.`, [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Akhiri',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await repos.periods.close(period.id, endDate);
-            setActionError(null);
-            await reload();
-          } catch (e) {
-            setActionError(toIndonesian(e));
-          }
-        },
-      },
-    ]);
   }
 
   return (
@@ -176,11 +152,15 @@ export default function PeriodDetailScreen() {
         <View style={styles.box}>
           <Text style={styles.section}>Akhiri periode</Text>
           <Text style={styles.hint}>
-            Periode hanya bisa diakhiri setelah semua pertemuan ditutup ({openWeeks} pertemuan masih terbuka). Penghapusan
-            tunggakan dan sisa kredit anggota belum tersedia; itu dikerjakan di tahap berikutnya.
+            Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
+            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan kredit anggota sebelum Anda
+            memastikan.
           </Text>
-          <TextField label="Tanggal berakhir (TTTT-BB-HH)" value={endDate} onChangeText={setEndDate} />
-          <Button label="Akhiri periode" variant="danger" onPress={confirmEnd} />
+          <Button
+            label="Akhiri periode"
+            variant="danger"
+            onPress={() => router.push({ pathname: '/periods/[id]/close', params: { id: period.id } })}
+          />
         </View>
       ) : null}
 

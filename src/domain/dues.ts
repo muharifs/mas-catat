@@ -37,7 +37,7 @@ export function unpaidWeeksThrough(statuses: readonly WeekStatus[], throughWeek:
 export interface MemberBalance {
   /** Dues for weeks 1..throughWeek. */
   dueToDate: Rupiah;
-  /** Paid or offset amount covering weeks 1..throughWeek. */
+  /** Paid, offset or credited amount covering weeks 1..throughWeek. */
   settledToDate: Rupiah;
   /** Debt: unpaid dues of weeks 1..throughWeek. */
   outstanding: Rupiah;
@@ -55,7 +55,7 @@ export function memberBalance(statuses: readonly WeekStatus[], throughWeek: numb
   let outstanding = 0;
   let prepaid = 0;
   for (const s of statuses) {
-    const settled = s.paid + s.offset;
+    const settled = s.paid + s.offset + s.credited;
     if (s.week <= throughWeek) {
       dueToDate += s.due;
       settledToDate += settled;

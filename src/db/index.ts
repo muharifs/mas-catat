@@ -3,6 +3,7 @@
 // repositories from this file without touching native code. Import it from "@/db/openDatabase" in the app.
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
+import { createCreditsRepo } from './credits';
 import { createLedgerRepo } from './ledger';
 import { createMembersRepo } from './members';
 import { createPaymentsRepo } from './payments';
@@ -17,6 +18,7 @@ export type { Period, PeriodMember, CreatePeriodInput } from './periods';
 export type { Week } from './weeks';
 export type { RecordPaymentInput, RecordedPayment } from './payments';
 export type { StoredLedgerEntry, AppendEntryInput, SettledHost } from './ledger';
+export type { RefundableCredit, MemberCarryOver } from './credits';
 
 export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
   return {
@@ -25,6 +27,7 @@ export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
     weeks: createWeeksRepo(db, deps),
     payments: createPaymentsRepo(db, deps),
     ledger: createLedgerRepo(db, deps),
+    credits: createCreditsRepo(db, deps),
   };
 }
 

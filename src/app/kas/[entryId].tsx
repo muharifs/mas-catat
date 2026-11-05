@@ -7,7 +7,7 @@ import { Button } from '@/ui/components/Button';
 import { CorrectionForm } from '@/ui/components/CorrectionForm';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
-import { correctionRoute, flowText, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
+import { correctionRoute, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { useLoad } from '@/ui/useLoad';
 
 // Detail of one ledger entry and its correction. The ledger is append-only: "Koreksi" adds a reversal entry (the
@@ -56,7 +56,7 @@ export default function KasEntryScreen() {
         {entry.week !== null ? <Text>Pertemuan: {entry.week}</Text> : null}
         {period ? <Text>Periode: {period.name}</Text> : null}
         {note ? <Text>Catatan: {note}</Text> : null}
-        {entry.account === null ? (
+        {showsNoPosWarning(entry) ? (
           <Text style={styles.warn}>
             Peringatan: catatan ini tanpa pos, jadi tidak dihitung di saldo. Catatan tidak diubah; kalau perlu, koreksi lalu catat ulang dengan pos yang benar.
           </Text>
@@ -121,6 +121,9 @@ export default function KasEntryScreen() {
         </>
       ) : null}
       {route === 'period_ended' ? <Text style={styles.hint}>Periode sudah berakhir, jadi catatan ini tidak bisa dikoreksi.</Text> : null}
+      {route === 'not_correctable' ? (
+        <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Penghapusan tunggakan dan pengembalian kredit bersifat final.</Text>
+      ) : null}
       {route === 'is_reversal' ? <Text style={styles.hint}>Koreksi tidak bisa dikoreksi lagi. Untuk membetulkan, catat ulang transaksi yang benar.</Text> : null}
       {route === 'already_corrected' ? <Text style={styles.hint}>Untuk membetulkan, catat ulang transaksi yang benar lewat menu Kas.</Text> : null}
     </ScrollView>

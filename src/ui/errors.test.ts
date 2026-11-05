@@ -53,6 +53,13 @@ describe('toIndonesian', () => {
     [new DomainError('shared goal needs a note'), 'Catatan wajib diisi untuk pengeluaran bersama.'],
     [new DomainError('opening balance needs a pos'), 'Pilih pos.'],
     [new DomainError('amount must be a positive integer, got 0'), 'Jumlah harus lebih dari nol.'],
+    [new RepositoryError('no period exists yet; create a period first'), 'Belum ada periode. Buat periode dulu.'],
+    [new RepositoryError('no active period; a new loan is only for members of the active period'), 'Tidak ada periode aktif. Buat atau mulai periode dulu.'],
+    [new DomainError('end date is in the future: 2027-01-01'), 'Tanggal berakhir tidak boleh di masa depan.'],
+    [new RepositoryError('weeks 1, 2 have no host payout in force; pay the hosts before closing the period'), 'Periode belum bisa diakhiri karena masih ada tuan rumah yang belum dibayar. Bayar dulu semua tuan rumah.'],
+    [new DomainError('nothing to refund: the member holds no credit'), 'Anggota ini tidak punya kredit yang bisa dikembalikan.'],
+    [new RepositoryError('period p1 has not ended; its credit cannot be refunded yet'), 'Kredit periode yang masih aktif belum bisa dikembalikan. Akhiri periodenya dulu.'],
+    [new DomainError('refund account must be tunai or debit'), 'Pilih sumber uang: Tunai atau Debit.'],
   ])('maps %s', (error, expected) => {
     expect(toIndonesian(error)).toBe(expected);
   });

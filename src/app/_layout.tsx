@@ -17,6 +17,8 @@ export default function RootLayout() {
         <Stack.Screen name="periods/[id]/pay" options={{ title: 'Catat Pembayaran' }} />
         <Stack.Screen name="periods/[id]/meetings/[number]" options={{ title: 'Tuan Rumah Pertemuan' }} />
         <Stack.Screen name="periods/[id]/payout" options={{ title: 'Bayar Tuan Rumah' }} />
+        <Stack.Screen name="periods/[id]/close" options={{ title: 'Akhiri Periode' }} />
+        <Stack.Screen name="credits/index" options={{ title: 'Kredit Anggota' }} />
         <Stack.Screen name="kas/index" options={{ title: 'Kas' }} />
         <Stack.Screen name="kas/new" options={{ title: 'Catat Kas' }} />
         <Stack.Screen name="kas/[entryId]" options={{ title: 'Detail Kas' }} />

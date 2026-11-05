@@ -13,7 +13,9 @@ import { useLoad } from '@/ui/useLoad';
 const STATE_LABEL: Record<WeekState, string> = {
   paid: 'Lunas',
   offset: 'Lunas lewat potongan tuan rumah',
+  credited: 'Lunas lewat kredit',
   partial_offset: 'Sebagian lewat potongan tuan rumah',
+  partial_credited: 'Sebagian lewat kredit',
   partial: 'Kurang',
   unpaid: 'Belum bayar',
 };
@@ -22,6 +24,7 @@ function weekDetail(s: WeekStatus): string {
   const parts: string[] = [];
   if (s.paid > 0) parts.push(`dibayar ${formatRupiah(s.paid)}`);
   if (s.offset > 0) parts.push(`potongan ${formatRupiah(s.offset)}`);
+  if (s.credited > 0) parts.push(`kredit ${formatRupiah(s.credited)}`);
   if (s.outstanding > 0) parts.push(`sisa ${formatRupiah(s.outstanding)}`);
   return parts.join(', ');
 }
@@ -87,7 +90,7 @@ export default function MemberInPeriodScreen() {
                 Pertemuan {s.week}
                 {week ? ` - ${formatDate(week.date)}` : ''}
               </Text>
-              <Text style={state === 'paid' || state === 'offset' ? styles.ok : styles.bad}>{STATE_LABEL[state]}</Text>
+              <Text style={state === 'paid' || state === 'offset' || state === 'credited' ? styles.ok : styles.bad}>{STATE_LABEL[state]}</Text>
             </View>
             {weekDetail(s) ? <Text style={styles.muted}>{weekDetail(s)}</Text> : null}
           </View>

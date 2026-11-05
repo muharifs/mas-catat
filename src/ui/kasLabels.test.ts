@@ -26,6 +26,11 @@ describe('correctionRoute', () => {
     expect(correctionRoute({ type: 'host_offset', reversedById: null }, true)).toBe('payout');
     expect(correctionRoute({ type: 'reversal', reversedById: null }, true)).toBe('is_reversal');
     expect(correctionRoute({ type: 'loan', reversedById: 'r1' }, true)).toBe('already_corrected');
-    expect(correctionRoute({ type: 'loan', reversedById: null }, false)).toBe('period_ended');
+    // Kas-type entries can be corrected in an ended period too; payments and payouts cannot.
+    expect(correctionRoute({ type: 'loan', reversedById: null }, false)).toBe('direct');
+    expect(correctionRoute({ type: 'member_payment', reversedById: null }, false)).toBe('period_ended');
+    expect(correctionRoute({ type: 'host_payout', reversedById: null }, false)).toBe('period_ended');
+    expect(correctionRoute({ type: 'debt_writeoff', reversedById: null }, true)).toBe('not_correctable');
+    expect(correctionRoute({ type: 'credit_refund', reversedById: null }, false)).toBe('not_correctable');
   });
 });

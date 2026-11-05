@@ -82,8 +82,7 @@ describe('allocatePayments', () => {
 
   it('offset credits (not payments) may be any amount and reduce what payments must cover', () => {
     const r = allocatePayments([pay('a', '2026-01-01', 15_000)], 3, [{ week: 1, amount: 5_000 }]);
-    expect(r.weeks[0]).toEqual({ week: 1, due: 15_000, paid: 10_000, offset: 5_000, outstanding: 0 });
-    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([
+    expect(r.weeks[0]).toEqual({ week: 1, due: 15_000, paid: 10_000, offset: 5_000, credited: 0, outstanding: 0 });    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([
       [1, 10_000],
       [2, 5_000],
     ]);
@@ -139,5 +138,25 @@ describe('allocatePayments', () => {
       expect(() => allocatePayments([], 3, [{ week: 1, amount: 15_001 }])).toThrow(/exceeds/);
       expect(() => allocatePayments([], 3, [{ week: 1, amount: -5 }])).toThrow(/offset amount/);
     });
+  });
+});
+
+describe('allocatePayments with credited weeks', () => {
+  it('treats credited amounts as settled, reports them separately and keeps due = paid + offset + credited + outstanding', () => {
+    const payment = pay('p', '2026-01-10', 15_000);
+    const r = allocatePayments([payment], 3, [{ week: 1, amount: 5_000 }], [{ week: 1, amount: 5_000 }, { week: 2, amount: 15_000 }]);
+    // Week 1 has 5.000 offset + 5.000 credited, so the payment only fills 5.000 there; week 2 is fully credited.
+    expect(r.allocations.map((a) => [a.week, a.amount])).toEqual([[1, 5_000], [3, 10_000]]);
+    expect(r.weeks).toEqual([
+      { week: 1, due: 15_000, paid: 5_000, offset: 5_000, credited: 5_000, outstanding: 0 },
+      { week: 2, due: 15_000, paid: 0, offset: 0, credited: 15_000, outstanding: 0 },
+      { week: 3, due: 15_000, paid: 10_000, offset: 0, credited: 0, outstanding: 5_000 },
+    ]);
+    for (const w of r.weeks) expect(w.due).toBe(w.paid + w.offset + w.credited + w.outstanding);
+  });
+
+  it('rejects offset + credited above the weekly due and credited weeks beyond the period', () => {
+    expect(() => allocatePayments([], 2, [{ week: 1, amount: 10_000 }], [{ week: 1, amount: 10_000 }])).toThrow(/exceeds the weekly due/);
+    expect(() => allocatePayments([], 2, [], [{ week: 3, amount: 1 }])).toThrow(/beyond the period/);
   });
 });

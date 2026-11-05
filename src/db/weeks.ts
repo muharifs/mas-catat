@@ -90,7 +90,7 @@ interface WeekAmountRow {
 }
 
 /**
- * Stored amounts per week for one member: paid via allocations and settled via host offsets.
+ * Stored amounts per week for one member: paid via allocations, settled via host offsets, settled by credit.
  * Corrected things are ignored but never deleted: allocations of a reversed payment, and offset credits of an
  * offset entry that has a reversal.
  */
@@ -98,7 +98,7 @@ export async function loadWeekAmounts(
   db: Queryable,
   periodId: string,
   memberId: string,
-): Promise<{ paid: WeekCredit[]; offset: WeekCredit[] }> {
+): Promise<{ paid: WeekCredit[]; offset: WeekCredit[]; credited: WeekCredit[] }> {
   const toCredits = (rows: WeekAmountRow[]): WeekCredit[] => rows.map((r) => ({ week: r.week, amount: r.total }));
   const paid = await db.getAll<WeekAmountRow>(
     'SELECT week, SUM(amount) AS total FROM allocations WHERE period_id = ? AND member_id = ? AND payment_id NOT IN (SELECT payment_id FROM payment_reversals) GROUP BY week ORDER BY week',
@@ -111,7 +111,12 @@ export async function loadWeekAmounts(
       GROUP BY week ORDER BY week`,
     [periodId, memberId],
   );
-  return { paid: toCredits(paid), offset: toCredits(offset) };
+  // Member credit applied to this period's weeks: settled at close (own arrears) or carried over from an earlier period.
+  const credited = await db.getAll<WeekAmountRow>(
+    'SELECT week, SUM(amount) AS total FROM credit_applications WHERE to_period_id = ? AND member_id = ? GROUP BY week ORDER BY week',
+    [periodId, memberId],
+  );
+  return { paid: toCredits(paid), offset: toCredits(offset), credited: toCredits(credited) };
 }
 
 /** Merges paid and offset amounts into one credit per week (what is already settled). */
@@ -133,13 +138,13 @@ export async function loadMemberCount(db: Queryable, periodId: string): Promise<
  */
 export async function loadWeekStatuses(db: Queryable, periodId: string, memberId: string): Promise<WeekStatus[]> {
   const totalWeeks = periodWeekCount(await loadMemberCount(db, periodId));
-  const { paid, offset } = await loadWeekAmounts(db, periodId, memberId);
+  const { paid, offset, credited } = await loadWeekAmounts(db, periodId, memberId);
 
   const credits = combineCredits(paid, offset);
 
   const paidByWeek = new Map(paid.map((c) => [c.week, c.amount]));
   const offsetByWeek = new Map(offset.map((c) => [c.week, c.amount]));
-  return allocatePayments([], totalWeeks, credits).weeks.map((w) => ({
+  return allocatePayments([], totalWeeks, credits, credited).weeks.map((w) => ({
     ...w,
     paid: paidByWeek.get(w.week) ?? 0,
     offset: offsetByWeek.get(w.week) ?? 0,

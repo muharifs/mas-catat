@@ -1,6 +1,7 @@
 import { DomainError } from '@/domain/money';
 import { createRepositories, RepositoryError, type Repositories } from './index';
 import type { Db } from './db';
+import { markHostsPaid } from './testing/hostPayouts';
 import { createMigratedTestDb } from './testing/sqlJsDriver';
 
 interface Fixture {
@@ -51,6 +52,7 @@ describe('periods and weeks', () => {
     // End the first period so the one-active-period rule does not hide the failures under test.
     await repos.weeks.close(periodId, 1);
     await repos.weeks.close(periodId, 2);
+    await markHostsPaid(repos, periodId);
     await repos.periods.close(periodId, '2026-01-11');
     const before = { periods: await count(db, 'periods'), pm: await count(db, 'period_members'), weeks: await count(db, 'weeks') };
     await expect(repos.periods.create({ name: 'X', startDate: '2026-02-01', memberIds: [ids[0] as string, 'ghost'] })).rejects.toThrow();
@@ -67,6 +69,7 @@ describe('periods and weeks', () => {
     expect((await repos.periods.getActive())?.id).toBe(periodId);
     await repos.weeks.close(periodId, 1);
     await repos.weeks.close(periodId, 2);
+    await markHostsPaid(repos, periodId);
     await repos.periods.close(periodId, '2026-01-11');
     expect(await repos.periods.getActive()).toBeNull();
     const next = await repos.periods.create({ name: 'Dua', startDate: '2026-03-01', memberIds: ids });
@@ -82,6 +85,8 @@ describe('periods and weeks', () => {
     await expect(repos.periods.close(periodId, '2026-01-01')).rejects.toThrow(/before the start/);
     await expect(repos.periods.close(periodId, '2026-02-31')).rejects.toThrow(DomainError);
     await expect(repos.periods.close('ghost', '2026-01-11')).rejects.toThrow(/not found/);
+    await expect(repos.periods.close(periodId, '2026-01-11')).rejects.toThrow(/no host payout in force/);
+    await markHostsPaid(repos, periodId);
     await repos.periods.close(periodId, '2026-01-11');
     expect(await repos.periods.getById(periodId)).toMatchObject({ status: 'closed', endDate: '2026-01-11' });
     await expect(repos.periods.close(periodId, '2026-01-12')).rejects.toThrow(/already closed/);
@@ -549,6 +554,7 @@ describe('M4: recording payments', () => {
     const f = await setup(2);
     await f.repos.weeks.close(f.periodId, 1);
     await f.repos.weeks.close(f.periodId, 2);
+    await markHostsPaid(f.repos, f.periodId);
     await f.repos.periods.close(f.periodId, '2026-01-11');
     await expect(f.repos.payments.record(pay(f, 0, 15_000))).rejects.toThrow(/has ended/);
     await expect(f.repos.payments.preview(pay(f, 0, 15_000))).rejects.toThrow(/has ended/);
@@ -618,6 +624,7 @@ describe('M4: closing weeks and arrears', () => {
     expect((await f.repos.weeks.listByPeriod(f.periodId)).map((w) => w.status)).toEqual(['closed', 'closed', 'open']);
     expect(await f.repos.weeks.closeOldest(f.periodId)).toBe(3);
     await expect(f.repos.weeks.closeOldest(f.periodId)).rejects.toThrow(/no open week/);
+    await markHostsPaid(f.repos, f.periodId);
     await f.repos.periods.close(f.periodId, '2026-01-25'); // now possible
     expect((await f.repos.periods.getById(f.periodId))?.status).toBe('closed');
   });

@@ -29,12 +29,16 @@ export interface WeekCredit {
   amount: Rupiah;
 }
 
-/** State of one member's due for one week. due = paid + offset + outstanding. */
+/**
+ * State of one member's due for one week. Invariant: due = paid + offset + credited + outstanding.
+ * `credited` is settled by member credit (carried over from an earlier period, or used at period close).
+ */
 export interface WeekStatus {
   week: number;
   due: Rupiah;
   paid: Rupiah;
   offset: Rupiah;
+  credited: Rupiah;
   outstanding: Rupiah;
 }
 
@@ -56,6 +60,8 @@ export type LedgerEntryType =
   | 'loan'
   | 'loan_repayment'
   | 'shared_goal'
+  | 'debt_writeoff'
+  | 'credit_refund'
   | 'reversal';
 
 /** Kas pos (account): Tunai (cash), Debit (bank/e-wallet), Piutang (lent to members). */

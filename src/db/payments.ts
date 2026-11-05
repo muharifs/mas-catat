@@ -10,6 +10,7 @@ import type { Account, Allocation, Payment, WeekStatus } from '@/domain/types';
 import type { Db, Queryable } from './db';
 import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
+import { loadAvailableCredit } from './credits';
 import { insertEntry, loadEntry, requireActivePeriod, type StoredLedgerEntry } from './ledger';
 import { loadCurrentWeek, loadWeekStatuses } from './weeks';
 
@@ -243,18 +244,13 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       }));
     },
 
-    /** Total credit of a member in a period (integer rupiah). Corrected payments count for nothing. */
+    /**
+     * Credit a member holds from a period (integer rupiah): payments minus allocations (corrected payments count
+     * for nothing), minus credit already applied (close, carry-over) and refunded. In an active period nothing is
+     * applied or refunded yet, so it is simply the surplus of the payments.
+     */
     async getCredit(periodId: string, memberId: string): Promise<number> {
-      const row = await db.getFirst<{ credit: number }>(
-        `SELECT COALESCE(SUM(p.amount), 0)
-                - COALESCE((SELECT SUM(a.amount) FROM allocations a
-                             WHERE a.period_id = ? AND a.member_id = ?
-                               AND a.payment_id NOT IN (SELECT payment_id FROM payment_reversals)), 0) AS credit
-           FROM payments p
-          WHERE p.period_id = ? AND p.member_id = ? AND p.id NOT IN (SELECT payment_id FROM payment_reversals)`,
-        [periodId, memberId, periodId, memberId],
-      );
-      return row?.credit ?? 0;
+      return loadAvailableCredit(db, periodId, memberId);
     },
 
     /**

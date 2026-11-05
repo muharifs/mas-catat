@@ -22,12 +22,15 @@ export interface AllocationResult {
  * - A payment may be split across weeks; each Allocation keeps the payment's own date.
  * - Amount left after all totalWeeks are settled is returned as `credit`.
  * - offsetCredits (from host payout offsets) are already-settled parts of a week's due.
+ * - creditedCredits (member credit applied to a week) are already-settled parts of a due too; they are reported
+ *   separately in WeekStatus.credited. offset + credited of one week may not exceed the weekly due.
  * Inputs are never mutated.
  */
 export function allocatePayments(
   payments: readonly Payment[],
   totalWeeks: number,
   offsetCredits: readonly WeekCredit[] = [],
+  creditedCredits: readonly WeekCredit[] = [],
 ): AllocationResult {
   assertPositiveInt(totalWeeks, 'totalWeeks');
 
@@ -39,6 +42,17 @@ export function allocatePayments(
     const total = (offsetByWeek[c.week - 1] ?? 0) + c.amount;
     if (total > WEEKLY_DUE) throw new DomainError(`offset for week ${c.week} exceeds the weekly due`);
     offsetByWeek[c.week - 1] = total;
+  }
+  const creditedByWeek = new Array<number>(totalWeeks).fill(0);
+  for (const c of creditedCredits) {
+    assertPositiveInt(c.week, 'credited week');
+    assertRupiah(c.amount, 'credited amount');
+    if (c.week > totalWeeks) throw new DomainError(`credited week ${c.week} is beyond the period`);
+    const total = (creditedByWeek[c.week - 1] ?? 0) + c.amount;
+    if (total + (offsetByWeek[c.week - 1] ?? 0) > WEEKLY_DUE) {
+      throw new DomainError(`settled amount for week ${c.week} exceeds the weekly due`);
+    }
+    creditedByWeek[c.week - 1] = total;
   }
 
   const memberId = payments[0]?.memberId;
@@ -61,7 +75,7 @@ export function allocatePayments(
   for (const p of ordered) {
     let remaining = p.amount;
     while (remaining > 0 && cursor < totalWeeks) {
-      const open = WEEKLY_DUE - (offsetByWeek[cursor] ?? 0) - (paidByWeek[cursor] ?? 0);
+      const open = WEEKLY_DUE - (offsetByWeek[cursor] ?? 0) - (creditedByWeek[cursor] ?? 0) - (paidByWeek[cursor] ?? 0);
       if (open <= 0) {
         cursor += 1;
         continue;
@@ -82,7 +96,8 @@ export function allocatePayments(
 
   const weeks: WeekStatus[] = paidByWeek.map((paid, i) => {
     const offset = offsetByWeek[i] ?? 0;
-    return { week: i + 1, due: WEEKLY_DUE, paid, offset, outstanding: WEEKLY_DUE - paid - offset };
+    const credited = creditedByWeek[i] ?? 0;
+    return { week: i + 1, due: WEEKLY_DUE, paid, offset, credited, outstanding: WEEKLY_DUE - paid - offset - credited };
   });
 
   return { allocations, weeks, credit };

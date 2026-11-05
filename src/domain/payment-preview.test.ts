@@ -4,7 +4,7 @@ import { DomainError } from './money';
 import type { Payment, WeekStatus } from './types';
 
 const blank = (n: number): WeekStatus[] =>
-  Array.from({ length: n }, (_, i) => ({ week: i + 1, due: 15_000, paid: 0, offset: 0, outstanding: 15_000 }));
+  Array.from({ length: n }, (_, i) => ({ week: i + 1, due: 15_000, paid: 0, offset: 0, credited: 0, outstanding: 15_000 }));
 const pay = (amount: number): Payment => ({ id: 'p', memberId: 'm', date: '2026-01-10', amount });
 
 describe('previewPayment', () => {
@@ -18,13 +18,13 @@ describe('previewPayment', () => {
 
   it('skips weeks that are already settled', () => {
     const s = blank(4);
-    s[0] = { week: 1, due: 15_000, paid: 15_000, offset: 0, outstanding: 0 };
+    s[0] = { week: 1, due: 15_000, paid: 15_000, offset: 0, credited: 0, outstanding: 0 };
     expect(previewPayment(pay(15_000), s).settledWeeks).toEqual([2]);
   });
 
   it('turns only the part beyond the remaining dues into credit', () => {
     const s = blank(3);
-    s[0] = { week: 1, due: 15_000, paid: 15_000, offset: 0, outstanding: 0 };
+    s[0] = { week: 1, due: 15_000, paid: 15_000, offset: 0, credited: 0, outstanding: 0 };
     const p = previewPayment(pay(60_000), s);
     expect(p.settledWeeks).toEqual([2, 3]);
     expect(p.creditAmount).toBe(30_000);
@@ -41,7 +41,7 @@ describe('previewPayment', () => {
 
   it('reports a partly settled last week after a capped offset', () => {
     const s = blank(3);
-    s[0] = { week: 1, due: 15_000, paid: 0, offset: 5_000, outstanding: 10_000 };
+    s[0] = { week: 1, due: 15_000, paid: 0, offset: 5_000, credited: 0, outstanding: 10_000 };
     const p = previewPayment(pay(15_000), s);
     expect(p.settledWeeks).toEqual([1]);
     expect(p.partialWeek).toBe(2);
@@ -71,12 +71,13 @@ describe('assertPaymentDate', () => {
 });
 
 describe('weekState', () => {
-  const st = (paid: number, offset: number): WeekStatus => ({
+  const st = (paid: number, offset: number, credited = 0): WeekStatus => ({
     week: 1,
     due: 15_000,
     paid,
     offset,
-    outstanding: 15_000 - paid - offset,
+    credited,
+    outstanding: 15_000 - paid - offset - credited,
   });
   it('classifies weeks', () => {
     expect(weekState(st(15_000, 0))).toBe('paid');
@@ -84,6 +85,26 @@ describe('weekState', () => {
     expect(weekState(st(0, 5_000))).toBe('partial_offset');
     expect(weekState(st(5_000, 0))).toBe('partial');
     expect(weekState(st(0, 0))).toBe('unpaid');
+  });
+
+  it('classifies weeks settled by member credit', () => {
+    expect(weekState(st(0, 0, 15_000))).toBe('credited');
+    expect(weekState(st(0, 0, 5_000))).toBe('partial_credited');
+    expect(weekState(st(10_000, 0, 5_000))).toBe('paid');
+  });
+});
+
+describe('previewPayment with credited weeks', () => {
+  it('skips weeks that member credit already settled and fills the remaining room', () => {
+    const s = blank(3);
+    s[0] = { week: 1, due: 15_000, paid: 0, offset: 0, credited: 15_000, outstanding: 0 };
+    s[1] = { week: 2, due: 15_000, paid: 0, offset: 0, credited: 5_000, outstanding: 10_000 };
+    const preview = previewPayment(pay(30_000), s);
+    expect(preview.allocations.map((a) => [a.week, a.amount])).toEqual([
+      [2, 10_000],
+      [3, 15_000],
+    ]);
+    expect(preview.creditAmount).toBe(5_000);
   });
 });
 

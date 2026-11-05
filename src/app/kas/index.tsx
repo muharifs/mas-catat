@@ -7,7 +7,7 @@ import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
-import { flowText, KIND_LABELS, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
+import { flowText, KIND_LABELS, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { useLoad } from '@/ui/useLoad';
 
 // Kas: balances of the three pos and the list of every entry (all periods). Balances come from ONE domain
@@ -17,19 +17,20 @@ export default function KasScreen() {
   const repos = useRepos();
 
   const load = useCallback(async () => {
-    const [balances, entries, members, active] = await Promise.all([
+    const [balances, entries, members, active, periods] = await Promise.all([
       repos.ledger.getKasBalances(),
       repos.ledger.listKas(),
       repos.members.list(),
       repos.periods.getActive(),
+      repos.periods.list(),
     ]);
-    return { balances, entries, members, active };
+    return { balances, entries, members, active, hasPeriod: periods.length > 0 };
   }, [repos]);
   const { data, error } = useLoad(load);
 
   if (error) return <Text style={styles.error}>{error}</Text>;
   if (!data) return <Text style={styles.muted}>Memuat...</Text>;
-  const { balances, entries, members, active } = data;
+  const { balances, entries, members, active, hasPeriod } = data;
   const nameOf = (id: string | null) => (id === null ? '' : (members.find((m) => m.id === id)?.name ?? ''));
   const byId = new Map(entries.map((e) => [e.id, e]));
 
@@ -52,14 +53,19 @@ export default function KasScreen() {
         <Text style={styles.hint}>Saldo dihitung dari semua catatan di semua periode. Catatan tanpa pos tidak dihitung.</Text>
       </View>
 
-      {active ? (
+      {hasPeriod ? (
         <View style={styles.actions}>
-          {KAS_KINDS.map((kind) => (
+          {KAS_KINDS.filter((kind) => active || kind !== 'loan').map((kind) => (
             <Button key={kind} label={KIND_LABELS[kind]} variant="secondary" onPress={() => router.push({ pathname: '/kas/new', params: { kind } })} />
           ))}
+          {active ? null : (
+            <Text style={styles.hint}>
+              Tidak ada periode aktif: catatan baru masuk ke periode terakhir yang sudah berakhir. Pinjaman baru hanya untuk anggota periode aktif.
+            </Text>
+          )}
         </View>
       ) : (
-        <Text style={styles.hint}>Tidak ada periode aktif, jadi catatan kas baru belum bisa dibuat. Buat periode dulu.</Text>
+        <Text style={styles.hint}>Belum ada periode, jadi catatan kas baru belum bisa dibuat. Buat periode dulu.</Text>
       )}
 
       <Text style={styles.section}>Riwayat</Text>
@@ -87,7 +93,7 @@ export default function KasScreen() {
             </Text>
             {visibleNote(e) ? <Text style={styles.muted}>{visibleNote(e)}</Text> : null}
             {e.reversedById ? <Text style={styles.bad}>Dikoreksi</Text> : null}
-            {e.account === null ? <Text style={styles.warn}>Peringatan: tanpa pos, tidak dihitung di saldo</Text> : null}
+            {showsNoPosWarning(e) ? <Text style={styles.warn}>Peringatan: tanpa pos, tidak dihitung di saldo</Text> : null}
           </View>
           <Text style={[styles.amount, e.direction === 'in' && e.toAccount === null ? styles.in : null]}>{formatRupiah(e.amount)}</Text>
         </Pressable>

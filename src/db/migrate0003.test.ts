@@ -56,7 +56,7 @@ describe('migration 0003 (kas moves and corrections)', () => {
     };
 
     expect(await migrate(db)).toEqual({ from: 2, to: MIGRATIONS.length });
-    expect(await userVersion(db)).toBe(3);
+    expect(await userVersion(db)).toBe(MIGRATIONS.length);
 
     const links = await db.getAll<{ id: string; ledger_entry_id: string | null }>('SELECT id, ledger_entry_id FROM payments ORDER BY rowid');
     expect(links.map((l) => [l.id, l.ledger_entry_id])).toEqual([
@@ -103,7 +103,7 @@ describe('migration 0003 (kas moves and corrections)', () => {
   it('is idempotent and adds the new structures', async () => {
     const db = await v2WithM4Data();
     await migrate(db);
-    expect(await migrate(db)).toEqual({ from: 3, to: 3 });
+    expect(await migrate(db)).toEqual({ from: MIGRATIONS.length, to: MIGRATIONS.length });
     const names = (await db.getAll<{ name: string }>("SELECT name FROM sqlite_master WHERE type IN ('table', 'index')")).map((r) => r.name);
     expect(names).toEqual(expect.arrayContaining(['payment_reversals', 'ux_ledger_reverses', 'ux_payments_ledger_entry']));
     await expect(

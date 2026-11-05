@@ -21,7 +21,7 @@ const HELP: Record<KasKind, string> = {
   opening_balance: 'Saldo yang sudah ada sebelum memakai aplikasi, per pos. Isi satu kali per pos; kalau salah, koreksi lalu catat ulang.',
   transfer: 'Memindahkan uang antara Tunai dan Debit, ke dua arah. Total kas tidak berubah.',
   loan: 'Uang kas dipinjamkan ke anggota periode aktif. Tanpa bunga dan tanpa batas waktu. Masuk ke Piutang.',
-  loan_repayment: 'Anggota mengembalikan pinjaman. Uangnya masuk ke Tunai dan Piutang berkurang.',
+  loan_repayment: 'Anggota mengembalikan pinjaman. Uangnya masuk ke Tunai dan Piutang berkurang. Dicatat di periode aktif, atau di periode terakhir anggota itu bila ia tidak ada di periode aktif.',
   shared_goal: 'Pengeluaran untuk tujuan bersama, misalnya tur. Catatan wajib diisi.',
 };
 
@@ -36,13 +36,15 @@ export default function NewKasEntryScreen() {
   const repos = useRepos();
 
   const load = useCallback(async () => {
-    const active = await repos.periods.getActive();
+    const [active, periods] = await Promise.all([repos.periods.getActive(), repos.periods.list()]);
     const [members, periodMembers] = await Promise.all([
       repos.members.list(),
       active ? repos.periods.getMembers(active.id) : Promise.resolve([]),
     ]);
     const ids = new Set(periodMembers.map((m) => m.memberId));
-    return { active, candidates: members.filter((m) => ids.has(m.id)) };
+    // A new loan is only for members of the active period; a repayment may come from any member (the repository
+    // attaches it to the active period, or to the latest period the member was in).
+    return { active, hasPeriod: periods.length > 0, loanCandidates: members.filter((m) => ids.has(m.id)), allMembers: members };
   }, [repos]);
   const { data, error: loadError } = useLoad(load);
 
@@ -60,10 +62,13 @@ export default function NewKasEntryScreen() {
   if (loadError) return <Text style={styles.error}>{loadError}</Text>;
   if (!data) return <Text style={styles.muted}>Memuat...</Text>;
   const kind: KasKind = kindParam;
-  if (!data.active) {
-    return <Text style={styles.error}>Tidak ada periode aktif. Catatan kas dilekatkan ke periode aktif, jadi buat periode dulu.</Text>;
+  if (!data.hasPeriod) {
+    return <Text style={styles.error}>Belum ada periode. Catatan kas dilekatkan ke sebuah periode, jadi buat periode dulu.</Text>;
   }
-  const { candidates } = data;
+  if (kind === 'loan' && !data.active) {
+    return <Text style={styles.error}>Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif.</Text>;
+  }
+  const candidates = kind === 'loan' ? data.loanCandidates : data.allMembers;
   const needsMember = kind === 'loan' || kind === 'loan_repayment';
 
   function buildInput(amount: number): KasEntryInput {

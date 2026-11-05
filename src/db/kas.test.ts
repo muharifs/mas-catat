@@ -2,6 +2,7 @@
 import { DomainError } from '@/domain/money';
 import { createRepositories, RepositoryError, type Repositories } from './index';
 import type { Db } from './db';
+import { markHostsPaid } from './testing/hostPayouts';
 import { createMigratedTestDb } from './testing/sqlJsDriver';
 
 interface Fixture {
@@ -46,6 +47,7 @@ async function closeWeeks(f: Fixture, upTo: number): Promise<void> {
 async function endPeriod(f: Fixture): Promise<void> {
   const weeks = await f.repos.weeks.listByPeriod(f.periodId);
   await closeWeeks(f, weeks.filter((w) => w.status === 'open').length);
+  await markHostsPaid(f.repos, f.periodId); // closing needs every host paid; these payouts have no pos
   await f.repos.periods.close(f.periodId, '2026-12-30');
 }
 
@@ -82,7 +84,7 @@ describe('host payout: which weeks, which pos', () => {
   it('offsets the arrears AT PAYOUT TIME: a late payment of the host after closing is respected', async () => {
     const f = await setup(4);
     await closeWeeks(f, 1);
-    await f.repos.payments.record(pay(f, 0, 15_000, '2026-01-10')); // host pays week 1 after it was closed
+    await f.repos.payments.record(pay(f, 0, 30_000, '2026-01-10')); // host pays weeks 1 and 2 (the current one) late
     const { entries } = await f.repos.ledger.settleHost(f.periodId, 1, '2026-01-11');
     expect(entries.map((e) => e.type)).toEqual(['host_payout']);
   });
@@ -118,8 +120,9 @@ describe('host payout: which weeks, which pos', () => {
     await expect(f.repos.ledger.settleHost(f.periodId, 1, '2026-02-31')).rejects.toThrow(DomainError);
     await expect(f.repos.ledger.settleHost(f.periodId, 1, '2026-01-04', 'piutang')).rejects.toThrow(RepositoryError);
     await endPeriod(f);
+    const entriesAfterClose = await count(f.db, 'ledger_entries');
     await expect(f.repos.ledger.settleHost(f.periodId, 1, '2026-01-04')).rejects.toThrow(/has ended/);
-    expect(await count(f.db, 'ledger_entries')).toBe(0);
+    expect(await count(f.db, 'ledger_entries')).toBe(entriesAfterClose);
   });
 
   it('previews exactly what settleHost saves, with the balance warnings, and writes nothing', async () => {
@@ -169,7 +172,8 @@ describe('kas ledger', () => {
     await endPeriod(f);
     const next = await f.repos.periods.create({ name: 'Periode 2', startDate: '2027-01-01', memberIds: f.ids });
     await f.repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-12-31', amount: 10_000, account: 'tunai' });
-    expect((await f.repos.ledger.listKas()).map((e) => e.periodId).sort()).toEqual([f.periodId, next.id].sort());
+    // The closing helper also wrote a payout per week into period 1, so compare the distinct periods.
+    expect([...new Set((await f.repos.ledger.listKas()).map((e) => e.periodId))].sort()).toEqual([f.periodId, next.id].sort());
     expect((await f.repos.ledger.getKasBalances()).tunai).toBe(50_000);
   });
 
@@ -185,14 +189,16 @@ describe('kas ledger', () => {
     expect(list.filter((e) => e.account === null)).toHaveLength(2);
   });
 
-  it('needs an active period for every kas entry', async () => {
-    const f = await setup(2);
-    await endPeriod(f);
-    await expect(opening(f, 'tunai', 1_000)).rejects.toThrow(/no active period/);
-    await expect(f.repos.ledger.previewKas({ kind: 'transfer', date: '2026-01-01', amount: 1, account: 'tunai', toAccount: 'debit' })).rejects.toThrow(
-      /no active period/,
+  it('rejects every kas entry when there is no period at all', async () => {
+    const db = await createMigratedTestDb();
+    const repos = createRepositories(db, { newId: () => 'x', now: () => '2026-12-31T12:00:00.000Z' });
+    await expect(repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-01-01', amount: 1_000, account: 'tunai' })).rejects.toThrow(
+      /no period exists yet/,
     );
-    expect(await count(f.db, 'ledger_entries')).toBe(0);
+    await expect(
+      repos.ledger.previewKas({ kind: 'transfer', date: '2026-01-01', amount: 1, account: 'tunai', toAccount: 'debit' }),
+    ).rejects.toThrow(/no period exists yet/);
+    expect(await count(db, 'ledger_entries')).toBe(0);
   });
 
   it('rejects a loan to someone outside the active period, a future date and malformed entries', async () => {
@@ -296,7 +302,7 @@ describe('corrections of kas entries', () => {
     expect(await count(f.db, 'ledger_entries')).toBe(1);
   });
 
-  it('only corrects in an active period, and not entries that have their own correction', async () => {
+  it('corrects kas entries even in an ended period; payments and payouts stay uncorrectable there', async () => {
     const f = await setup(2);
     const e = await opening(f, 'tunai', 1_000);
     const p = await f.repos.payments.record(pay(f, 0, 15_000));
@@ -304,9 +310,12 @@ describe('corrections of kas entries', () => {
     const payEntry = (await f.repos.ledger.listByMember(f.periodId, f.ids[0] as string))[0];
     await expect(f.repos.ledger.reverseEntry(payEntry?.id as string, 'x')).rejects.toThrow(/cannot be corrected here/);
     await endPeriod(f);
-    await expect(f.repos.ledger.reverseEntry(e.id, 'terlambat')).rejects.toThrow(/has ended/);
     await expect(f.repos.payments.reverse(p.payment.id, 'terlambat')).rejects.toThrow(/has ended/);
     await expect(f.repos.ledger.reverseHostPayout(f.periodId, 1, 'terlambat')).rejects.toThrow(/has ended/);
+    // A kas entry of the ended period can still be reversed, recorded on ITS period.
+    const reversal = await f.repos.ledger.reverseEntry(e.id, 'salah catat');
+    expect(reversal).toMatchObject({ type: 'reversal', periodId: f.periodId, reversesEntryId: e.id });
+    expect((await f.repos.ledger.getKasBalances()).tunai).toBe(15_000); // the payment only; the opening balance is cancelled
   });
 });
 
@@ -438,7 +447,7 @@ describe('corrections of host payouts', () => {
 
   it('corrects a payout without an offset (host had no debt) and a payout on a closed week', async () => {
     const f = await setup(4);
-    await f.repos.payments.record(pay(f, 0, 15_000));
+    await f.repos.payments.record(pay(f, 0, 30_000)); // weeks 1 and 2: after closing week 1 the current week is 2
     await closeWeeks(f, 1);
     await f.repos.ledger.settleHost(f.periodId, 1, '2026-01-04');
     const reversals = await f.repos.ledger.reverseHostPayout(f.periodId, 1, 'salah');

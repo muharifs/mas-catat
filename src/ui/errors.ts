@@ -23,6 +23,11 @@ const RULES: readonly { pattern: RegExp; text: string }[] = [
   { pattern: /(start|end)Date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
   { pattern: /must be an ISO date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
   { pattern: /memberCount must be a positive integer/, text: 'Pilih minimal satu anggota.' },
+  { pattern: /has ended; payments are not accepted/, text: 'Periode sudah berakhir. Pembayaran tidak bisa dicatat.' },
+  { pattern: /payment date is in the future/, text: 'Tanggal pembayaran tidak boleh di masa depan.' },
+  { pattern: /payment date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
+  { pattern: /receiving account must be/, text: 'Pilih tempat uang masuk: Tunai atau Debit.' },
+  { pattern: /no open week left to close/, text: 'Semua minggu sudah ditutup.' },
   { pattern: /must be a positive multiple of/, text: 'Jumlah pembayaran harus kelipatan Rp15.000.' },
 ];
 

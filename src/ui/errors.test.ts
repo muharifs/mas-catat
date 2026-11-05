@@ -13,6 +13,13 @@ describe('toIndonesian', () => {
     [new RepositoryError('period abc not found'), 'Periode tidak ditemukan.'],
     [new DomainError('startDate is not a real calendar date: 2026-02-31'), 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.'],
     [new DomainError('memberCount must be a positive integer, got 0'), 'Pilih minimal satu anggota.'],
+    [new DomainError('payment amount must be a positive multiple of 15000 rupiah (the weekly due), got 20000'), 'Jumlah pembayaran harus kelipatan Rp15.000.'],
+    [new RepositoryError('period abc has ended; payments are not accepted'), 'Periode sudah berakhir. Pembayaran tidak bisa dicatat.'],
+    [new DomainError('payment date is in the future: 2027-01-01'), 'Tanggal pembayaran tidak boleh di masa depan.'],
+    [new DomainError('payment date is not a real calendar date: 2026-02-31'), 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.'],
+    [new RepositoryError('receiving account must be tunai or debit'), 'Pilih tempat uang masuk: Tunai atau Debit.'],
+    [new RepositoryError('no open week left to close'), 'Semua minggu sudah ditutup.'],
+    [new RepositoryError('member x not found in period y'), 'Anggota tidak ditemukan.'],
   ])('maps %s', (error, expected) => {
     expect(toIndonesian(error)).toBe(expected);
   });

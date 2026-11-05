@@ -1,14 +1,18 @@
-// Payments repository: stores a payment together with its allocation to weekly dues.
+// Payments repository: stores a payment together with its allocation to weekly dues and its ledger entry.
 //
 // Allocation is computed ONCE, when the payment is saved, by the pure domain function allocatePayments,
 // and then stored. It is never recomputed, so entering a back-dated payment later cannot move what was
 // already allocated. The repository only reads/writes rows; the money rules stay in src/domain.
-import { allocatePayments } from '@/domain/allocation';
-import { periodWeekCount } from '@/domain/dues';
-import type { Allocation, Payment, WeekCredit, WeekStatus } from '@/domain/types';
+import { memberBalance } from '@/domain/dues';
+import { assertPaymentDate, previewPayment, type PaymentPreview } from '@/domain/payment-preview';
+import type { Account, Allocation, Payment, WeekStatus } from '@/domain/types';
 import type { Db, Queryable } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
+import { insertEntry } from './ledger';
+import { loadCurrentWeek, loadWeekStatuses } from './weeks';
+
+export { loadWeekAmounts, loadWeekStatuses } from './weeks';
 
 interface PaymentRow {
   id: string;
@@ -35,69 +39,18 @@ const toAllocation = (r: AllocationRow): Allocation => ({
   paymentDate: r.payment_date,
 });
 
-interface WeekAmountRow {
-  week: number;
-  total: number;
-}
-
-/** Stored amounts per week for one member: paid via allocations and settled via host offsets. */
-export async function loadWeekAmounts(
-  db: Queryable,
-  periodId: string,
-  memberId: string,
-): Promise<{ paid: WeekCredit[]; offset: WeekCredit[] }> {
-  const toCredits = (rows: WeekAmountRow[]): WeekCredit[] => rows.map((r) => ({ week: r.week, amount: r.total }));
-  const paid = await db.getAll<WeekAmountRow>(
-    'SELECT week, SUM(amount) AS total FROM allocations WHERE period_id = ? AND member_id = ? GROUP BY week ORDER BY week',
-    [periodId, memberId],
-  );
-  const offset = await db.getAll<WeekAmountRow>(
-    'SELECT week, SUM(amount) AS total FROM offset_credits WHERE period_id = ? AND member_id = ? GROUP BY week ORDER BY week',
-    [periodId, memberId],
-  );
-  return { paid: toCredits(paid), offset: toCredits(offset) };
-}
-
-/** Merges paid and offset amounts into one credit per week (what is already settled). */
-function combineCredits(paid: readonly WeekCredit[], offset: readonly WeekCredit[]): WeekCredit[] {
-  const settled = new Map<number, number>();
-  for (const c of [...paid, ...offset]) settled.set(c.week, (settled.get(c.week) ?? 0) + c.amount);
-  return [...settled].map(([week, amount]) => ({ week, amount }));
-}
-
-async function loadMemberCount(db: Queryable, periodId: string): Promise<number> {
-  const row = await db.getFirst<{ member_count: number }>('SELECT member_count FROM periods WHERE id = ?', [periodId]);
-  if (!row) throw new RepositoryError(`period ${periodId} not found`);
-  return row.member_count;
-}
-
-/**
- * Per-week state of one member's dues, built from STORED allocations and offsets.
- * `outstanding` comes from the domain function; paid/offset are the stored sums.
- */
-export async function loadWeekStatuses(db: Queryable, periodId: string, memberId: string): Promise<WeekStatus[]> {
-  const totalWeeks = periodWeekCount(await loadMemberCount(db, periodId));
-  const { paid, offset } = await loadWeekAmounts(db, periodId, memberId);
-
-  const credits = combineCredits(paid, offset);
-
-  const paidByWeek = new Map(paid.map((c) => [c.week, c.amount]));
-  const offsetByWeek = new Map(offset.map((c) => [c.week, c.amount]));
-  return allocatePayments([], totalWeeks, credits).weeks.map((w) => ({
-    ...w,
-    paid: paidByWeek.get(w.week) ?? 0,
-    offset: offsetByWeek.get(w.week) ?? 0,
-  }));
-}
-
 export interface RecordPaymentInput {
   periodId: string;
   memberId: string;
-  /** Date the money was actually paid (ISO YYYY-MM-DD). */
+  /** Date the money was actually paid (ISO YYYY-MM-DD). Past or today, never the future. */
   date: string;
   /** Integer rupiah; must be a positive multiple of 15.000 (checked by the domain). */
   amount: number;
+  /** Pos that receives the money. Credit money enters it too (the WHOLE amount is cash received). */
+  account: Extract<Account, 'tunai' | 'debit'>;
 }
+
+export type PreviewPaymentInput = Omit<RecordPaymentInput, 'account'>;
 
 export interface RecordedPayment {
   payment: Payment;
@@ -111,25 +64,78 @@ export interface PaymentWithCredit extends Payment {
   credit: number;
 }
 
+/** One member's position in a period, counted through the current week (the oldest open week). */
+export interface MemberPaymentBalance {
+  memberId: string;
+  throughWeek: number;
+  /** Unpaid dues of weeks 1..throughWeek. */
+  arrears: number;
+  /** Paid or offset amount already covering weeks after throughWeek. */
+  prepaid: number;
+  /** Money received beyond the period's dues (held for the next period). */
+  credit: number;
+}
+
+export interface ArrearsSummary {
+  throughWeek: number;
+  membersInArrears: number;
+  totalArrears: number;
+}
+
+/** Local calendar date of the injected clock, as ISO. The phone's own timezone is what the owner sees. */
+function todayOf(deps: RepoDeps): string {
+  const d = new Date(deps.now());
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Shared by preview and record, so both reject exactly the same things. Reads through the given handle. */
+async function validateAndPreview(
+  db: Queryable,
+  deps: RepoDeps,
+  input: PreviewPaymentInput,
+  paymentId: string,
+): Promise<{ payment: Payment; preview: PaymentPreview }> {
+  const period = await db.getFirst<{ status: string }>('SELECT status FROM periods WHERE id = ?', [input.periodId]);
+  if (!period) throw new RepositoryError(`period ${input.periodId} not found`);
+  if (period.status !== 'active') {
+    throw new RepositoryError(`period ${input.periodId} has ended; payments are not accepted`);
+  }
+  assertPaymentDate(input.date, todayOf(deps));
+  const member = await db.getFirst('SELECT 1 AS ok FROM period_members WHERE period_id = ? AND member_id = ?', [
+    input.periodId,
+    input.memberId,
+  ]);
+  if (!member) throw new RepositoryError(`member ${input.memberId} not found in period ${input.periodId}`);
+  const payment: Payment = { id: paymentId, memberId: input.memberId, date: input.date, amount: input.amount };
+  const statuses = await loadWeekStatuses(db, input.periodId, input.memberId);
+  return { payment, preview: previewPayment(payment, statuses) };
+}
+
 export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
-  return {
+  const repo = {
     /**
-     * Saves the payment and its allocations in ONE transaction. The payment fills the oldest weeks that
-     * still have room, given what is already stored (earlier allocations and host offsets are never moved).
-     * The full amount is stored; whatever exceeds the remaining dues of the period is left as member credit
-     * (returned in `credit`, derivable later via getCredit). Throws DomainError for an invalid amount/date
-     * (e.g. not a multiple of 15.000); on any failure nothing is written.
+     * What recording this payment would do, without writing anything. Uses the same validation and the same
+     * domain function as record(), so the saved result equals this preview (unless data changed in between).
+     */
+    async preview(input: PreviewPaymentInput): Promise<PaymentPreview> {
+      return (await validateAndPreview(db, deps, input, 'preview')).preview;
+    },
+
+    /**
+     * Saves the payment in ONE transaction: the payment row, its allocations and ONE member_payment ledger
+     * entry for the WHOLE amount (credit included) into the chosen pos. The payment fills the oldest weeks that
+     * still have room (earlier allocations and host offsets are never moved); whatever exceeds the remaining
+     * dues is member credit (returned in `credit`, derivable later via getCredit).
+     * Rejected, with nothing written: ended period, future or invalid date, amount that is not a positive
+     * multiple of 15.000, unknown member, pos other than tunai/debit.
      */
     async record(input: RecordPaymentInput): Promise<RecordedPayment> {
-      const payment: Payment = {
-        id: deps.newId(),
-        memberId: input.memberId,
-        date: input.date,
-        amount: input.amount,
-      };
-
+      if (input.account !== 'tunai' && input.account !== 'debit') {
+        throw new RepositoryError('receiving account must be tunai or debit');
+      }
       return db.transaction(async (tx) => {
-        const totalWeeks = periodWeekCount(await loadMemberCount(tx, input.periodId));
+        const { payment, preview } = await validateAndPreview(tx, deps, input, deps.newId());
 
         await tx.run('INSERT INTO payments (id, period_id, member_id, date, amount, created_at) VALUES (?, ?, ?, ?, ?, ?)', [
           payment.id,
@@ -139,22 +145,60 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           payment.amount,
           deps.now(),
         ]);
-
-        // Weeks already settled by stored allocations/offsets are passed as credits, so this one payment
-        // lands on the oldest week that still has room without touching earlier allocations.
-        const { paid, offset } = await loadWeekAmounts(tx, input.periodId, input.memberId);
-        const credits = combineCredits(paid, offset);
-
-        const result = allocatePayments([payment], totalWeeks, credits);
-        // Any surplus (result.credit) is NOT stored: it is derived later as amount - SUM(allocations).
-        for (const a of result.allocations) {
+        // Any surplus (preview.creditAmount) is NOT stored: it is derived later as amount - SUM(allocations).
+        for (const a of preview.allocations) {
           await tx.run(
             'INSERT INTO allocations (payment_id, period_id, member_id, week, amount, payment_date) VALUES (?, ?, ?, ?, ?, ?)',
             [a.paymentId, input.periodId, a.memberId, a.week, a.amount, a.paymentDate],
           );
         }
-        return { payment, allocations: result.allocations, credit: result.credit };
+        // week is null on purpose: one payment can span several weeks; the detail lives in allocations.
+        await insertEntry(tx, deps, {
+          periodId: input.periodId,
+          type: 'member_payment',
+          direction: 'in',
+          date: payment.date,
+          amount: payment.amount,
+          memberId: payment.memberId,
+          week: null,
+          note: '',
+          account: input.account,
+        });
+        return { payment, allocations: preview.allocations, credit: preview.creditAmount };
       });
+    },
+
+    /** Arrears, prepaid and credit of every member of the period, through the current week. */
+    async listBalances(periodId: string): Promise<MemberPaymentBalance[]> {
+      const members = await db.getAll<{ member_id: string }>(
+        'SELECT member_id FROM period_members WHERE period_id = ? ORDER BY initial_order',
+        [periodId],
+      );
+      const throughWeek = await loadCurrentWeek(db, periodId);
+      const result: MemberPaymentBalance[] = [];
+      for (const m of members) {
+        const statuses = await loadWeekStatuses(db, periodId, m.member_id);
+        const balance = memberBalance(statuses, throughWeek);
+        result.push({
+          memberId: m.member_id,
+          throughWeek,
+          arrears: balance.outstanding,
+          prepaid: balance.prepaid,
+          credit: await repo.getCredit(periodId, m.member_id),
+        });
+      }
+      return result;
+    },
+
+    /** How many members are behind and by how much in total, through the current week. */
+    async getArrearsSummary(periodId: string): Promise<ArrearsSummary> {
+      const balances = await repo.listBalances(periodId);
+      const throughWeek = await loadCurrentWeek(db, periodId);
+      return {
+        throughWeek,
+        membersInArrears: balances.filter((b) => b.arrears > 0).length,
+        totalArrears: balances.reduce((sum, b) => sum + b.arrears, 0),
+      };
     },
 
     /** Payments of one member in the period, oldest date first. */
@@ -211,6 +255,7 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return loadWeekStatuses(db, periodId, memberId);
     },
   };
+  return repo;
 }
 
 export type PaymentsRepo = ReturnType<typeof createPaymentsRepo>;

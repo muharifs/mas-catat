@@ -3,11 +3,11 @@
 import { unpaidWeeksThrough } from '@/domain/dues';
 import { assertIsoDate } from '@/domain/money';
 import { buildHostSettlement, type HostSettlement } from '@/domain/payout';
-import type { LedgerEntry, LedgerEntryType } from '@/domain/types';
+import type { Account, LedgerEntry, LedgerEntryType } from '@/domain/types';
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
-import { loadWeekStatuses } from './payments';
+import { loadWeekStatuses } from './weeks';
 
 /** Types the app knows today. M5 extends this list (and the domain union) without a table change. */
 const KNOWN_TYPES: readonly LedgerEntryType[] = ['member_payment', 'host_payout', 'host_offset'];
@@ -19,6 +19,8 @@ export interface StoredLedgerEntry extends LedgerEntry {
   /** Set on a reversal entry: the entry it cancels. Used by corrections in M5. */
   reversesEntryId: string | null;
   correctionReason: string | null;
+  /** Kas pos; null for entries written before migration 0002. */
+  account: Account | null;
 }
 
 export interface AppendEntryInput extends LedgerEntry {
@@ -40,10 +42,11 @@ interface LedgerRow {
   created_at: string;
   reverses_entry_id: string | null;
   correction_reason: string | null;
+  account: Account | null;
 }
 
 const COLUMNS =
-  'id, period_id, date, amount, direction, type, member_id, week, note, created_at, reverses_entry_id, correction_reason';
+  'id, period_id, date, amount, direction, type, member_id, week, note, created_at, reverses_entry_id, correction_reason, account';
 
 const toEntry = (r: LedgerRow): StoredLedgerEntry => ({
   id: r.id,
@@ -58,10 +61,11 @@ const toEntry = (r: LedgerRow): StoredLedgerEntry => ({
   createdAt: r.created_at,
   reversesEntryId: r.reverses_entry_id,
   correctionReason: r.correction_reason,
+  account: r.account,
 });
 
 /** Inserts one entry using the given handle (a transaction handle when called from a multi-step write). */
-async function insertEntry(db: Db, deps: RepoDeps, input: AppendEntryInput): Promise<StoredLedgerEntry> {
+export async function insertEntry(db: Db, deps: RepoDeps, input: AppendEntryInput): Promise<StoredLedgerEntry> {
   if (!KNOWN_TYPES.includes(input.type)) throw new RepositoryError(`unknown ledger entry type: ${String(input.type)}`);
   assertIsoDate(input.date, 'ledger date');
   const entry: StoredLedgerEntry = {
@@ -77,9 +81,10 @@ async function insertEntry(db: Db, deps: RepoDeps, input: AppendEntryInput): Pro
     createdAt: deps.now(),
     reversesEntryId: input.reversesEntryId ?? null,
     correctionReason: input.correctionReason ?? null,
+    account: input.account ?? null,
   };
   // amount > 0, integer, direction and foreign keys are enforced by the database constraints.
-  await db.run(`INSERT INTO ledger_entries (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+  await db.run(`INSERT INTO ledger_entries (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
     entry.id,
     entry.periodId,
     entry.date,
@@ -92,6 +97,7 @@ async function insertEntry(db: Db, deps: RepoDeps, input: AppendEntryInput): Pro
     entry.createdAt,
     entry.reversesEntryId,
     entry.correctionReason,
+    entry.account,
   ]);
   return entry;
 }

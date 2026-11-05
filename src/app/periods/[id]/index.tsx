@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { isRealDate } from '@/domain/schedule';
@@ -9,7 +9,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { useLoad } from '@/ui/useLoad';
 
-// Period detail: schedule per week, host change (swap of two open weeks) and "Akhiri periode".
+// Period detail: schedule per week, payments entry, "Tutup minggu", host change (swap of two open weeks) and "Akhiri periode".
 export default function PeriodDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const repos = useRepos();
@@ -70,6 +70,32 @@ export default function PeriodDetailScreen() {
     ]);
   }
 
+  const oldestOpen = weeks.find((w) => w.status === 'open');
+
+  function confirmCloseWeek() {
+    if (!oldestOpen) return;
+    Alert.alert(
+      `Tutup minggu ${oldestOpen.number}`,
+      `Tutup minggu ${oldestOpen.number} (${formatDate(oldestOpen.date)})? Tuan rumah minggu ini tidak bisa diganti lagi dan penutupan tidak bisa dibatalkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Tutup minggu',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await repos.weeks.closeOldest(period.id);
+              setActionError(null);
+              await reload();
+            } catch (e) {
+              setActionError(toIndonesian(e));
+            }
+          },
+        },
+      ],
+    );
+  }
+
   function confirmEnd() {
     if (!isRealDate(endDate)) {
       setActionError('Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.');
@@ -102,6 +128,22 @@ export default function PeriodDetailScreen() {
         {isActive ? 'Aktif' : 'Selesai'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
         {period.endDate ? ` - berakhir ${formatDate(period.endDate)}` : ''}
       </Text>
+
+      <Button
+        label="Pembayaran"
+        onPress={() => router.push({ pathname: '/periods/[id]/payments', params: { id: period.id } })}
+      />
+
+      {isActive && oldestOpen ? (
+        <View style={styles.box}>
+          <Text style={styles.section}>Tutup minggu</Text>
+          <Text style={styles.hint}>
+            Minggu yang ditutup selalu yang paling awal yang masih terbuka (minggu {oldestOpen.number}). Tunggakan
+            dihitung sampai minggu ini.
+          </Text>
+          <Button label={`Tutup minggu ${oldestOpen.number}`} variant="danger" onPress={confirmCloseWeek} />
+        </View>
+      ) : null}
 
       <Text style={styles.section}>Jadwal</Text>
       {weeks.map((w) => {

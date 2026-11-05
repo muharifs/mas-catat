@@ -49,6 +49,9 @@ export interface UnpaidWeek {
  */
 export type LedgerEntryType = 'member_payment' | 'host_payout' | 'host_offset';
 
+/** Kas pos (account): Tunai (cash), Debit (bank/e-wallet), Piutang (lent to members). */
+export type Account = 'tunai' | 'debit' | 'piutang';
+
 /** Append-only ledger entry. amount is always > 0; direction gives the sign. */
 export interface LedgerEntry {
   type: LedgerEntryType;
@@ -58,4 +61,6 @@ export interface LedgerEntry {
   memberId: string | null;
   week: number | null;
   note: string;
+  /** Pos the money moves in or out of. Optional: entries from before migration 0002 have none. */
+  account?: Account | null;
 }

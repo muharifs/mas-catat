@@ -123,3 +123,34 @@ describe('schema constraints', () => {
     await expect(db.run("DELETE FROM period_members WHERE member_id = 'm1'")).rejects.toThrow(/fixed/);
   });
 });
+
+describe('migration 0002 (ledger account)', () => {
+  it('upgrades a version 1 database that already has data and keeps it', async () => {
+    const db = await createSqlJsDb();
+    await migrate(db, MIGRATIONS.slice(0, 1));
+    expect(await userVersion(db)).toBe(1);
+    await seed(db);
+    await db.run(ledgerInsert, ['old', 15000, 'in']);
+
+    expect(await migrate(db)).toEqual({ from: 1, to: MIGRATIONS.length });
+    expect(await userVersion(db)).toBe(2);
+    const old = await db.getFirst<{ amount: number; account: string | null }>(
+      "SELECT amount, account FROM ledger_entries WHERE id = 'old'",
+    );
+    expect(old).toEqual({ amount: 15000, account: null });
+    expect((await db.getFirst<{ n: number }>('SELECT COUNT(*) AS n FROM members'))?.n).toBe(2);
+  });
+
+  it('accepts only tunai, debit, piutang or NULL, and stays append-only', async () => {
+    const db = await createMigratedTestDb();
+    await seed(db);
+    const sql =
+      "INSERT INTO ledger_entries (id, period_id, date, amount, direction, type, account, created_at) VALUES (?, 'p1', '2026-01-01', 15000, 'in', 'member_payment', ?, 't')";
+    await db.run(sql, ['a', 'tunai']);
+    await db.run(sql, ['b', 'debit']);
+    await db.run(sql, ['c', 'piutang']);
+    await db.run(sql, ['d', null]);
+    await expect(db.run(sql, ['e', 'bank'])).rejects.toThrow(/CHECK/i);
+    await expect(db.run("UPDATE ledger_entries SET account = 'debit' WHERE id = 'a'")).rejects.toThrow(/append-only/);
+  });
+});

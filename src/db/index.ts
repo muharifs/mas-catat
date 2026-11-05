@@ -8,6 +8,7 @@ import { createLedgerRepo } from './ledger';
 import { createMembersRepo } from './members';
 import { createPaymentsRepo } from './payments';
 import { createPeriodsRepo } from './periods';
+import { createReportsRepo } from './reports';
 import { createWeeksRepo } from './weeks';
 
 export type { Db } from './db';
@@ -19,6 +20,7 @@ export type { Week } from './weeks';
 export type { RecordPaymentInput, RecordedPayment } from './payments';
 export type { StoredLedgerEntry, AppendEntryInput, SettledHost } from './ledger';
 export type { RefundableCredit, MemberCarryOver } from './credits';
+export type { KasReport, PeriodReport } from './reports';
 
 export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
   return {
@@ -28,6 +30,7 @@ export function createRepositories(db: Db, deps: RepoDeps = defaultDeps) {
     payments: createPaymentsRepo(db, deps),
     ledger: createLedgerRepo(db, deps),
     credits: createCreditsRepo(db, deps),
+    reports: createReportsRepo(db, deps),
   };
 }
 

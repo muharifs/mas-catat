@@ -4,10 +4,18 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { endDateProblem, type EndDateProblem } from '@/domain/close';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
-import { TextField } from '@/ui/components/TextField';
+import { Card } from '@/ui/components/Card';
+import { DateField } from '@/ui/components/DateField';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Money } from '@/ui/components/Money';
+import { Notice } from '@/ui/components/Notice';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { toasts } from '@/ui/messages';
+import { colors, radius, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 const END_DATE_MESSAGE: Record<EndDateProblem, string> = {
@@ -38,15 +46,15 @@ export default function ClosePeriodScreen() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const { period, members, weeks, preview } = data;
-  if (!period) return <Text style={styles.error}>Periode tidak ditemukan.</Text>;
+  if (!period) return <ErrorState message="Periode tidak ditemukan." />;
   if (period.status === 'closed') {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{period.name}</Text>
-        <Text>Periode ini sudah berakhir{period.endDate ? ` pada ${formatDate(period.endDate)}` : ''}.</Text>
+        <Text style={styles.body}>Periode ini sudah berakhir{period.endDate ? ` pada ${formatDate(period.endDate)}` : ''}.</Text>
         <Button label="Kembali" variant="secondary" onPress={() => router.back()} />
       </View>
     );
@@ -65,6 +73,7 @@ export default function ClosePeriodScreen() {
     setBusy(true);
     try {
       await repos.periods.close(periodId, endDate);
+      toast(toasts.periodClosed(periodName));
       // replace (not push): Back must not return to this screen, because the period has ended.
       router.replace({ pathname: '/periods/[id]', params: { id: periodId } });
     } catch (e) {
@@ -79,7 +88,7 @@ export default function ClosePeriodScreen() {
     setActionError(null);
     Alert.alert(
       'Akhiri periode',
-      `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan dihapus dan ditanggung kas. Sisa kredit anggota tetap tersimpan.`,
+      `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan dihapus dan ditanggung kas. Sisa titipan anggota tetap tersimpan.`,
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -103,7 +112,7 @@ export default function ClosePeriodScreen() {
       <Text style={styles.title}>Akhiri {period.name}</Text>
 
       {!preview.canClose ? (
-        <View style={styles.blocker}>
+        <Card tone="danger">
           <Text style={styles.blockerTitle}>Belum bisa diakhiri</Text>
           {preview.openWeeks.length > 0 ? (
             <Text style={styles.blockerText}>
@@ -118,50 +127,45 @@ export default function ClosePeriodScreen() {
             </Text>
           ) : null}
           <Text style={styles.hint}>Angka di bawah dihitung dari pertemuan yang sudah ditutup saja.</Text>
-        </View>
+        </Card>
       ) : null}
 
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.section}>Ringkasan</Text>
-        <Text>Anggota menunggak: {preview.membersInArrears}</Text>
-        <Text>Total tunggakan sebelum kredit: {formatRupiah(preview.totalArrears)}</Text>
-        <Text>Dilunasi dari kredit anggota: {formatRupiah(preview.totalSettledByCredit)}</Text>
-        <Text style={styles.strong}>Tunggakan dihapus (ditanggung kas): {formatRupiah(preview.totalWriteoff)}</Text>
-        <Text>
-          Anggota memegang kredit: {preview.membersWithCredit} ({formatRupiah(preview.totalCredit)})
+        <Text style={styles.body}>Anggota menunggak: {preview.membersInArrears}</Text>
+        <Text style={styles.body}>Total tunggakan sebelum titipan: {formatRupiah(preview.totalArrears)}</Text>
+        <Text style={styles.body}>Dilunasi dari titipan anggota: {formatRupiah(preview.totalSettledByCredit)}</Text>
+        <Text style={styles.label}>Tunggakan dihapus (ditanggung kas)</Text>
+        <Money amount={preview.totalWriteoff} size="large" tone={preview.totalWriteoff > 0 ? 'negative' : 'neutral'} />
+        <Text style={styles.body}>
+          Anggota memegang titipan: {preview.membersWithCredit} ({formatRupiah(preview.totalCredit)})
         </Text>
-        <Text>Sisa kredit setelah dipakai: {formatRupiah(preview.totalCreditLeft)}</Text>
+        <Text style={styles.body}>Sisa titipan setelah dipakai: {formatRupiah(preview.totalCreditLeft)}</Text>
         <Text style={styles.hint}>
-          Kredit anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya dihapus, satu catatan
-          per anggota. Penghapusan tidak mengubah saldo kas. Sisa kredit dibawa ke periode berikutnya, atau dikembalikan
-          lewat menu Kredit anggota.
+          Titipan anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya dihapus, satu catatan
+          per anggota. Penghapusan tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
+          lewat menu Titipan anggota.
         </Text>
-      </View>
+      </Card>
 
       <Text style={styles.section}>Per anggota</Text>
-      {shown.length === 0 ? <Text style={styles.muted}>Tidak ada tunggakan dan tidak ada kredit.</Text> : null}
+      {shown.length === 0 ? <Text style={styles.muted}>Tidak ada tunggakan dan tidak ada titipan.</Text> : null}
       {shown.map((m) => (
         <View key={m.memberId} style={styles.row}>
           <Text style={styles.weekTitle}>{nameOf(m.memberId)}</Text>
-          <Text>
-            Tunggakan {formatRupiah(m.arrearsBefore)}, kredit {formatRupiah(m.credit)}
+          <Text style={styles.body}>
+            Tunggakan {formatRupiah(m.arrearsBefore)}, titipan {formatRupiah(m.credit)}
           </Text>
           <Text style={m.writeoff > 0 ? styles.bad : styles.muted}>
-            Dipakai dari kredit {formatRupiah(m.settledByCredit)}, dihapus {formatRupiah(m.writeoff)}, sisa kredit{' '}
+            Dipakai dari titipan {formatRupiah(m.settledByCredit)}, dihapus {formatRupiah(m.writeoff)}, sisa titipan{' '}
             {formatRupiah(m.creditLeft)}
           </Text>
         </View>
       ))}
 
-      <TextField
-        label="Tanggal berakhir (TTTT-BB-HH)"
-        value={endDate}
-        onChangeText={setEndDate}
-        keyboardType="numbers-and-punctuation"
-        error={problem ? END_DATE_MESSAGE[problem] : null}
-      />
+      <DateField label="Tanggal berakhir" value={endDate} onChange={setEndDate} error={problem ? END_DATE_MESSAGE[problem] : null} />
 
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+      {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
       <Button label={busy ? 'Memproses...' : 'Akhiri periode'} variant="danger" disabled={!canClose} onPress={confirmClose} />
       {!preview.canClose ? <Text style={styles.hint}>Tombol aktif setelah semua pertemuan ditutup dan semua tuan rumah dibayar.</Text> : null}
       <Button label="Batal" variant="secondary" onPress={() => router.back()} />
@@ -170,18 +174,16 @@ export default function ClosePeriodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '700' },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  card: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 4 },
-  row: { padding: 12, borderRadius: 8, backgroundColor: '#f7f7f7', gap: 2 },
-  weekTitle: { fontWeight: '600' },
-  strong: { fontWeight: '700' },
-  blocker: { padding: 12, borderRadius: 8, backgroundColor: '#fdf1f0', gap: 4 },
-  blockerTitle: { fontWeight: '700', color: '#b3261e' },
-  blockerText: { color: '#b3261e' },
-  hint: { color: '#666', fontSize: 13 },
-  bad: { color: '#b3261e', fontWeight: '600' },
-  error: { padding: 8, color: '#b3261e' },
-  muted: { color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  title: { ...type.title, color: colors.text },
+  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  label: { ...type.label, color: colors.textMuted },
+  body: { ...type.body, color: colors.text },
+  row: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surfaceAlt, gap: 2 },
+  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  blockerTitle: { ...type.label, color: colors.danger },
+  blockerText: { ...type.body, color: colors.danger },
+  hint: { ...type.caption, color: colors.textMuted },
+  bad: { ...type.body, color: colors.danger, fontWeight: '600' },
+  muted: { ...type.body, color: colors.textMuted },
 });

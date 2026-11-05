@@ -1,5 +1,5 @@
 import { allocatePayments } from './allocation';
-import { assertPaymentDate, parseRupiahInput, previewPayment, weekState } from './payment-preview';
+import { assertPaymentDate, parseRupiahInput, paymentChoices, previewPayment, weekState } from './payment-preview';
 import { DomainError } from './money';
 import type { Payment, WeekStatus } from './types';
 
@@ -143,5 +143,61 @@ describe('previewPayment weekCount', () => {
     expect(previewPayment(pay(60_000), s).weekCount).toBe(2); // 2 weeks, 30.000 credit
     const settled = s.map((w) => ({ ...w, paid: 15_000, outstanding: 0 }));
     expect(previewPayment(pay(30_000), settled).weekCount).toBe(0); // everything is credit
+  });
+});
+
+describe('paymentChoices', () => {
+  it('offers 1, 2 and 3 meetings when there is no arrears', () => {
+    expect(paymentChoices(0)).toEqual({
+      choices: [
+        { kind: 'weeks', weeks: 1, amount: 15_000 },
+        { kind: 'weeks', weeks: 2, amount: 30_000 },
+        { kind: 'weeks', weeks: 3, amount: 45_000 },
+      ],
+      arrearsRemainder: 0,
+    });
+  });
+
+  it('adds an arrears chip when the arrears is a multiple of 15.000', () => {
+    const r = paymentChoices(75_000);
+    expect(r.choices.at(-1)).toEqual({ kind: 'arrears', amount: 75_000 });
+    expect(r.choices).toHaveLength(4);
+    expect(r.arrearsRemainder).toBe(0);
+  });
+
+  it('drops the fixed chip that has the same amount as the arrears chip', () => {
+    const r = paymentChoices(30_000);
+    expect(r.choices).toEqual([
+      { kind: 'weeks', weeks: 1, amount: 15_000 },
+      { kind: 'weeks', weeks: 3, amount: 45_000 },
+      { kind: 'arrears', amount: 30_000 },
+    ]);
+  });
+
+  it('rounds a non-multiple arrears DOWN to a valid amount and reports the remainder', () => {
+    const r = paymentChoices(35_000);
+    expect(r.choices.at(-1)).toEqual({ kind: 'arrears', amount: 30_000 });
+    expect(r.arrearsRemainder).toBe(5_000);
+  });
+
+  it('offers no arrears chip when the arrears is only a remainder below one meeting', () => {
+    const r = paymentChoices(5_000);
+    expect(r.choices.every((c) => c.kind === 'weeks')).toBe(true);
+    expect(r.arrearsRemainder).toBe(5_000);
+  });
+
+  it('only ever offers amounts that a payment accepts', () => {
+    for (const arrears of [0, 5_000, 15_000, 20_000, 45_000, 100_000, 7_500]) {
+      for (const c of paymentChoices(arrears).choices) {
+        expect(c.amount).toBeGreaterThan(0);
+        expect(c.amount % 15_000).toBe(0);
+        expect(() => previewPayment(pay(c.amount), blank(10))).not.toThrow();
+      }
+    }
+  });
+
+  it('rejects a negative or fractional arrears', () => {
+    expect(() => paymentChoices(-1)).toThrow(DomainError);
+    expect(() => paymentChoices(1.5)).toThrow(DomainError);
   });
 });

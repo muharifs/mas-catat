@@ -3,7 +3,7 @@
 // The repository saves a payment with the very same function (previewPayment), so what the form shows
 // is exactly what gets stored. The UI only displays these numbers; it never computes money itself.
 import { allocatePayments } from './allocation';
-import { assertDuesMultiple, assertIsoDate, DomainError } from './money';
+import { assertDuesMultiple, assertIsoDate, assertRupiah, DomainError, WEEKLY_DUE } from './money';
 import { isRealDate } from './schedule';
 import type { Allocation, IsoDate, Payment, Rupiah, WeekCredit, WeekStatus } from './types';
 
@@ -101,4 +101,41 @@ export function parseRupiahInput(text: string): Rupiah | null {
   const digits = trimmed.replace(/\./g, '');
   if (digits.length > 12) return null;
   return Number(digits);
+}
+
+/** One quick-amount chip on the payment form. The amount is ALWAYS a valid payment (positive multiple of 15.000). */
+export type PaymentChoice = { kind: 'weeks'; weeks: number; amount: Rupiah } | { kind: 'arrears'; amount: Rupiah };
+
+export interface PaymentChoices {
+  choices: PaymentChoice[];
+  /**
+   * Part of the arrears that NO valid payment can settle on its own (arrears modulo 15.000; 0 when the arrears is a
+   * multiple). It exists after a capped host offset or a partly settled week. The chip then covers the largest valid
+   * amount below the arrears (rounded DOWN, so a chip never creates member credit by surprise); the next payment
+   * settles this remainder first, because payments fill the oldest open week first.
+   */
+  arrearsRemainder: Rupiah;
+}
+
+/** How many whole meetings the fixed chips offer (1, 2 and 3 meetings). */
+const FIXED_CHIP_WEEKS = [1, 2, 3] as const;
+
+/**
+ * Quick amounts for the payment form: 1, 2 and 3 meetings, plus the member's arrears when there is any.
+ * Pure: the UI shows these numbers and never computes them. A fixed chip with the same amount as the arrears
+ * chip is dropped (one chip per amount). When the arrears is smaller than one meeting (only a non-multiple
+ * remainder), no arrears chip is offered.
+ */
+export function paymentChoices(arrears: Rupiah): PaymentChoices {
+  assertRupiah(arrears, 'arrears');
+  const arrearsRemainder = arrears % WEEKLY_DUE;
+  const arrearsAmount = arrears - arrearsRemainder;
+  const choices: PaymentChoice[] = [];
+  for (const weeks of FIXED_CHIP_WEEKS) {
+    const amount = weeks * WEEKLY_DUE;
+    if (amount === arrearsAmount) continue; // shown as the "Lunasi tunggakan" chip instead
+    choices.push({ kind: 'weeks', weeks, amount });
+  }
+  if (arrearsAmount > 0) choices.push({ kind: 'arrears', amount: arrearsAmount });
+  return { choices, arrearsRemainder };
 }

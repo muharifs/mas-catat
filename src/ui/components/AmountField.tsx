@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { AMOUNT_FORMAT_HINT, parseRupiahInput } from '@/domain/payment-preview';
 import { formatRupiah } from '../format';
+import { colors, spacing, type } from '../theme';
 import { TextField } from './TextField';
 
 interface AmountFieldProps {
@@ -32,6 +33,6 @@ export function AmountField({ label, value, onChangeText, placeholder }: AmountF
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 4 },
-  read: { color: '#1f6f50', fontWeight: '600' },
+  wrap: { gap: spacing.xs },
+  read: { ...type.label, color: colors.primary },
 });

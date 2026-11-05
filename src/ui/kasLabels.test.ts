@@ -1,4 +1,4 @@
-import { correctionRoute, flowText, visibleNote } from './kasLabels';
+import { amountSign, correctionRoute, flowText, TYPE_LABELS, visibleNote } from './kasLabels';
 
 describe('flowText', () => {
   it('describes plain entries, moves and entries without a pos', () => {
@@ -32,5 +32,24 @@ describe('correctionRoute', () => {
     expect(correctionRoute({ type: 'host_payout', reversedById: null }, false)).toBe('period_ended');
     expect(correctionRoute({ type: 'debt_writeoff', reversedById: null }, true)).toBe('not_correctable');
     expect(correctionRoute({ type: 'credit_refund', reversedById: null }, false)).toBe('not_correctable');
+  });
+});
+
+describe('amountSign', () => {
+  it('signs money entering or leaving a pos', () => {
+    expect(amountSign({ direction: 'in', account: 'tunai', toAccount: null })).toBe('+');
+    expect(amountSign({ direction: 'out', account: 'debit', toAccount: null })).toBe('-');
+  });
+
+  it('has no sign for a move, a write-off or an entry without a pos', () => {
+    expect(amountSign({ direction: 'out', account: 'tunai', toAccount: 'debit' })).toBe('');
+    expect(amountSign({ direction: 'in', account: null, toAccount: null, type: 'debt_writeoff' })).toBe('');
+    expect(amountSign({ direction: 'in', account: null, toAccount: null })).toBe('');
+  });
+});
+
+describe('UI wording of member credit', () => {
+  it('calls the refund entry "titipan", not "kredit"', () => {
+    expect(TYPE_LABELS.credit_refund).toBe('Pengembalian titipan anggota');
   });
 });

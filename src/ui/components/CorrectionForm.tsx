@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { toIndonesian } from '../errors';
+import { colors, radius, spacing } from '../theme';
 import { Button } from './Button';
 import { TextField } from './TextField';
 
@@ -56,6 +57,6 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#fdf1f0' },
-  error: { color: '#b3261e' },
+  box: { gap: spacing.sm, padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.dangerSoft },
+  error: { color: colors.danger },
 });

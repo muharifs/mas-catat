@@ -18,6 +18,17 @@ export function isRealDate(iso: string): boolean {
   return addDays(iso, 0) === iso;
 }
 
+/** Whole days from `from` to `to` (negative when `to` is earlier). Calendar days in UTC, so no DST surprises. */
+export function daysBetween(from: IsoDate, to: IsoDate): number {
+  assertIsoDate(from, 'from date');
+  assertIsoDate(to, 'to date');
+  const toUtc = (iso: IsoDate) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1);
+  };
+  return Math.round((toUtc(to) - toUtc(from)) / 86_400_000);
+}
+
 export interface MeetingDatePreviewRow {
   /** 1-based meeting (week) number. */
   week: number;

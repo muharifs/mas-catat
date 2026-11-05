@@ -1,6 +1,7 @@
 import { DomainError } from './money';
 import {
   addDays,
+  daysBetween,
   defaultMeetingDate,
   eligibleHostIds,
   isRealDate,
@@ -195,5 +196,19 @@ describe('planAutoAssignment', () => {
 
   it('does nothing when more than one meeting is undecided', () => {
     expect(planAutoAssignment(schedule(2), ['a', 'b'])).toEqual([]);
+  });
+});
+
+describe('daysBetween', () => {
+  it('counts calendar days, across month and year ends and leap days', () => {
+    expect(daysBetween('2026-01-04', '2026-01-04')).toBe(0);
+    expect(daysBetween('2026-01-04', '2026-01-16')).toBe(12);
+    expect(daysBetween('2025-12-30', '2026-01-02')).toBe(3);
+    expect(daysBetween('2028-02-28', '2028-03-01')).toBe(2);
+    expect(daysBetween('2026-01-16', '2026-01-04')).toBe(-12);
+  });
+
+  it('rejects text that is not an ISO date', () => {
+    expect(() => daysBetween('4 Jan', '2026-01-04')).toThrow(DomainError);
   });
 });

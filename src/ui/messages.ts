@@ -1,0 +1,58 @@
+// Indonesian texts that are built from numbers the repositories and domain already computed (dialogs, toasts,
+// chip labels). Display only: nothing here calculates money. Kept out of the screens so the wording is tested.
+import { daysBetween } from '@/domain/schedule';
+import type { PaymentChoice } from '@/domain/payment-preview';
+import { formatDate, formatDayMonth } from './dates';
+import { formatRupiah } from './format';
+
+interface ArrearsLike {
+  membersInArrears: number;
+  totalArrears: number;
+}
+
+/**
+ * Body of the "Tutup pertemuan" dialog. Arrears are only a warning, never a block (owner decision).
+ * `arrears` is the repository's getArrearsSummary: it counts through the current (oldest open) meeting, which is
+ * the one being closed.
+ */
+export function closeWeekMessage(number: number, date: string, arrears: ArrearsLike | null): string {
+  const head = `Tutup pertemuan ${number} (${formatDate(date)})?`;
+  const tail = 'Tuan rumah dan tanggal tidak bisa diubah lagi dan penutupan tidak bisa dibatalkan.';
+  if (!arrears || arrears.membersInArrears === 0) return `${head} ${tail}`;
+  return `${head} ${arrears.membersInArrears} anggota belum lunas sampai pertemuan ini: total ${formatRupiah(arrears.totalArrears)}. ${tail}`;
+}
+
+/**
+ * Notice on Home when the date of the running (still open) meeting is already past, or null otherwise.
+ * There is no "libur" button: during a break the owner just leaves the meeting open and moves its date later.
+ */
+export function overdueNotice(meetingDate: string, today: string): string | null {
+  const days = daysBetween(meetingDate, today);
+  if (days < 1) return null;
+  return `Tanggal ${formatDayMonth(meetingDate)} sudah lewat ${days} hari. Jika libur, biarkan terbuka dan ubah tanggalnya saat pertemuan jadi.`;
+}
+
+/** Label of a quick-amount chip. The amount comes from the domain's paymentChoices. */
+export function paymentChoiceLabel(choice: PaymentChoice, arrearsIsPartial: boolean): string {
+  if (choice.kind === 'weeks') return `${choice.weeks} pertemuan ${formatRupiah(choice.amount)}`;
+  // When part of the arrears cannot be paid on its own the chip is not a full settlement, so it must not say "Lunasi".
+  return arrearsIsPartial ? `Tunggakan ${formatRupiah(choice.amount)}` : `Lunasi tunggakan ${formatRupiah(choice.amount)}`;
+}
+
+/** Explains the part of the arrears that no valid payment can settle alone, or null when there is none. */
+export function arrearsRemainderNote(remainder: number): string | null {
+  if (remainder <= 0) return null;
+  return `Sisa tunggakan ${formatRupiah(remainder)} tidak bisa dibayar sendiri karena pembayaran harus kelipatan Rp15.000. Pembayaran berikutnya melunasinya lebih dulu.`;
+}
+
+// Success toasts, shown after every save.
+export const toasts = {
+  payment: (amount: number, memberName: string) => `Pembayaran ${formatRupiah(amount)} dari ${memberName} tersimpan`,
+  payout: (amount: number, hostName: string) => `Pembayaran tuan rumah ${formatRupiah(amount)} untuk ${hostName} tersimpan`,
+  kas: (kindLabel: string, amount: number) => `${kindLabel} ${formatRupiah(amount)} tersimpan`,
+  weekClosed: (number: number) => `Pertemuan ${number} ditutup`,
+  host: (number: number, hostName: string) => `Tuan rumah pertemuan ${number}: ${hostName} tersimpan`,
+  periodSaved: (name: string) => `Periode "${name}" tersimpan`,
+  periodClosed: (name: string) => `Periode "${name}" diakhiri`,
+  refund: (amount: number, memberName: string) => `Titipan ${formatRupiah(amount)} dikembalikan ke ${memberName}`,
+};

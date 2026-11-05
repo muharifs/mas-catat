@@ -7,11 +7,19 @@ import type { Account } from '@/domain/types';
 import { useRepos } from '@/db/provider';
 import { AmountField } from '@/ui/components/AmountField';
 import { Button } from '@/ui/components/Button';
+import { DateField } from '@/ui/components/DateField';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Notice } from '@/ui/components/Notice';
+import { OptionRow } from '@/ui/components/OptionRow';
 import { TextField } from '@/ui/components/TextField';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { KIND_LABELS } from '@/ui/kasLabels';
+import { toasts } from '@/ui/messages';
+import { colors, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 type CashPos = 'tunai' | 'debit';
@@ -46,7 +54,7 @@ export default function NewKasEntryScreen() {
     // attaches it to the active period, or to the latest period the member was in).
     return { active, hasPeriod: periods.length > 0, loanCandidates: members.filter((m) => ids.has(m.id)), allMembers: members };
   }, [repos]);
-  const { data, error: loadError } = useLoad(load);
+  const { data, error: loadError, reload } = useLoad(load);
 
   const [date, setDate] = useState(todayIso());
   const [amountText, setAmountText] = useState('');
@@ -58,15 +66,15 @@ export default function NewKasEntryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!isKind(kindParam)) return <Text style={styles.error}>Jenis catatan tidak dikenal.</Text>;
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (!isKind(kindParam)) return <ErrorState message="Jenis catatan tidak dikenal." />;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const kind: KasKind = kindParam;
   if (!data.hasPeriod) {
-    return <Text style={styles.error}>Belum ada periode. Catatan kas dilekatkan ke sebuah periode, jadi buat periode dulu.</Text>;
+    return <ErrorState message="Belum ada periode. Catatan kas dilekatkan ke sebuah periode, jadi buat periode dulu." />;
   }
   if (kind === 'loan' && !data.active) {
-    return <Text style={styles.error}>Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif.</Text>;
+    return <ErrorState message="Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif." />;
   }
   const candidates = kind === 'loan' ? data.loanCandidates : data.allMembers;
   const needsMember = kind === 'loan' || kind === 'loan_repayment';
@@ -92,6 +100,7 @@ export default function NewKasEntryScreen() {
     setBusy(true);
     try {
       await repos.ledger.recordKas(input);
+      toast(toasts.kas(KIND_LABELS[kind], input.amount));
       router.back();
     } catch (e) {
       setError(toIndonesian(e));
@@ -140,7 +149,7 @@ export default function NewKasEntryScreen() {
         <Text style={styles.title}>{KIND_LABELS[kind]}</Text>
         <Text style={styles.hint}>{HELP[kind]}</Text>
 
-        <TextField label="Tanggal (TTTT-BB-HH)" value={date} onChangeText={setDate} keyboardType="numbers-and-punctuation" />
+        <DateField label="Tanggal" value={date} onChange={setDate} />
         <AmountField label="Jumlah (rupiah)" value={amountText} onChangeText={setAmountText} placeholder="50000" />
 
         {kind === 'opening_balance' ? (
@@ -151,8 +160,8 @@ export default function NewKasEntryScreen() {
           <>
             <Text style={styles.label}>Arah</Text>
             <View style={styles.row}>
-              <Button label="Tunai ke Debit" variant={direction === 'tunai_debit' ? 'primary' : 'secondary'} style={styles.flex} onPress={() => setDirection('tunai_debit')} />
-              <Button label="Debit ke Tunai" variant={direction === 'debit_tunai' ? 'primary' : 'secondary'} style={styles.flex} onPress={() => setDirection('debit_tunai')} />
+              <Button label="Tunai ke Debit" variant={direction === 'tunai_debit' ? 'primary' : 'secondary'} selected={direction === 'tunai_debit'} style={styles.flex} onPress={() => setDirection('tunai_debit')} />
+              <Button label="Debit ke Tunai" variant={direction === 'debit_tunai' ? 'primary' : 'secondary'} selected={direction === 'debit_tunai'} style={styles.flex} onPress={() => setDirection('debit_tunai')} />
             </View>
           </>
         ) : null}
@@ -165,7 +174,7 @@ export default function NewKasEntryScreen() {
           <>
             <Text style={styles.label}>Anggota</Text>
             {candidates.map((m) => (
-              <Button key={m.id} label={m.name} variant={memberId === m.id ? 'primary' : 'secondary'} onPress={() => setMemberId(m.id)} />
+              <OptionRow key={m.id} mode="radio" label={m.name} selected={memberId === m.id} onPress={() => setMemberId(m.id)} />
             ))}
           </>
         ) : null}
@@ -179,7 +188,7 @@ export default function NewKasEntryScreen() {
           placeholder={kind === 'shared_goal' ? 'Contoh: DP tur ke Bali' : ''}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Notice tone="danger">{error}</Notice> : null}
         <Button label="Lanjut" disabled={busy} onPress={() => void submit()} />
         <Button label="Batal" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
@@ -193,7 +202,7 @@ function PosPicker({ label, options, value, onChange }: { label: string; options
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
         {options.map((a) => (
-          <Button key={a} label={ACCOUNT_LABELS[a]} variant={value === a ? 'primary' : 'secondary'} style={styles.flex} onPress={() => onChange(a)} />
+          <Button key={a} label={ACCOUNT_LABELS[a]} variant={value === a ? 'primary' : 'secondary'} selected={value === a} style={styles.flex} onPress={() => onChange(a)} />
         ))}
       </View>
     </>
@@ -202,11 +211,9 @@ function PosPicker({ label, options, value, onChange }: { label: string; options
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 12, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '700' },
-  label: { fontSize: 14, fontWeight: '600' },
-  row: { flexDirection: 'row', gap: 8 },
-  hint: { color: '#666', fontSize: 13 },
-  error: { color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  title: { ...type.title, color: colors.text },
+  label: { ...type.label, color: colors.text },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  hint: { ...type.caption, color: colors.textMuted },
 });

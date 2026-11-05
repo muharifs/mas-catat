@@ -1,16 +1,27 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { isRealDate, previewMeetingDates } from '@/domain/schedule';
 import type { MemberCarryOver } from '@/db/credits';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { DateField } from '@/ui/components/DateField';
 import { EmptyState } from '@/ui/components/EmptyState';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Notice } from '@/ui/components/Notice';
+import { OptionRow } from '@/ui/components/OptionRow';
 import { TextField } from '@/ui/components/TextField';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { toasts } from '@/ui/messages';
+import { colors, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
+
+const NO_IDS: string[] = [];
 
 // Create a period: name, date of meeting 1, members, preview of estimated dates, save.
 // Hosts are NOT chosen here: they are picked per meeting later (current and next meeting only).
@@ -18,22 +29,35 @@ import { useLoad } from '@/ui/useLoad';
 export default function NewPeriodScreen() {
   const repos = useRepos();
   const load = useCallback(async () => {
-    const [members, active, refundable] = await Promise.all([
+    const [members, active, refundable, periods] = await Promise.all([
       repos.members.list(),
       repos.periods.getActive(),
       repos.credits.listRefundable(),
+      repos.periods.list(),
     ]);
-    return { members, active, refundable };
+    // periods.list() is newest first. The members of the latest period are pre-selected (the owner can change that).
+    const latest = periods[0];
+    const latestMembers = latest ? await repos.periods.getMembers(latest.id) : [];
+    return {
+      members,
+      active,
+      refundable,
+      defaultName: `Periode ${periods.length + 1}`,
+      defaultSelected: latestMembers.map((m) => m.memberId),
+    };
   }, [repos]);
-  const { data, error: loadError } = useLoad(load);
+  const { data, error: loadError, reload } = useLoad(load);
 
-  const [name, setName] = useState('');
+  // null = the owner has not touched the field yet, so the default (computed from loaded data) is shown.
+  const [nameInput, setNameInput] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(todayIso());
-  const [selected, setSelected] = useState<string[]>([]); // selected member ids
+  const [selectedInput, setSelectedInput] = useState<string[] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [carry, setCarry] = useState<MemberCarryOver[]>([]);
   const [carryError, setCarryError] = useState<string | null>(null);
+
+  const selected = useMemo(() => selectedInput ?? data?.defaultSelected ?? NO_IDS, [selectedInput, data]);
 
   // Preview of the credit that would be taken over from earlier periods. useEffect is the same hook as on the web;
   // the "server" here is the local database. The saved result is computed by the same domain function.
@@ -55,10 +79,11 @@ export default function NewPeriodScreen() {
     };
   }, [repos, selected]);
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
 
   const { members, active, refundable } = data;
+  const name = nameInput ?? data.defaultName;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
   const shownCarry = selected.length === 0 ? [] : carry;
   const leftOut = refundable.filter((r) => !selected.includes(r.memberId));
@@ -67,14 +92,23 @@ export default function NewPeriodScreen() {
   const canSave = !active && !saving && name.trim().length > 0 && dateOk && selected.length > 0;
 
   function toggle(id: string) {
-    setSelected((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+    setSelectedInput((ids) => {
+      const current = ids ?? selected;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
   }
 
   async function save() {
     setSaving(true);
     try {
       const period = await repos.periods.create({ name, startDate, memberIds: selected });
-      router.replace({ pathname: '/periods/[id]', params: { id: period.id } });
+      toast(toasts.periodSaved(name.trim()));
+      if (selected.length > 1) {
+        // Next step is choosing the host of meeting 1. replace: Back from there returns to where the owner came from.
+        router.replace({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: '1' } });
+      } else {
+        router.dismissTo('/'); // one member: the only meeting is assigned automatically
+      }
     } catch (e) {
       setSaveError(toIndonesian(e));
       setSaving(false);
@@ -95,31 +129,21 @@ export default function NewPeriodScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       {active ? (
-        <Text style={styles.warning}>
-          Periode &quot;{active.name}&quot; masih aktif. Akhiri dulu sebelum membuat periode baru.
-        </Text>
+        <Notice tone="warn">{`Periode "${active.name}" masih aktif. Akhiri dulu sebelum membuat periode baru.`}</Notice>
       ) : null}
 
-      <TextField label="Nama periode" placeholder="Contoh: Periode 1" value={name} onChangeText={setName} />
-      <TextField
-        label="Tanggal pertemuan 1 (TTTT-BB-HH)"
-        value={startDate}
-        onChangeText={setStartDate}
-        placeholder="2026-01-04"
-        keyboardType="numbers-and-punctuation"
-        error={dateOk ? null : 'Tanggal tidak valid. Contoh: 2026-01-04'}
-      />
+      <TextField label="Nama periode" placeholder="Contoh: Periode 1" value={name} onChangeText={setNameInput} />
+      <DateField label="Tanggal pertemuan 1" value={startDate} onChange={setStartDate} />
 
       <Text style={styles.section}>Pilih anggota ({selected.length} dipilih)</Text>
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>
-      <View style={styles.chips}>
+      <View style={styles.bulk}>
+        <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(members.map((m) => m.id))} />
+        <Button label="Kosongkan" variant="secondary" style={styles.flex} onPress={() => setSelectedInput([])} />
+      </View>
+      <View style={styles.list}>
         {members.map((m) => (
-          <Button
-            key={m.id}
-            label={`${selected.includes(m.id) ? '[x] ' : '[ ] '}${m.name}`}
-            variant={selected.includes(m.id) ? 'primary' : 'secondary'}
-            onPress={() => toggle(m.id)}
-          />
+          <OptionRow key={m.id} label={m.name} selected={selected.includes(m.id)} onPress={() => toggle(m.id)} />
         ))}
       </View>
 
@@ -131,8 +155,9 @@ export default function NewPeriodScreen() {
             berikutnya.
           </Text>
           {preview.map((row) => (
-            <Text key={row.week}>
-              Pertemuan {row.week} - {formatDate(row.date)}{selected.length > 1 ? ' - Belum ditentukan' : ' - tuan rumah otomatis'}
+            <Text key={row.week} style={styles.body}>
+              Pertemuan {row.week} - {formatDate(row.date)}
+              {selected.length > 1 ? ' - Belum ditentukan' : ' - tuan rumah otomatis'}
             </Text>
           ))}
         </>
@@ -142,50 +167,51 @@ export default function NewPeriodScreen() {
 
       {shownCarry.length > 0 ? (
         <>
-          <Text style={styles.section}>Kredit yang dibawa dari periode sebelumnya</Text>
+          <Text style={styles.section}>Titipan yang dibawa dari periode sebelumnya</Text>
           <Text style={styles.hint}>
-            Kredit dipakai untuk iuran pertemuan terlama lebih dulu. Pertemuan terakhir yang tersentuh bisa terlunasi
+            Titipan dipakai untuk iuran pertemuan terlama lebih dulu. Pertemuan terakhir yang tersentuh bisa terlunasi
             sebagian. Tidak ada uang yang bergerak: uangnya sudah masuk kas saat dibayar.
           </Text>
           {shownCarry.map((c) => (
-            <View key={c.memberId} style={styles.carryRow}>
+            <Card key={c.memberId} tone="alt">
               <Text style={styles.strong}>{nameOf(c.memberId)}</Text>
-              <Text>Kredit {formatRupiah(c.creditBefore)}</Text>
+              <Text style={styles.body}>Titipan {formatRupiah(c.creditBefore)}</Text>
               {c.plan.applications.map((a, i) => (
                 <Text key={`${a.fromPeriodId}-${a.week}-${i}`} style={styles.hint}>
                   Pertemuan {a.week}: {formatRupiah(a.amount)}
                 </Text>
               ))}
               {c.plan.creditLeft > 0 ? (
-                <Text style={styles.hint}>Sisa kredit {formatRupiah(c.plan.creditLeft)} melebihi iuran periode ini dan tetap tersedia.</Text>
+                <Text style={styles.hint}>
+                  Sisa titipan {formatRupiah(c.plan.creditLeft)} melebihi iuran periode ini dan tetap tersedia.
+                </Text>
               ) : null}
-            </View>
+            </Card>
           ))}
         </>
       ) : null}
-      {carryError ? <Text style={styles.error}>{carryError}</Text> : null}
+      {carryError ? <Notice tone="danger">{carryError}</Notice> : null}
       {leftOut.length > 0 ? (
         <Text style={styles.hint}>
-          Anggota yang punya kredit tetapi tidak dipilih:{' '}
-          {leftOut.map((r) => `${nameOf(r.memberId)} (${formatRupiah(r.amount)})`).join(', ')}. Kreditnya tetap tersimpan
-          dan bisa dikembalikan lewat menu Kredit anggota.
+          Anggota yang punya titipan tetapi tidak dipilih:{' '}
+          {leftOut.map((r) => `${nameOf(r.memberId)} (${formatRupiah(r.amount)})`).join(', ')}. Titipannya tetap tersimpan
+          dan bisa dikembalikan lewat menu Titipan anggota.
         </Text>
       ) : null}
 
-      {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+      {saveError ? <Notice tone="danger">{saveError}</Notice> : null}
       <Button label={saving ? 'Menyimpan...' : 'Simpan periode'} onPress={save} disabled={!canSave} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  hint: { color: '#666', fontSize: 13 },
-  chips: { gap: 6 },
-  carryRow: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 2 },
-  strong: { fontWeight: '700' },
-  warning: { padding: 12, borderRadius: 8, backgroundColor: '#fff3cd', color: '#664d03' },
-  error: { padding: 8, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  hint: { ...type.caption, color: colors.textMuted },
+  body: { ...type.body, color: colors.text },
+  strong: { ...type.body, fontWeight: '700', color: colors.text },
+  bulk: { flexDirection: 'row', gap: spacing.sm },
+  flex: { flex: 1 },
+  list: { gap: spacing.sm },
 });

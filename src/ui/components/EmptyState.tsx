@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing, type } from '../theme';
 import { Button } from './Button';
 
 interface EmptyStateProps {
@@ -19,7 +20,7 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 10, padding: 24 },
-  title: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  message: { fontSize: 15, textAlign: 'center', color: '#444' },
+  wrap: { alignItems: 'stretch', gap: spacing.md, padding: spacing.xl },
+  title: { ...type.heading, textAlign: 'center', color: colors.text },
+  message: { ...type.body, textAlign: 'center', color: colors.textMuted },
 });

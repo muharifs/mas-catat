@@ -6,10 +6,17 @@ import type { PayoutPreview } from '@/domain/payout';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { CorrectionForm } from '@/ui/components/CorrectionForm';
-import { TextField } from '@/ui/components/TextField';
+import { DateField } from '@/ui/components/DateField';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Money } from '@/ui/components/Money';
+import { Notice } from '@/ui/components/Notice';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { toasts } from '@/ui/messages';
+import { colors, radius, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 type PayAccount = 'tunai' | 'debit';
@@ -80,10 +87,10 @@ export default function PayoutScreen() {
     };
   }, [repos, id, week, date, account, loaded, alreadyPaid]);
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const { period, meeting, members, paid } = data;
-  if (!period || !meeting) return <Text style={styles.error}>Pertemuan tidak ditemukan.</Text>;
+  if (!period || !meeting) return <ErrorState message="Pertemuan tidak ditemukan." />;
   const hostName = members.find((m) => m.id === meeting.hostMemberId)?.name ?? 'Belum ditentukan';
   const active = period.status === 'active';
 
@@ -91,7 +98,8 @@ export default function PayoutScreen() {
     if (!preview) return;
     setBusy(true);
     try {
-      await repos.ledger.settleHost(id, week, date, account);
+      const settled = await repos.ledger.settleHost(id, week, date, account);
+      toast(toasts.payout(settled.settlement.payout, hostName));
       router.back();
     } catch (e) {
       setError(toIndonesian(e));
@@ -125,11 +133,11 @@ export default function PayoutScreen() {
         {paid ? (
           <View style={styles.card}>
             <Text style={styles.ok}>Sudah dibayar</Text>
-            <Text>
+            <Text style={styles.body}>
               Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tanpa pos'}
             </Text>
-            <Text>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
-            {paid.offset ? <Text>Potongan tunggakan: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan tunggakan.</Text>}
+            <Text style={styles.body}>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
+            {paid.offset ? <Text style={styles.body}>Potongan tunggakan: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan tunggakan.</Text>}
             {active && !correcting ? (
               <Button label="Koreksi pembayaran tuan rumah" variant="secondary" onPress={() => setCorrecting(true)} />
             ) : null}
@@ -152,7 +160,7 @@ export default function PayoutScreen() {
           <Text style={styles.muted}>Periode sudah berakhir. Tuan rumah tidak bisa dibayar lagi.</Text>
         ) : (
           <>
-            <TextField label="Tanggal bayar (TTTT-BB-HH)" value={date} onChangeText={setDate} keyboardType="numbers-and-punctuation" />
+            <DateField label="Tanggal bayar" value={date} onChange={setDate} />
 
             <Text style={styles.label}>Uang keluar dari</Text>
             <View style={styles.accounts}>
@@ -161,21 +169,22 @@ export default function PayoutScreen() {
                   key={a}
                   label={ACCOUNT_LABELS[a]}
                   variant={account === a ? 'primary' : 'secondary'}
+                  selected={account === a}
                   style={styles.flex}
                   onPress={() => setAccount(a)}
                 />
               ))}
             </View>
 
-            {previewError ? <Text style={styles.error}>{previewError}</Text> : null}
+            {previewError ? <Notice tone="danger">{previewError}</Notice> : null}
 
             {preview ? (
               <View style={styles.card}>
                 <Text style={styles.label}>Rincian</Text>
-                <Text>Pembayaran penuh ke tuan rumah: {formatRupiah(preview.payout)}</Text>
+                <Text style={styles.body}>Pembayaran penuh ke tuan rumah: {formatRupiah(preview.payout)}</Text>
                 {preview.offsetWeeks.length > 0 ? (
                   <>
-                    <Text>Potongan tunggakan tuan rumah: {formatRupiah(preview.offset)}</Text>
+                    <Text style={styles.body}>Potongan tunggakan tuan rumah: {formatRupiah(preview.offset)}</Text>
                     {preview.offsetWeeks.map((w) => (
                       <Text key={w.week} style={styles.muted}>
                         - pertemuan {w.week}: {formatRupiah(w.amount)}
@@ -185,32 +194,27 @@ export default function PayoutScreen() {
                 ) : (
                   <Text style={styles.muted}>Tuan rumah tidak punya tunggakan, tidak ada potongan.</Text>
                 )}
-                <Text style={styles.strong}>
-                  Uang keluar bersih dari {ACCOUNT_LABELS[preview.account]}: {formatRupiah(preview.netCash)}
-                </Text>
-                <Text>Sisa tunggakan setelah potongan: {formatRupiah(preview.remainingDebt)}</Text>
+                <Text style={styles.label}>Uang keluar bersih dari {ACCOUNT_LABELS[preview.account]}</Text>
+                <Money amount={preview.netCash} size="large" />
+                <Text style={styles.body}>Sisa tunggakan setelah potongan: {formatRupiah(preview.remainingDebt)}</Text>
                 <Text style={styles.muted}>
                   Saldo sekarang: {ACCOUNT_LABELS[preview.account]} {formatRupiah(preview.accountBefore)}, Tunai + Debit {formatRupiah(preview.kasBefore)}
                 </Text>
 
                 {preview.kasShort ? (
-                  <Text style={styles.warn}>
-                    Peringatan: Tunai + Debit ({formatRupiah(preview.kasBefore)}) lebih kecil dari uang keluar bersih {formatRupiah(preview.netCash)}.
-                    Pembayaran penuh ke tuan rumah {formatRupiah(preview.payout)}, dipotong tunggakan {formatRupiah(preview.offset)}. Tetap bisa
-                    disimpan.
-                  </Text>
+                  <Notice tone="warn">
+                    {`Peringatan: Tunai + Debit (${formatRupiah(preview.kasBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}. Pembayaran penuh ke tuan rumah ${formatRupiah(preview.payout)}, dipotong tunggakan ${formatRupiah(preview.offset)}. Tetap bisa disimpan.`}
+                  </Notice>
                 ) : null}
                 {preview.accountShort ? (
-                  <Text style={styles.warn}>
-                    Peringatan: saldo {ACCOUNT_LABELS[preview.account]} ({formatRupiah(preview.accountBefore)}) lebih kecil dari uang keluar bersih{' '}
-                    {formatRupiah(preview.netCash)}, jadi saldo {ACCOUNT_LABELS[preview.account]} akan menjadi minus. Tetap bisa disimpan; pindahkan
-                    saldo dulu kalau perlu.
-                  </Text>
+                  <Notice tone="warn">
+                    {`Peringatan: saldo ${ACCOUNT_LABELS[preview.account]} (${formatRupiah(preview.accountBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}, jadi saldo ${ACCOUNT_LABELS[preview.account]} akan menjadi minus. Tetap bisa disimpan; pindahkan saldo dulu kalau perlu.`}
+                  </Notice>
                 ) : null}
               </View>
             ) : null}
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Notice tone="danger">{error}</Notice> : null}
             <Button label="Lanjut" disabled={busy || !preview} onPress={ask} />
             <Button label="Batal" variant="secondary" onPress={() => router.back()} />
           </>
@@ -222,15 +226,13 @@ export default function PayoutScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, gap: 12, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '700' },
-  name: { fontSize: 16, fontWeight: '600' },
-  label: { fontSize: 14, fontWeight: '600' },
-  strong: { fontWeight: '700' },
-  accounts: { flexDirection: 'row', gap: 8 },
-  card: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 6 },
-  ok: { color: '#1f6f50', fontWeight: '700', fontSize: 16 },
-  warn: { color: '#8a4b00', backgroundColor: '#fff4e0', padding: 8, borderRadius: 6 },
-  error: { color: '#b3261e' },
-  muted: { color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  title: { ...type.title, color: colors.text },
+  name: { ...type.heading, color: colors.text },
+  label: { ...type.label, color: colors.text },
+  body: { ...type.body, color: colors.text },
+  accounts: { flexDirection: 'row', gap: spacing.sm },
+  card: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surface, gap: spacing.sm },
+  ok: { ...type.heading, color: colors.primary },
+  muted: { ...type.body, color: colors.textMuted },
 });

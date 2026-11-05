@@ -1,13 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
 import { CorrectionForm } from '@/ui/components/CorrectionForm';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Money } from '@/ui/components/Money';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
-import { correctionRoute, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
+import { amountSign, correctionRoute, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
+import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 // Detail of one ledger entry and its correction. The ledger is append-only: "Koreksi" adds a reversal entry (the
@@ -34,10 +39,10 @@ export default function KasEntryScreen() {
   const { data, error, reload } = useLoad(load);
   const [correcting, setCorrecting] = useState(false);
 
-  if (error) return <Text style={styles.error}>{error}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const { entry, period, member, related } = data;
-  if (!entry) return <Text style={styles.error}>Catatan kas tidak ditemukan.</Text>;
+  if (!entry) return <ErrorState message="Catatan kas tidak ditemukan." />;
 
   const route = correctionRoute(entry, period?.status === 'active');
   const note = visibleNote(entry);
@@ -45,17 +50,17 @@ export default function KasEntryScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{TYPE_LABELS[entry.type]}</Text>
-      <View style={styles.card}>
-        <Text style={styles.amount}>{formatRupiah(entry.amount)}</Text>
-        <Text>Tanggal: {formatDate(entry.date)}</Text>
-        <Text>
+      <Card>
+        <Money amount={entry.amount} size="display" sign={amountSign(entry)} />
+        <Text style={styles.body}>Tanggal: {formatDate(entry.date)}</Text>
+        <Text style={styles.body}>
           Pos: {flowText(entry)}
           {entry.account && !entry.toAccount ? ` (${ACCOUNT_LABELS[entry.account]})` : ''}
         </Text>
-        {member ? <Text>Anggota: {member.name}</Text> : null}
-        {entry.week !== null ? <Text>Pertemuan: {entry.week}</Text> : null}
-        {period ? <Text>Periode: {period.name}</Text> : null}
-        {note ? <Text>Catatan: {note}</Text> : null}
+        {member ? <Text style={styles.body}>Anggota: {member.name}</Text> : null}
+        {entry.week !== null ? <Text style={styles.body}>Pertemuan: {entry.week}</Text> : null}
+        {period ? <Text style={styles.body}>Periode: {period.name}</Text> : null}
+        {note ? <Text style={styles.body}>Catatan: {note}</Text> : null}
         {showsNoPosWarning(entry) ? (
           <Text style={styles.warn}>
             Peringatan: catatan ini tanpa pos, jadi tidak dihitung di saldo. Catatan tidak diubah; kalau perlu, koreksi lalu catat ulang dengan pos yang benar.
@@ -64,7 +69,7 @@ export default function KasEntryScreen() {
         {entry.type === 'reversal' ? (
           <>
             <Text style={styles.bad}>Ini adalah koreksi{related ? ` atas "${TYPE_LABELS[related.type]}" ${formatRupiah(related.amount)}` : ''}.</Text>
-            <Text>Alasan: {entry.correctionReason}</Text>
+            <Text style={styles.body}>Alasan: {entry.correctionReason}</Text>
           </>
         ) : null}
         {entry.reversedById ? (
@@ -72,7 +77,7 @@ export default function KasEntryScreen() {
             Sudah dikoreksi{related ? ` pada ${formatDate(related.date)}` : ''}. Alasan: {related?.correctionReason ?? '-'}
           </Text>
         ) : null}
-      </View>
+      </Card>
 
       {related ? (
         <Button
@@ -122,7 +127,7 @@ export default function KasEntryScreen() {
       ) : null}
       {route === 'period_ended' ? <Text style={styles.hint}>Periode sudah berakhir, jadi catatan ini tidak bisa dikoreksi.</Text> : null}
       {route === 'not_correctable' ? (
-        <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Penghapusan tunggakan dan pengembalian kredit bersifat final.</Text>
+        <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Penghapusan tunggakan dan pengembalian titipan bersifat final.</Text>
       ) : null}
       {route === 'is_reversal' ? <Text style={styles.hint}>Koreksi tidak bisa dikoreksi lagi. Untuk membetulkan, catat ulang transaksi yang benar.</Text> : null}
       {route === 'already_corrected' ? <Text style={styles.hint}>Untuk membetulkan, catat ulang transaksi yang benar lewat menu Kas.</Text> : null}
@@ -131,13 +136,10 @@ export default function KasEntryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
-  title: { fontSize: 22, fontWeight: '700' },
-  card: { padding: 16, borderRadius: 12, backgroundColor: '#f2f6f3', gap: 4 },
-  amount: { fontSize: 24, fontWeight: '700' },
-  hint: { color: '#666', fontSize: 13 },
-  bad: { color: '#b3261e', fontWeight: '600' },
-  warn: { color: '#8a4b00', backgroundColor: '#fff4e0', padding: 8, borderRadius: 6 },
-  error: { padding: 16, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md },
+  title: { ...type.title, color: colors.text },
+  body: { ...type.body, color: colors.text },
+  hint: { ...type.caption, color: colors.textMuted },
+  bad: { ...type.body, color: colors.danger, fontWeight: '600' },
+  warn: { ...type.body, color: colors.warn, backgroundColor: colors.warnSoft, padding: spacing.sm, borderRadius: 6 },
 });

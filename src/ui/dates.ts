@@ -14,3 +14,9 @@ export function formatDate(iso: string): string {
   const month = MONTHS[Number(match[2]) - 1];
   return month ? `${Number(match[3])} ${month} ${match[1]}` : iso;
 }
+
+/** "2026-01-04" becomes "4 Jan" (no year). Returns the input unchanged if it is not an ISO date. */
+export function formatDayMonth(iso: string): string {
+  const full = formatDate(iso);
+  return full === iso ? iso : full.replace(/ \d{4}$/, '');
+}

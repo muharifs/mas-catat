@@ -5,17 +5,22 @@ import { weekState, type WeekState } from '@/domain/payment-preview';
 import type { WeekStatus } from '@/domain/types';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
 import { CorrectionForm } from '@/ui/components/CorrectionForm';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Money } from '@/ui/components/Money';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
+import { colors, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 const STATE_LABEL: Record<WeekState, string> = {
   paid: 'Lunas',
   offset: 'Lunas lewat potongan tuan rumah',
-  credited: 'Lunas lewat kredit',
+  credited: 'Lunas lewat titipan',
   partial_offset: 'Sebagian lewat potongan tuan rumah',
-  partial_credited: 'Sebagian lewat kredit',
+  partial_credited: 'Sebagian lewat titipan',
   partial: 'Kurang',
   unpaid: 'Belum bayar',
 };
@@ -24,7 +29,7 @@ function weekDetail(s: WeekStatus): string {
   const parts: string[] = [];
   if (s.paid > 0) parts.push(`dibayar ${formatRupiah(s.paid)}`);
   if (s.offset > 0) parts.push(`potongan ${formatRupiah(s.offset)}`);
-  if (s.credited > 0) parts.push(`kredit ${formatRupiah(s.credited)}`);
+  if (s.credited > 0) parts.push(`titipan ${formatRupiah(s.credited)}`);
   if (s.outstanding > 0) parts.push(`sisa ${formatRupiah(s.outstanding)}`);
   return parts.join(', ');
 }
@@ -50,10 +55,10 @@ export default function MemberInPeriodScreen() {
   // Id of the payment whose correction form is open (one at a time).
   const [correcting, setCorrecting] = useState<string | null>(null);
 
-  if (error) return <Text style={styles.error}>{error}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const { period, member, weeks, statuses, payments, allocations, balance } = data;
-  if (!period || !member) return <Text style={styles.error}>Data tidak ditemukan.</Text>;
+  if (!period || !member) return <ErrorState message="Data tidak ditemukan." />;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -61,13 +66,12 @@ export default function MemberInPeriodScreen() {
       <Text style={styles.muted}>{period.name}</Text>
 
       {balance ? (
-        <View style={styles.summary}>
-          <Text>
-            Tunggakan sampai pertemuan {balance.throughWeek}: {formatRupiah(balance.arrears)}
-          </Text>
-          <Text>Bayar di muka: {formatRupiah(balance.prepaid)}</Text>
-          <Text>Kredit: {formatRupiah(balance.credit)}</Text>
-        </View>
+        <Card>
+          <Text style={styles.label}>Tunggakan sampai pertemuan {balance.throughWeek}</Text>
+          <Money amount={balance.arrears} size="display" tone={balance.arrears > 0 ? 'negative' : 'neutral'} />
+          <Text style={styles.body}>Bayar di muka: {formatRupiah(balance.prepaid)}</Text>
+          <Text style={styles.body}>Titipan: {formatRupiah(balance.credit)}</Text>
+        </Card>
       ) : null}
 
       {period.status === 'active' ? (
@@ -111,9 +115,9 @@ export default function MemberInPeriodScreen() {
             ) : (
               <>
                 {own.length > 0 ? (
-                  <Text>Melunasi: {own.map((a) => `pertemuan ${a.week} (${formatRupiah(a.amount)})`).join(', ')}</Text>
+                  <Text style={styles.body}>Melunasi: {own.map((a) => `pertemuan ${a.week} (${formatRupiah(a.amount)})`).join(', ')}</Text>
                 ) : null}
-                {p.credit > 0 ? <Text style={styles.bad}>Menjadi kredit: {formatRupiah(p.credit)}</Text> : null}
+                {p.credit > 0 ? <Text style={styles.bad}>Menjadi titipan: {formatRupiah(p.credit)}</Text> : null}
                 {period.status === 'active' && correcting !== p.id ? (
                   <Button label="Koreksi" variant="secondary" onPress={() => setCorrecting(p.id)} />
                 ) : null}
@@ -140,17 +144,17 @@ export default function MemberInPeriodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  title: { fontSize: 22, fontWeight: '700' },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  summary: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 2 },
-  row: { padding: 12, borderRadius: 8, backgroundColor: '#f7f7f7', gap: 6 },
-  reversedRow: { backgroundColor: '#fdf1f0' },
+  container: { padding: spacing.lg, gap: spacing.md },
+  title: { ...type.title, color: colors.text },
+  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  label: { ...type.label, color: colors.textMuted },
+  body: { ...type.body, color: colors.text },
+  row: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surfaceAlt, gap: spacing.sm },
+  reversedRow: { backgroundColor: colors.dangerSoft },
   strike: { textDecorationLine: 'line-through' },
-  head: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  weekTitle: { fontWeight: '600' },
-  ok: { color: '#1f6f50', fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  bad: { color: '#b3261e', fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  error: { padding: 16, color: '#b3261e' },
-  muted: { color: '#666' },
+  head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  ok: { ...type.label, color: colors.primary, flexShrink: 1, textAlign: 'right' },
+  bad: { ...type.label, color: colors.danger, flexShrink: 1, textAlign: 'right' },
+  muted: { ...type.caption, color: colors.textMuted },
 });

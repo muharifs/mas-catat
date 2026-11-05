@@ -1,18 +1,22 @@
 import { router } from 'expo-router';
 import { useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { useRepos } from '@/db/provider';
 import { EmptyState } from '@/ui/components/EmptyState';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { ListRow, RowText } from '@/ui/components/ListRow';
+import { Loading } from '@/ui/components/Loading';
 import { formatDate } from '@/ui/dates';
+import { spacing } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 export default function PeriodsScreen() {
   const repos = useRepos();
   const load = useCallback(() => repos.periods.list(), [repos]);
-  const { data: periods, error } = useLoad(load);
+  const { data: periods, error, reload } = useLoad(load);
 
-  if (error) return <Text style={styles.error}>{error}</Text>;
-  if (!periods) return <Text style={styles.muted}>Memuat...</Text>;
+  if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
+  if (!periods) return <Loading />;
 
   return (
     <FlatList
@@ -28,33 +32,21 @@ export default function PeriodsScreen() {
         />
       }
       renderItem={({ item }) => (
-        <Pressable
-          style={styles.row}
+        <ListRow
+          title={item.name}
           onPress={() => router.push({ pathname: '/periods/[id]', params: { id: item.id } })}
+          right={<RowText tone={item.status === 'active' ? 'ok' : 'muted'}>{item.status === 'active' ? 'Aktif' : 'Selesai'}</RowText>}
         >
-          <View style={styles.head}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={item.status === 'active' ? styles.active : styles.closed}>
-              {item.status === 'active' ? 'Aktif' : 'Selesai'}
-            </Text>
-          </View>
-          <Text>
+          <RowText>
             {item.memberCount} anggota, mulai {formatDate(item.startDate)}
             {item.endDate ? `, berakhir ${formatDate(item.endDate)}` : ''}
-          </Text>
-        </Pressable>
+          </RowText>
+        </ListRow>
       )}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 8 },
-  row: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 4 },
-  head: { flexDirection: 'row', justifyContent: 'space-between' },
-  name: { fontSize: 16, fontWeight: '600' },
-  active: { color: '#1f6f50', fontWeight: '600' },
-  closed: { color: '#666' },
-  error: { padding: 16, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.sm },
 });

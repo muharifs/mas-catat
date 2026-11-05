@@ -1,10 +1,14 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { EmptyState } from '@/ui/components/EmptyState';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { ListRow } from '@/ui/components/ListRow';
+import { Loading } from '@/ui/components/Loading';
 import { TextField } from '@/ui/components/TextField';
 import { toIndonesian } from '@/ui/errors';
+import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 // Members: list, add, tap a row to rename. No delete in M3 (owner decision).
@@ -43,8 +47,8 @@ export default function MembersScreen() {
     }
   }
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!members) return <Text style={styles.muted}>Memuat...</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!members) return <Loading />;
 
   return (
     <FlatList
@@ -63,16 +67,21 @@ export default function MembersScreen() {
               setAddError(null);
             }}
             onSubmitEditing={add}
+            // React Native 0.88: submitBehavior replaces the deprecated blurOnSubmit. "submit" runs onSubmitEditing
+            // and KEEPS the keyboard open, so several members can be added one after another.
+            submitBehavior="submit"
+            returnKeyType="done"
             error={addError}
           />
           <Button label="Tambah" onPress={add} />
-          <Text style={styles.hint}>Ketuk nama untuk mengubahnya.</Text>
+          <Text style={styles.count}>{members.length} anggota</Text>
+          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubahnya.</Text> : null}
         </View>
       }
       ListEmptyComponent={<EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." />}
       renderItem={({ item }) =>
         editingId === item.id ? (
-          <View style={styles.row}>
+          <View style={styles.editRow}>
             <TextField value={editName} onChangeText={setEditName} onSubmitEditing={saveEdit} autoFocus error={editError} />
             <View style={styles.actions}>
               <Button label="Simpan" onPress={saveEdit} style={styles.flex} />
@@ -88,16 +97,15 @@ export default function MembersScreen() {
             </View>
           </View>
         ) : (
-          <Pressable
-            style={styles.row}
+          <ListRow
+            title={item.name}
+            accessibilityLabel={`${item.name}, ketuk untuk mengubah nama`}
             onPress={() => {
               setEditingId(item.id);
               setEditName(item.name);
               setEditError(null);
             }}
-          >
-            <Text style={styles.name}>{item.name}</Text>
-          </Pressable>
+          />
         )
       }
     />
@@ -105,13 +113,11 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 8 },
-  form: { gap: 10, marginBottom: 12 },
-  hint: { color: '#666', fontSize: 13 },
-  row: { padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3', gap: 8 },
-  name: { fontSize: 16 },
-  actions: { flexDirection: 'row', gap: 8 },
+  container: { padding: spacing.lg, gap: spacing.sm },
+  form: { gap: spacing.md, marginBottom: spacing.md },
+  count: { ...type.heading, color: colors.text },
+  hint: { ...type.caption, color: colors.textMuted },
+  editRow: { padding: spacing.md, borderRadius: 8, backgroundColor: colors.surface, gap: spacing.sm },
+  actions: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },
-  error: { padding: 16, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
 });

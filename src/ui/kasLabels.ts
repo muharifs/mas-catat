@@ -13,7 +13,7 @@ export const TYPE_LABELS: Record<LedgerEntryType, string> = {
   loan_repayment: 'Pelunasan pinjaman',
   shared_goal: 'Pengeluaran bersama',
   debt_writeoff: 'Penghapusan tunggakan',
-  credit_refund: 'Pengembalian kredit anggota',
+  credit_refund: 'Pengembalian titipan anggota',
   reversal: 'Koreksi',
 };
 
@@ -54,6 +54,16 @@ export function flowText(e: FlowEntry): string {
   if (e.account === null) return 'Tanpa pos';
   if (e.toAccount) return `${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}`;
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;
+}
+
+/**
+ * "+" for money that enters a pos, "-" for money that leaves one, "" when no pos balance really gains or loses:
+ * a move between pos, a write-off (no balance change) and an entry without a pos. The text "Masuk ke / Keluar dari"
+ * stays next to it, so the meaning never depends on colour or sign alone.
+ */
+export function amountSign(e: FlowEntry): '+' | '-' | '' {
+  if (e.type === 'debt_writeoff' || e.account === null || e.toAccount) return '';
+  return e.direction === 'in' ? '+' : '-';
 }
 
 export type CorrectionRoute =

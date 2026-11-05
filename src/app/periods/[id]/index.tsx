@@ -4,8 +4,15 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { selectableWeekNumbers } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Notice } from '@/ui/components/Notice';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
+import { closeWeekMessage, toasts } from '@/ui/messages';
+import { colors, radius, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 // Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and the way to the
@@ -25,17 +32,19 @@ export default function PeriodDetailScreen() {
     for (const w of weeks) {
       if (await repos.ledger.getWeekPayout(id, w.number)) paidWeeks.add(w.number);
     }
-    return { period, weeks, members, paidWeeks };
+    // Arrears through the current meeting, for the warning in the "Tutup pertemuan" dialog.
+    const arrears = period && period.status === 'active' ? await repos.payments.getArrearsSummary(id) : null;
+    return { period, weeks, members, paidWeeks, arrears };
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
-  if (!data.period) return <Text style={styles.error}>Periode tidak ditemukan.</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
+  if (!data.period) return <ErrorState message="Periode tidak ditemukan." />;
 
-  const { period, weeks, members, paidWeeks } = data;
+  const { period, weeks, members, paidWeeks, arrears } = data;
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const selectable = selectableWeekNumbers(weeks);
@@ -46,32 +55,30 @@ export default function PeriodDetailScreen() {
 
   function confirmCloseWeek() {
     if (!oldestOpen) return;
-    Alert.alert(
-      `Tutup pertemuan ${oldestOpen.number}`,
-      `Tutup pertemuan ${oldestOpen.number} (${formatDate(oldestOpen.date)})? Tuan rumah dan tanggal pertemuan ini tidak bisa diubah lagi dan penutupan tidak bisa dibatalkan.`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Tutup pertemuan',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await repos.weeks.closeOldest(period.id);
-              setActionError(null);
-              await reload();
-            } catch (e) {
-              setActionError(toIndonesian(e));
-            }
-          },
+    const number = oldestOpen.number;
+    Alert.alert(`Tutup pertemuan ${number}`, closeWeekMessage(number, oldestOpen.date, arrears), [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Tutup pertemuan',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await repos.weeks.closeOldest(period.id);
+            setActionError(null);
+            toast(toasts.weekClosed(number));
+            await reload();
+          } catch (e) {
+            setActionError(toIndonesian(e));
+          }
         },
-      ],
-    );
+      },
+    ]);
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{period.name}</Text>
-      <Text>
+      <Text style={styles.body}>
         {isActive ? 'Aktif' : 'Selesai'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
         {period.endDate ? ` - berakhir ${formatDate(period.endDate)}` : ''}
       </Text>
@@ -82,7 +89,7 @@ export default function PeriodDetailScreen() {
       />
 
       {isActive && oldestOpen ? (
-        <View style={styles.box}>
+        <Card tone="alt">
           <Text style={styles.section}>Tutup pertemuan</Text>
           <Text style={styles.hint}>
             Pertemuan yang ditutup selalu yang paling awal yang masih terbuka (pertemuan {oldestOpen.number}) dan harus
@@ -91,14 +98,14 @@ export default function PeriodDetailScreen() {
           </Text>
           <Button
             label={`Tutup pertemuan ${oldestOpen.number}`}
-            variant="danger"
+            variant="dangerOutline"
             disabled={oldestOpen.hostMemberId === null}
             onPress={confirmCloseWeek}
           />
           {oldestOpen.hostMemberId === null ? (
             <Text style={styles.hint}>Tentukan tuan rumah pertemuan {oldestOpen.number} dulu.</Text>
           ) : null}
-        </View>
+        </Card>
       ) : null}
 
       <Text style={styles.section}>Jadwal</Text>
@@ -114,7 +121,7 @@ export default function PeriodDetailScreen() {
                 Pertemuan {w.number} - {formatDate(w.date)}
                 {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
               </Text>
-              <Text style={w.hostMemberId ? undefined : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
+              <Text style={w.hostMemberId ? styles.body : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
               <Text style={w.status === 'open' ? styles.open : styles.closed}>
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
@@ -124,6 +131,7 @@ export default function PeriodDetailScreen() {
                 <Button
                   label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
                   variant="secondary"
+                  compact
                   onPress={() =>
                     router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
                   }
@@ -132,6 +140,7 @@ export default function PeriodDetailScreen() {
               {canPay ? (
                 <Button
                   label="Bayar tuan rumah"
+                  compact
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
@@ -139,6 +148,7 @@ export default function PeriodDetailScreen() {
                 <Button
                   label="Sudah dibayar"
                   variant="secondary"
+                  compact
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
@@ -149,38 +159,36 @@ export default function PeriodDetailScreen() {
       })}
 
       {isActive ? (
-        <View style={styles.box}>
+        <Card tone="alt">
           <Text style={styles.section}>Akhiri periode</Text>
           <Text style={styles.hint}>
             Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
-            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan kredit anggota sebelum Anda
+            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum Anda
             memastikan.
           </Text>
           <Button
             label="Akhiri periode"
-            variant="danger"
+            variant="dangerOutline"
             onPress={() => router.push({ pathname: '/periods/[id]/close', params: { id: period.id } })}
           />
-        </View>
+        </Card>
       ) : null}
 
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+      {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  title: { fontSize: 22, fontWeight: '700' },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#f2f6f3' },
+  container: { padding: spacing.lg, gap: spacing.md },
+  title: { ...type.title, color: colors.text },
+  body: { ...type.body, color: colors.text },
+  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surface },
   flex: { flex: 1 },
-  actions: { gap: 6 },
-  weekTitle: { fontWeight: '600' },
-  open: { color: '#1f6f50' },
-  closed: { color: '#666' },
-  box: { gap: 8, padding: 12, borderRadius: 8, backgroundColor: '#f7f7f7' },
-  hint: { color: '#666', fontSize: 13 },
-  error: { padding: 8, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  actions: { gap: spacing.sm },
+  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  open: { ...type.body, color: colors.primary },
+  closed: { ...type.body, color: colors.textMuted },
+  hint: { ...type.caption, color: colors.textMuted },
 });

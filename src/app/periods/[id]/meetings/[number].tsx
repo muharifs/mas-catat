@@ -9,10 +9,18 @@ import {
 } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
-import { TextField } from '@/ui/components/TextField';
+import { DateField } from '@/ui/components/DateField';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
+import { Notice } from '@/ui/components/Notice';
+import { OptionRow } from '@/ui/components/OptionRow';
+import { MEETING_SHORTCUTS } from '@/ui/dateInput';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { describeDateProblem } from '@/ui/meetingDate';
+import { toasts } from '@/ui/messages';
+import { colors, spacing, type } from '@/ui/theme';
+import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 // Pick the host and the date of ONE meeting (only the current and the next open meeting are allowed).
@@ -31,7 +39,7 @@ export default function MeetingHostScreen() {
     ]);
     return { period, weeks, memberIds: periodMembers.map((m) => m.memberId), members };
   }, [repos, id]);
-  const { data, error: loadError } = useLoad(load);
+  const { data, error: loadError, reload } = useLoad(load);
 
   // null = the owner has not touched the field yet, so the default (computed from loaded data) is shown.
   const [pickedHost, setPickedHost] = useState<string | null>(null);
@@ -39,11 +47,11 @@ export default function MeetingHostScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (loadError) return <Text style={styles.error}>{loadError}</Text>;
-  if (!data) return <Text style={styles.muted}>Memuat...</Text>;
+  if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
+  if (!data) return <Loading />;
   const { period, weeks, memberIds, members } = data;
   const found = weeks.find((w) => w.number === number);
-  if (!period || !found) return <Text style={styles.error}>Pertemuan tidak ditemukan.</Text>;
+  if (!period || !found) return <ErrorState message="Pertemuan tidak ditemukan." />;
 
   const week = found; // const copy: TypeScript keeps the narrowing (not undefined) inside the functions below
   const nameOf = (memberId: string | null) =>
@@ -53,7 +61,7 @@ export default function MeetingHostScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Pertemuan {number}</Text>
-        <Text>
+        <Text style={styles.body}>
           Tuan rumah dan tanggal hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya yang belum ditutup.
         </Text>
         <Button label="Kembali" variant="secondary" onPress={() => router.back()} />
@@ -74,6 +82,7 @@ export default function MeetingHostScreen() {
     setBusy(true);
     try {
       await repos.weeks.assignHost(id, number, host, date);
+      toast(toasts.host(number, nameOf(host)));
       router.back();
     } catch (e) {
       setError(toIndonesian(e));
@@ -106,35 +115,35 @@ export default function MeetingHostScreen() {
 
       <Text style={styles.section}>Tuan rumah</Text>
       <Text style={styles.hint}>Hanya anggota yang belum pernah jadi tuan rumah di pertemuan yang sudah ditutup.</Text>
-      <View style={styles.chips}>
+      <View style={styles.list}>
         {eligible.map((memberId) => (
-          <Button
+          <OptionRow
             key={memberId}
-            label={`${host === memberId ? '[x] ' : '[ ] '}${nameOf(memberId)}`}
-            variant={host === memberId ? 'primary' : 'secondary'}
+            mode="radio"
+            label={nameOf(memberId)}
+            selected={host === memberId}
             onPress={() => setPickedHost(memberId)}
           />
         ))}
       </View>
       {holder ? (
-        <Text style={styles.warning}>
-          {nameOf(host)} sudah tuan rumah pertemuan {holder.number}. Jika disimpan, tuan rumah kedua pertemuan ditukar.
-        </Text>
+        <Notice tone="warn">
+          {`${nameOf(host)} sudah tuan rumah pertemuan ${holder.number}. Jika disimpan, tuan rumah kedua pertemuan ditukar.`}
+        </Notice>
       ) : null}
 
-      <TextField
-        label={`Tanggal pertemuan ${number} (TTTT-BB-HH)`}
+      <DateField
+        label={`Tanggal pertemuan ${number}`}
         value={date}
-        onChangeText={setDateInput}
-        keyboardType="numbers-and-punctuation"
-        placeholder="2026-01-04"
+        onChange={setDateInput}
+        shortcuts={MEETING_SHORTCUTS}
         error={problem ? describeDateProblem(problem) : null}
       />
       <Text style={styles.hint}>
         Pertemuan berikutnya yang belum ditentukan diperkirakan tiap 7 hari setelah tanggal terakhir yang dipilih.
       </Text>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Notice tone="danger">{error}</Notice> : null}
       <Button label={busy ? 'Menyimpan...' : 'Simpan'} disabled={!canSave} onPress={submit} />
       <Button label="Batal" variant="secondary" onPress={() => router.back()} />
     </ScrollView>
@@ -142,12 +151,10 @@ export default function MeetingHostScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '700' },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  hint: { color: '#666', fontSize: 13 },
-  chips: { gap: 6 },
-  warning: { padding: 12, borderRadius: 8, backgroundColor: '#fff3cd', color: '#664d03' },
-  error: { padding: 8, color: '#b3261e' },
-  muted: { padding: 16, color: '#666' },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  title: { ...type.title, color: colors.text },
+  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  body: { ...type.body, color: colors.text },
+  hint: { ...type.caption, color: colors.textMuted },
+  list: { gap: spacing.sm },
 });

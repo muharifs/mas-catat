@@ -4,8 +4,8 @@
 // phone, opened with an async call. Until it is open and migrated we render "Memuat..." instead of the
 // screens, so no screen ever sees a missing database. The context works like any React context on the web.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Button } from '@/ui/components/Button';
+import { ErrorState } from '@/ui/components/ErrorState';
+import { Loading } from '@/ui/components/Loading';
 import { toIndonesian } from '@/ui/errors';
 import { createRepositories, type Repositories } from './index';
 import { openDatabase } from './openDatabase';
@@ -53,23 +53,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     setAttempt((n) => n + 1);
   }, []);
 
-  if (state.status === 'loading') {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-        <Text style={styles.text}>Memuat...</Text>
-      </View>
-    );
-  }
-  if (state.status === 'error') {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.title}>Database tidak bisa dibuka</Text>
-        <Text style={styles.text}>{toIndonesian(state.error)}</Text>
-        <Button label="Coba lagi" onPress={retry} />
-      </View>
-    );
-  }
+  if (state.status === 'loading') return <Loading />;
+  if (state.status === 'error') return <ErrorState message={toIndonesian(state.error)} onRetry={retry} />;
   return <RepositoriesContext.Provider value={state.repos}>{children}</RepositoriesContext.Provider>;
 }
 
@@ -79,9 +64,3 @@ export function useRepos(): Repositories {
   if (!repos) throw new Error('useRepos must be used inside DatabaseProvider');
   return repos;
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 18, fontWeight: '700' },
-  text: { fontSize: 15, textAlign: 'center' },
-});

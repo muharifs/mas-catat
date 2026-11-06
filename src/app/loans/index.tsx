@@ -57,7 +57,7 @@ export default function LoansScreen() {
         </ListRow>
       ))}
       {unnamedOpening !== 0 ? (
-        <ListRow title="Saldo awal tanpa nama" tone="alt" onPress={() => router.push('/kas')} right={<Money amount={unnamedOpening} size="heading" />}>
+        <ListRow title="Saldo awal tanpa nama" tone="alt" onPress={() => router.push('/riwayat')} right={<Money amount={unnamedOpening} size="heading" />}>
           <RowText tone="warn">Tidak bisa dilunasi karena tidak ada nama anggotanya.</RowText>
           <RowText>Koreksi catatan saldo awal Piutang di daftar Kas, lalu catat ulang dengan nama anggota.</RowText>
         </ListRow>

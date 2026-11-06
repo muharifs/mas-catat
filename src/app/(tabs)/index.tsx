@@ -209,7 +209,7 @@ export default function HomeScreen() {
         <ListRow title="Anggota" tone="alt" onPress={() => router.push('/members')} right={<RowText>{memberCount} anggota</RowText>} />
         <ListRow title="Kas" tone="alt" onPress={() => router.push('/kas')} />
         <ListRow title="Pinjaman anggota" tone="alt" onPress={() => router.push('/loans')} />
-        <ListRow title="Laporan" tone="alt" onPress={() => router.push('/reports')} />
+        <ListRow title="Laporan" tone="alt" onPress={() => router.push('/laporan')} />
         <ListRow title="Titipan anggota" tone="alt" onPress={() => router.push('/credits')} />
         <ListRow title="Periode" tone="alt" onPress={() => router.push('/periods')} />
         <ListRow title="Cadangan dan ekspor" tone="alt" onPress={() => router.push('/backup')} />

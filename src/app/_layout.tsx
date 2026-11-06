@@ -17,7 +17,7 @@ function AppStack() {
   const { dataVersion } = useDatabaseControl();
   return (
     <Stack key={dataVersion} screenOptions={{ headerTitle: 'Mas Catat' }}>
-      <Stack.Screen name="index" options={{ title: 'Mas Catat' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="members/index" options={{ title: 'Anggota' }} />
       <Stack.Screen name="periods/index" options={{ title: 'Periode' }} />
       <Stack.Screen name="periods/new" options={{ title: 'Buat Periode' }} />
@@ -29,12 +29,12 @@ function AppStack() {
       <Stack.Screen name="periods/[id]/payout" options={{ title: 'Bayar Tuan Rumah' }} />
       <Stack.Screen name="periods/[id]/close" options={{ title: 'Akhiri Periode' }} />
       <Stack.Screen name="credits/index" options={{ title: 'Titipan Anggota' }} />
-      <Stack.Screen name="kas/index" options={{ title: 'Kas' }} />
+      <Stack.Screen name="kas/index" options={{ title: 'Catat Kas' }} />
+      <Stack.Screen name="filter-riwayat" options={{ title: 'Filter Riwayat' }} />
       <Stack.Screen name="kas/new" options={{ title: 'Catat Kas' }} />
       <Stack.Screen name="kas/[entryId]" options={{ title: 'Detail Kas' }} />
       <Stack.Screen name="loans/index" options={{ title: 'Pinjaman Anggota' }} />
       <Stack.Screen name="loans/[memberId]" options={{ title: 'Pinjaman Anggota' }} />
-      <Stack.Screen name="reports/index" options={{ title: 'Laporan' }} />
       <Stack.Screen name="reports/period/[id]/index" options={{ title: 'Laporan Periode' }} />
       <Stack.Screen name="reports/period/[id]/meetings/[number]" options={{ title: 'Laporan Pertemuan' }} />
       <Stack.Screen name="reports/period/[id]/members/[memberId]" options={{ title: 'Riwayat Anggota' }} />

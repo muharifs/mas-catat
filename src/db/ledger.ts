@@ -10,6 +10,14 @@ import {
   type KasEntryInput,
   type KasEntryPreview,
 } from '@/domain/kas';
+import {
+  assertLoanReversalAllowed,
+  computeLoanBalances,
+  isLoanEntry,
+  loanBalanceOf,
+  type LoanBalance,
+  type LoanOverview,
+} from '@/domain/loans';
 import { assertIsoDate } from '@/domain/money';
 import { previewHostPayout, type PayoutPreview } from '@/domain/payout';
 import { buildReversal, DIRECTLY_REVERSIBLE_TYPES, requireReason } from '@/domain/reversal';
@@ -181,6 +189,40 @@ export async function loadKasBalances(db: Queryable): Promise<KasBalances> {
   );
 }
 
+/**
+ * Loan balances of every member from ALL entries of ALL periods. Only entries that move Piutang matter (loans,
+ * repayments, opening balances in Piutang and their reversals), so the query is limited to them. The arithmetic is
+ * the pure computeLoanBalances (src/domain/loans.ts).
+ */
+export async function loadLoanOverview(db: Queryable): Promise<LoanOverview> {
+  const rows = await db.getAll<{
+    id: string;
+    type: LedgerEntryType;
+    amount: number;
+    member_id: string | null;
+    account: Account | null;
+    to_account: Account | null;
+    reverses_entry_id: string | null;
+  }>(
+    "SELECT id, type, amount, member_id, account, to_account, reverses_entry_id FROM ledger_entries WHERE account = 'piutang' OR to_account = 'piutang'",
+  );
+  return computeLoanBalances(
+    rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      amount: r.amount,
+      memberId: r.member_id,
+      account: r.account,
+      toAccount: r.to_account,
+      reversesEntryId: r.reverses_entry_id,
+    })),
+  );
+}
+
+export async function loadLoanBalance(db: Queryable, memberId: string): Promise<LoanBalance> {
+  return loanBalanceOf(await loadLoanOverview(db), memberId);
+}
+
 export async function requireActivePeriod(db: Queryable, periodId: string, what: string): Promise<{ member_count: number }> {
   const period = await db.getFirst<{ status: string; member_count: number }>(
     'SELECT status, member_count FROM periods WHERE id = ?',
@@ -270,7 +312,8 @@ async function preparePayout(
 /**
  * Which period a kas entry is attached to (period_id is NOT NULL):
  * - a new loan: the active period only (and the member must be in it);
- * - a loan repayment: the active period if the member is in it, otherwise the latest period containing the member;
+ * - a loan repayment, or an opening balance that names a member (an old loan): the active period if the member is
+ *   in it, otherwise the latest period containing the member;
  * - everything else: the active period, or the latest closed period when none is active.
  * With no period at all the entry is rejected.
  */
@@ -280,7 +323,7 @@ async function resolveKasPeriod(db: Queryable, input: KasEntryInput): Promise<st
     if (!active) throw new RepositoryError('no active period; a new loan is only for members of the active period');
     return active.id;
   }
-  if (input.kind === 'loan_repayment' && input.memberId) {
+  if ((input.kind === 'loan_repayment' || (input.kind === 'opening_balance' && input.account === 'piutang')) && input.memberId) {
     const memberId = input.memberId;
     if (active) {
       const inActive = await db.getFirst('SELECT 1 AS ok FROM period_members WHERE period_id = ? AND member_id = ?', [active.id, memberId]);
@@ -310,7 +353,9 @@ async function prepareKas(
 ): Promise<{ periodId: string; preview: KasEntryPreview }> {
   const periodId = await resolveKasPeriod(db, input);
   assertEntryDate(input.date, todayOf(deps));
-  const preview = previewKasEntry(input, await loadKasBalances(db));
+  // The loan guard runs here, in the same transaction as the write (recordKas passes its transaction handle).
+  const memberRemaining = input.memberId ? (await loadLoanBalance(db, input.memberId)).remaining : 0;
+  const preview = previewKasEntry(input, await loadKasBalances(db), memberRemaining);
   if (preview.entry.memberId) {
     const member = await db.getFirst('SELECT 1 AS ok FROM period_members WHERE period_id = ? AND member_id = ?', [
       periodId,
@@ -330,6 +375,22 @@ export function createLedgerRepo(db: Db, deps: RepoDeps = defaultDeps) {
     /** Balances of Tunai, Debit and Piutang over every entry of every period. Use this on every screen. */
     async getKasBalances(): Promise<KasBalances> {
       return loadKasBalances(db);
+    },
+
+    /** Loan balances of every member over all periods and the unnamed old Piutang. Use this on every loan screen. */
+    async listLoanBalances(): Promise<LoanOverview> {
+      return loadLoanOverview(db);
+    },
+
+    /** Loan balance of one member over all periods (all zero when the member never borrowed). */
+    async getLoanBalance(memberId: string): Promise<LoanBalance> {
+      return loadLoanBalance(db, memberId);
+    },
+
+    /** Loans, old loans and repayments of a member over all periods, oldest first, each with its reversal id. */
+    async listLoanHistory(memberId: string): Promise<LedgerListItem[]> {
+      const rows = await db.getAll<LedgerRow>(`${ITEM_SELECT} WHERE e.member_id = ? ORDER BY e.date, e.rowid`, [memberId]);
+      return rows.map(toItem).filter((e) => isLoanEntry(e));
     },
 
     /** Every entry of every period, newest first, each with the id of its reversal (null if in force). */
@@ -434,6 +495,8 @@ export function createLedgerRepo(db: Db, deps: RepoDeps = defaultDeps) {
           throw new RepositoryError(`entry type ${entry.type} cannot be corrected here`);
         }
         if (entry.reversedById) throw new RepositoryError(`entry ${entryId} is already corrected`);
+        // Taking back a loan must not leave the member with a negative remaining (repayments above the loan).
+        if (entry.memberId && isLoanEntry(entry)) assertLoanReversalAllowed(entry, await loadLoanBalance(tx, entry.memberId));
         const reversal = buildReversal(entry, { reason: cleanReason, date: todayOf(deps) });
         return insertEntry(tx, deps, { ...reversal, periodId: entry.periodId });
       });

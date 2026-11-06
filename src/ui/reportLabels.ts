@@ -19,6 +19,7 @@ export const EVENT_LABELS: Record<HistoryEventKind, string> = {
 
 export const LOAN_LABELS: Record<HistoryLoan['kind'], string> = {
   loan: 'Pinjaman',
+  opening_loan: 'Pinjaman yang sudah ada sebelum memakai aplikasi',
   loan_repayment: 'Pelunasan pinjaman',
 };
 

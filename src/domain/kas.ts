@@ -8,6 +8,7 @@
 // - Move entry (transfer, loan, loan_repayment): ONE entry with direction 'out', `account` = source and
 //   `toAccount` = destination. The amount leaves the source and arrives at the destination.
 // - An entry whose `account` is null (written before pos existed) never changes a balance.
+import { assertRepaymentWithinLoan } from './loans';
 import { assertPositiveInt, assertIsoDate, DomainError } from './money';
 import { isRealDate } from './schedule';
 import type { Account, IsoDate, LedgerEntry, Rupiah } from './types';
@@ -104,7 +105,7 @@ export interface KasEntryInput {
   account?: Account | null;
   /** Destination pos. Only transfer uses it; loan and repayment have a fixed destination. */
   toAccount?: Account | null;
-  /** Required for loan and loan_repayment. */
+  /** Required for loan, loan_repayment and an opening balance in Piutang (an old loan). Ignored for other opening balances. */
   memberId?: string | null;
   /** Required for shared_goal. */
   note?: string;
@@ -124,9 +125,13 @@ export function buildKasEntry(input: KasEntryInput): LedgerEntry {
   const base = { date: input.date, amount: input.amount, week: null, note };
 
   switch (input.kind) {
-    case 'opening_balance':
+    case 'opening_balance': {
       if (!input.account || !ACCOUNTS.includes(input.account)) throw new DomainError('opening balance needs a pos');
-      return { ...base, type: 'opening_balance', direction: 'in', memberId: null, account: input.account, toAccount: null };
+      // In Piutang an opening balance is an old loan and must name the member. Tunai and Debit never have a member.
+      if (input.account === 'piutang' && !memberId) throw new DomainError('an opening balance in piutang needs a member');
+      const openingMember = input.account === 'piutang' ? memberId : null;
+      return { ...base, type: 'opening_balance', direction: 'in', memberId: openingMember, account: input.account, toAccount: null };
+    }
 
     case 'transfer':
       if (!isCashPos(input.account) || !isCashPos(input.toAccount) || input.account === input.toAccount) {
@@ -156,16 +161,36 @@ export interface KasEntryPreview {
   after: KasBalances;
   /** Pos that would end below zero. A warning, never a block. */
   negativeAccounts: Account[];
+  /** The member's remaining loan before / after this entry; null when the entry does not touch a member's loan. */
+  loanRemainingBefore: Rupiah | null;
+  loanRemainingAfter: Rupiah | null;
 }
 
-/** What saving a kas entry would do to the balances. */
-export function previewKasEntry(input: KasEntryInput, before: KasBalances): KasEntryPreview {
+/**
+ * What saving a kas entry would do to the balances. `memberRemaining` is the member's remaining loan right now
+ * (from computeLoanBalances); a repayment is checked against it here, so the check is the same wherever it is used.
+ */
+export function previewKasEntry(input: KasEntryInput, before: KasBalances, memberRemaining: Rupiah = 0): KasEntryPreview {
   const entry = buildKasEntry(input);
+  if (entry.type === 'loan_repayment') assertRepaymentWithinLoan(entry.amount, memberRemaining);
   const be: BalanceEntry = {
     direction: entry.direction,
     amount: entry.amount,
     account: entry.account ?? null,
     toAccount: entry.toAccount ?? null,
   };
-  return { entry, before, after: applyEntry(before, be), negativeAccounts: negativeAfter(before, be) };
+  // Loans and named old loans add to what the member owes; a repayment takes away from it.
+  let loanDelta: Rupiah | null = null;
+  if (entry.memberId) {
+    if (entry.type === 'loan' || (entry.type === 'opening_balance' && entry.account === 'piutang')) loanDelta = entry.amount;
+    else if (entry.type === 'loan_repayment') loanDelta = -entry.amount;
+  }
+  return {
+    entry,
+    before,
+    after: applyEntry(before, be),
+    negativeAccounts: negativeAfter(before, be),
+    loanRemainingBefore: loanDelta === null ? null : memberRemaining,
+    loanRemainingAfter: loanDelta === null ? null : memberRemaining + loanDelta,
+  };
 }

@@ -3,11 +3,12 @@
 import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { DomainError } from '@/domain/money';
+import { formatRupiah } from './format';
 
 export const GENERIC_ERROR = 'Terjadi kesalahan. Coba lagi.';
 
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
-const RULES: readonly { pattern: RegExp; text: string }[] = [
+const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArray) => string) }[] = [
   { pattern: /member name must not be empty/, text: 'Nama anggota tidak boleh kosong.' },
   { pattern: /member name already exists/, text: 'Nama anggota sudah ada. Pakai nama lain.' },
   { pattern: /period name must not be empty/, text: 'Nama periode tidak boleh kosong.' },
@@ -61,9 +62,16 @@ const RULES: readonly { pattern: RegExp; text: string }[] = [
   { pattern: /refund account must be/, text: 'Pilih sumber uang: Tunai atau Debit.' },
   { pattern: /transfer must go between|a move entry needs two different pos/, text: 'Pindah saldo hanya antara Tunai dan Debit, dan keduanya harus berbeda.' },
   { pattern: /a loan must be paid from|shared goal spending must come from/, text: 'Pilih sumber uang: Tunai atau Debit.' },
+  { pattern: /an opening balance in piutang needs a member/, text: 'Pilih anggota yang punya pinjaman lama ini.' },
   { pattern: /needs a member/, text: 'Pilih anggota.' },
   { pattern: /shared goal needs a note/, text: 'Catatan wajib diisi untuk pengeluaran bersama.' },
   { pattern: /opening balance needs a pos/, text: 'Pilih pos.' },
+  { pattern: /the member has no outstanding loan/, text: 'Anggota ini tidak punya sisa pinjaman, jadi tidak ada yang bisa dilunasi.' },
+  { pattern: /repayment \d+ is above the remaining loan (\d+)/, text: (m) => `Jumlah melebihi sisa pinjaman (${formatRupiah(Number(m[1]))}). Kurangi jumlah.` },
+  {
+    pattern: /loan cannot be corrected: the member already repaid (\d+)/,
+    text: (m) => `Pinjaman ini sudah dibayar ${formatRupiah(Number(m[1]))}. Koreksi pelunasannya dulu, baru koreksi pinjamannya.`,
+  },
   { pattern: /amount must be a positive integer/, text: 'Jumlah harus lebih dari nol.' },
 ];
 
@@ -93,8 +101,11 @@ export function toIndonesian(error: unknown): string {
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MigrationError) return 'Database gagal disiapkan. Tutup lalu buka lagi aplikasinya.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
-    const rule = RULES.find((r) => r.pattern.test(error.message));
-    return rule ? rule.text : GENERIC_ERROR;
+    for (const rule of RULES) {
+      const match = error.message.match(rule.pattern);
+      if (match) return typeof rule.text === 'function' ? rule.text(match) : rule.text;
+    }
+    return GENERIC_ERROR;
   }
   return GENERIC_ERROR;
 }

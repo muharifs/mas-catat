@@ -32,6 +32,8 @@ function AppStack() {
       <Stack.Screen name="kas/index" options={{ title: 'Kas' }} />
       <Stack.Screen name="kas/new" options={{ title: 'Catat Kas' }} />
       <Stack.Screen name="kas/[entryId]" options={{ title: 'Detail Kas' }} />
+      <Stack.Screen name="loans/index" options={{ title: 'Pinjaman Anggota' }} />
+      <Stack.Screen name="loans/[memberId]" options={{ title: 'Pinjaman Anggota' }} />
       <Stack.Screen name="reports/index" options={{ title: 'Laporan' }} />
       <Stack.Screen name="reports/period/[id]/index" options={{ title: 'Laporan Periode' }} />
       <Stack.Screen name="reports/period/[id]/meetings/[number]" options={{ title: 'Laporan Pertemuan' }} />

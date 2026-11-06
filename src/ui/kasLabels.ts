@@ -17,6 +17,12 @@ export const TYPE_LABELS: Record<LedgerEntryType, string> = {
   reversal: 'Koreksi',
 };
 
+/** Title of an entry: an opening balance in Piutang is an old loan, so it says so. */
+export function entryTitle(e: { type: LedgerEntryType; account: Account | null }): string {
+  if (e.type === 'opening_balance' && e.account === 'piutang') return 'Saldo awal: pinjaman lama';
+  return TYPE_LABELS[e.type];
+}
+
 /** Button and screen names of the kas actions. */
 export const KIND_LABELS: Record<KasKind, string> = {
   opening_balance: 'Saldo awal',

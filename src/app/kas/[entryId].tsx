@@ -11,7 +11,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
-import { amountSign, correctionRoute, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
+import { amountSign, correctionRoute, entryTitle, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -49,7 +49,7 @@ export default function KasEntryScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{TYPE_LABELS[entry.type]}</Text>
+      <Text style={styles.title}>{entryTitle(entry)}</Text>
       <Card>
         <Money amount={entry.amount} size="display" sign={amountSign(entry)} />
         <Text style={styles.body}>Tanggal: {formatDate(entry.date)}</Text>

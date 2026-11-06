@@ -492,6 +492,10 @@ describe('kas entries without an active period', () => {
     const [a, b] = f.ids as [string, string];
     await expect(f.repos.ledger.recordKas({ kind: 'loan', date: '2026-12-31', amount: 1_000, account: 'tunai', memberId: b })).rejects.toThrow(/no active period/);
     const repay = (memberId: string) => f.repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-12-31', amount: 1_000, memberId });
+    // Old loans (named opening balances) follow the same period rule as repayments, so they work without an active period.
+    const oldLoan = (memberId: string) => f.repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-12-31', amount: 1_000, account: 'piutang', memberId });
+    expect((await oldLoan(a)).periodId).toBe(f.periodId);
+    expect((await oldLoan(b)).periodId).toBe(p2);
     expect((await repay(a)).periodId).toBe(f.periodId); // only in period 1
     expect((await repay(b)).periodId).toBe(p2); // in both: the latest
     await expect(repay(outsider)).rejects.toThrow(/not found in any period/);
@@ -502,6 +506,9 @@ describe('kas entries without an active period', () => {
     const [a, b] = f.ids as [string, string];
     const p3 = await f.repos.periods.create({ name: 'Periode 3', startDate: '2027-01-01', memberIds: [a, cici] });
     const repay = (memberId: string) => f.repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-12-31', amount: 1_000, memberId });
+    for (const id of [a, b, cici]) {
+      await f.repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-12-31', amount: 1_000, account: 'piutang', memberId: id });
+    }
     expect((await repay(a)).periodId).toBe(p3.id); // in the active period
     expect((await repay(cici)).periodId).toBe(p3.id);
     expect((await repay(b)).periodId).toBe(p2); // not in period 3: latest period containing b

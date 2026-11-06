@@ -1,4 +1,4 @@
-import { amountSign, correctionRoute, flowText, TYPE_LABELS, visibleNote } from './kasLabels';
+import { amountSign, correctionRoute, entryTitle, flowText, TYPE_LABELS, visibleNote } from './kasLabels';
 
 describe('flowText', () => {
   it('describes plain entries, moves and entries without a pos', () => {
@@ -51,5 +51,13 @@ describe('amountSign', () => {
 describe('UI wording of member credit', () => {
   it('calls the refund entry "titipan", not "kredit"', () => {
     expect(TYPE_LABELS.credit_refund).toBe('Pengembalian titipan anggota');
+  });
+});
+
+describe('entryTitle', () => {
+  it('calls an opening balance in Piutang an old loan, and leaves other titles alone', () => {
+    expect(entryTitle({ type: 'opening_balance', account: 'piutang' })).toBe('Saldo awal: pinjaman lama');
+    expect(entryTitle({ type: 'opening_balance', account: 'tunai' })).toBe('Saldo awal');
+    expect(entryTitle({ type: 'loan_repayment', account: 'piutang' })).toBe('Pelunasan pinjaman');
   });
 });

@@ -5,10 +5,11 @@ import { sortByName } from '@/domain/sort';
 import { Button } from '@/ui/components/Button';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
-import { ListRow } from '@/ui/components/ListRow';
+import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { TextField } from '@/ui/components/TextField';
 import { toIndonesian } from '@/ui/errors';
+import { formatRupiah } from '@/ui/format';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -16,9 +17,12 @@ import { useLoad } from '@/ui/useLoad';
 // FlatList is the React Native list: it renders only the visible rows, unlike mapping to <li> on the web.
 export default function MembersScreen() {
   const repos = useRepos();
-  const load = useCallback(() => repos.members.list(), [repos]);
+  const load = useCallback(async () => {
+    const [list, loans] = await Promise.all([repos.members.list(), repos.ledger.listLoanBalances()]);
+    return { list, remaining: new Map(loans.members.filter((l) => l.remaining > 0).map((l) => [l.memberId, l.remaining])) };
+  }, [repos]);
   const { data, error: loadError, reload } = useLoad(load);
-  const members = useMemo(() => (data ? sortByName(data, (m) => m.name) : null), [data]);
+  const members = useMemo(() => (data ? sortByName(data.list, (m) => m.name) : null), [data]);
 
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
@@ -107,7 +111,9 @@ export default function MembersScreen() {
               setEditName(item.name);
               setEditError(null);
             }}
-          />
+          >
+            {data?.remaining.has(item.id) ? <RowText>Pinjaman: sisa {formatRupiah(data.remaining.get(item.id) ?? 0)}</RowText> : null}
+          </ListRow>
         )
       }
     />

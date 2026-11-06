@@ -94,12 +94,12 @@ describe('buildKasEntry', () => {
 
   it('opening balance: cash in on any of the three pos', () => {
     for (const account of ['tunai', 'debit', 'piutang'] as const) {
-      expect(buildKasEntry({ ...base, kind: 'opening_balance', account })).toMatchObject({
+      expect(buildKasEntry({ ...base, kind: 'opening_balance', account, memberId: account === 'piutang' ? 'm1' : null })).toMatchObject({
         type: 'opening_balance',
         direction: 'in',
         account,
         toAccount: null,
-        memberId: null,
+        memberId: account === 'piutang' ? 'm1' : null,
       });
     }
     expect(() => buildKasEntry({ ...base, kind: 'opening_balance' })).toThrow(DomainError);

@@ -252,7 +252,8 @@ export interface HistoryEvent {
 }
 
 export interface HistoryLoan {
-  kind: 'loan' | 'loan_repayment';
+  /** opening_loan = an old loan from before the app (opening balance in Piutang naming the member). */
+  kind: 'loan' | 'loan_repayment' | 'opening_loan';
   date: IsoDate;
   amount: Rupiah;
   reversed: boolean;
@@ -271,7 +272,7 @@ export interface MemberHistory {
     offset: Rupiah;
     titipanUsed: Rupiah;
     outstanding: Rupiah;
-    /** Loans minus repayments (corrected ones excluded), over all periods. */
+    /** Loans (and old loans) minus repayments (corrected ones excluded), over all periods. Equals the loan page. */
     piutang: Rupiah;
   };
 }
@@ -390,9 +391,10 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
 
   const loans: HistoryLoan[] = [];
   for (const e of input.entries) {
-    if (e.type !== 'loan' && e.type !== 'loan_repayment') continue;
+    const isOpeningLoan = e.type === 'opening_balance' && e.account === 'piutang';
+    if (e.type !== 'loan' && e.type !== 'loan_repayment' && !isOpeningLoan) continue;
     loans.push({
-      kind: e.type,
+      kind: isOpeningLoan ? 'opening_loan' : (e.type as 'loan' | 'loan_repayment'),
       date: e.date,
       amount: e.amount,
       reversed: isReversed(e.id),
@@ -417,7 +419,7 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
 
   const inForce = <T extends { reversed: boolean }>(items: readonly T[]) => items.filter((i) => !i.reversed);
   let piutang = 0;
-  for (const l of inForce(loans)) piutang += l.kind === 'loan' ? l.amount : -l.amount;
+  for (const l of inForce(loans)) piutang += l.kind === 'loan_repayment' ? -l.amount : l.amount;
 
   return {
     weeks,

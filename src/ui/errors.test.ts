@@ -1,5 +1,6 @@
 import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
+import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
 import { BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
 
@@ -61,6 +62,13 @@ describe('toIndonesian', () => {
     [new DomainError('nothing to refund: the member holds no credit'), 'Anggota ini tidak punya titipan yang bisa dikembalikan.'],
     [new RepositoryError('period p1 has not ended; its credit cannot be refunded yet'), 'Titipan periode yang masih aktif belum bisa dikembalikan. Akhiri periodenya dulu.'],
     [new DomainError('refund account must be tunai or debit'), 'Pilih sumber uang: Tunai atau Debit.'],
+    [new LoanError('no_loan', 'the member has no outstanding loan to repay', 0), 'Anggota ini tidak punya sisa pinjaman, jadi tidak ada yang bisa dilunasi.'],
+    [new LoanError('above_remaining', 'repayment 300001 is above the remaining loan 300000', 300_000), 'Jumlah melebihi sisa pinjaman (Rp300.000). Kurangi jumlah.'],
+    [
+      new LoanError('reversal_below_zero', 'loan cannot be corrected: the member already repaid 100000; correct the repayment first', 200_000, 100_000),
+      'Pinjaman ini sudah dibayar Rp100.000. Koreksi pelunasannya dulu, baru koreksi pinjamannya.',
+    ],
+    [new DomainError('an opening balance in piutang needs a member'), 'Pilih anggota yang punya pinjaman lama ini.'],
   ])('maps %s', (error, expected) => {
     expect(toIndonesian(error)).toBe(expected);
   });

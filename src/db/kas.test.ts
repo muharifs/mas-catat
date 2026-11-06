@@ -37,8 +37,9 @@ const pay = (f: Fixture, i: number, amount: number, date = '2026-01-04', account
   account,
 });
 
-const opening = (f: Fixture, account: 'tunai' | 'debit' | 'piutang', amount: number) =>
-  f.repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-01-01', amount, account });
+// An opening balance in Piutang is an old loan and must name the member.
+const opening = (f: Fixture, account: 'tunai' | 'debit' | 'piutang', amount: number, memberId?: string) =>
+  f.repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-01-01', amount, account, memberId });
 
 async function closeWeeks(f: Fixture, upTo: number): Promise<void> {
   for (let i = 0; i < upTo; i += 1) await f.repos.weeks.closeOldest(f.periodId);
@@ -146,7 +147,7 @@ describe('kas ledger', () => {
     const m = f.ids[0] as string;
     await opening(f, 'tunai', 100_000);
     await opening(f, 'debit', 50_000);
-    await opening(f, 'piutang', 20_000);
+    await opening(f, 'piutang', 20_000, m);
     await f.repos.ledger.recordKas({ kind: 'transfer', date: '2026-01-02', amount: 30_000, account: 'tunai', toAccount: 'debit' });
     await f.repos.ledger.recordKas({ kind: 'transfer', date: '2026-01-02', amount: 10_000, account: 'debit', toAccount: 'tunai' });
     expect(await f.repos.ledger.getKasBalances()).toEqual({ tunai: 80_000, debit: 70_000, piutang: 20_000, actual: 150_000 });
@@ -246,7 +247,7 @@ describe('corrections of kas entries', () => {
     const m = f.ids[0] as string;
     const made = [
       await opening(f, 'tunai', 100_000),
-      await opening(f, 'piutang', 8_000),
+      await opening(f, 'piutang', 8_000, m),
       await f.repos.ledger.recordKas({ kind: 'transfer', date: '2026-01-02', amount: 30_000, account: 'tunai', toAccount: 'debit' }),
       await f.repos.ledger.recordKas({ kind: 'loan', date: '2026-01-03', amount: 20_000, account: 'debit', memberId: m }),
       await f.repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-01-04', amount: 5_000, memberId: m }),

@@ -1,6 +1,6 @@
 # Mas Catat (codename: Kang Admin) - Project Plan
 
-Last updated: 2026-11-06 (M2-M6, M3b, M5a-M5e verified on the owner's phone; M7 approved and implemented, NOT yet verified on the phone; M7b proposed, not approved). Estimates are rough ranges, not commitments.
+Last updated: 2026-11-06 (M2-M7, M3b, M5a-M5e verified on the owner's phone; M7 verified per the owner's one-line report; M7.1 and M7.2 approved, M7b proposed and NOT approved). Estimates are rough ranges, not commitments.
 
 ## 1. Goal and scope
 Offline Android app to record weekly member dues and cash flow for a rotating-gathering group.
@@ -33,9 +33,11 @@ Destructive actions (reset DB, delete files, force push) always need a separate 
 | M5d | Revisions from real use | Alphabetical member lists, swipe-right instant Rp15.000 payment on Pembayaran, Tuesday meetings, member dues into Tunai only; no migration; domain additions sort.ts, swipe-pay.ts, MEETING_WEEKDAY | 1 day (estimate) | M5c | Done (2026-11-06); verified on the owner's phone via Expo Go (M5d checklist; swipe threshold 70% of row width, minimum 180, confirmed right) |
 | M6 | Reports | Per-member history, per-meeting summary, kas balance, period summary, "Titipan anggota" line, expected kas = actual + outstanding dues - credit held. Note: carried-over credit stays in "Titipan anggota" until its meeting is closed | 2 days | M5 | Done (2026-11-06); verified on the owner's phone via Expo Go (M6 checklist) |
 | M5e | Paid-today marker on Pembayaran | "Sudah bayar hari ini" per member, summary "Sudah bayar hari ini: X dari N", swipe limited to once per member per day (`canSwipePay` gets required input `paidToday`), query `listMemberIdsPaidOn`; no migration, no money rule change | 0.5 day (estimate) | M5d | Done (2026-11-06); verified on the owner's phone via Expo Go (M5e checklist) |
-| M7 | Backup and export | Four CSV files via share sheet, full database backup/restore ("Mulai dari nol" included), backup reminder; no migration, no app.json change | 1-2 days | M6 | Implemented (2026-11-06), NOT yet verified on the phone (695 tests, lint, typecheck, export OK; sql.js proves logic only) |
-| M7b | APK build | APK with fixed android.package and a stored keystore, allowBackup decision, check of the expo-sharing plugin in app.json; BEFORE real money | TBD (estimate 0.5-1 day) | M7 | Proposed, NOT approved (waits for "approved M7b") |
-| M8 | Phone test | Runs on the owner's phone via Expo Go, smoke test of a full week cycle (APK deferred) | 1 day | M7 | Not started |
+| M7 | Backup and export | Four CSV files via share sheet, full database backup/restore ("Mulai dari nol" included), backup reminder; no migration, no app.json change | 1-2 days | M6 | Done (2026-11-06); commit a769bed; verified on the owner's phone in Expo Go on dummy data (owner report "cek sudah lolos" on the 10-step checklist; per-step detail not given). Exception: L1 (journal_mode) not specifically checked, stays open. 695 tests, lint, typecheck, export OK |
+| M7.1 | Loan (Piutang) repayment guard | Repayment only by a member with a remaining loan, at most that remainder, guarded in domain AND repository; partial repayments allowed; Piutang opening balance must name a member and counts as an old loan; old unnamed opening balance shown as "Saldo awal tanpa nama"; reversing a loan is rejected while repayments would make the remainder negative; old overpaid data is not migrated and shows as "Kelebihan bayar"; new screens loans/index and loans/[memberId]; no migration (details in the M7.1 and M7.2 status below) | not estimated by the owner or developer yet | M7 | Implemented (not yet verified on the phone) (approved 2026-11-06); then the owner checks on the phone |
+| M7.2 | Wallet-style navigation and Riwayat | Bottom tabs (Beranda, Riwayat, Laporan, Menu), new Beranda, Riwayat list with filters, entry detail; built in four small steps, each with tests and a phone check (spec below) | 3-5 days in total (estimate, PM guess) | M7.1 checked on the phone | Approved 2026-11-06, starts after the owner checks M7.1 |
+| M7b | APK build | APK with fixed android.package and a stored keystore, allowBackup decision, check of the expo-sharing plugin in app.json; BEFORE real money | 1-2 days incl. closing L6 (estimate; see "M7b proposal" below) | M7.2 (order set 2026-11-06; technically it only needs M7) | Proposed, NOT approved (waits for "approved M7b") |
+| M8 | Phone test | Smoke test of a full week cycle on the owner's phone. Note: written when the APK was deferred; if M7b is approved, M8 runs on the APK (see contradictions in the M7b proposal) | 1 day | M7 (or M7b) | Not started |
 | P2 | Google Sheets | Export/publish read-only report | TBD | M8 | Backlog |
 
 Total v1 estimate: about 2-3 weeks of part-time work (assumption: a few hours per day).
@@ -50,9 +52,108 @@ M6 status: M6 (Reports) was approved by the owner in the main session ("approved
 
 M5e status: M5e (paid-today marker) was approved by the owner in the main session ("approved M5e, ikut usul"), is implemented and was verified on the owner's phone on 2026-11-06 ("sudah lolos").
 
-M7 status: M7 was approved by the owner in the main session on 2026-11-06 ("approved m7, ikut usul dan checklist m5d, m6, dan m5e sudah lolos. ambang geser pas"), is implemented, and is NOT yet verified on the phone. M7b (APK) is proposed, NOT approved.
+M7 status: M7 was approved by the owner in the main session on 2026-11-06 ("approved m7, ikut usul dan checklist m5d, m6, dan m5e sudah lolos. ambang geser pas"), implemented and committed (a769bed). On 2026-11-06 the owner told the main session "cek sudah lolos" about the whole 10-step checklist below, run on dummy data in Expo Go. Recorded as the owner's report; no per-step detail was given. It covers: backup shared to Drive, full cycle with "Mulai dari nol" and restore through the picker, restore of the same file, rejecting foreign files, older backup with PULIHKAN, restoring a safety copy, "Mulai dari nol" three times, the 7-day reminder, four CSVs opened in a spreadsheet, and return to Home with new data. It also settles that sharing works in Expo Go without the expo-sharing plugin in app.json. L1 (PRAGMA journal_mode / WAL) was not specifically checked and stays open. M7b (APK) is proposed, NOT approved.
 
-### M7 phone checklist (owner, Expo Go; NOT yet run; use DUMMY data only; plan A items first)
+Build order (owner, 2026-11-06): M7.1 built, owner checks on the phone; M7.2 built in small steps with phone checks; then M7b (still NOT approved); then cutover; then M8.
+
+M7.1 and M7.2 status: approved by the owner in the main session on 2026-11-06: "ada anggota yang masih punya pinjaman. approved M7.1 dan M7.2, ikut usul". Reason: real members still have old loans, so loans must be recorded properly before real money.
+
+### M7.1 scope (implemented, not yet verified on the phone)
+- Repayment is allowed only for a member with a remaining loan, at most that remainder; guarded in the domain AND the repository (not only the UI). Partial repayments are allowed.
+- A Piutang opening balance must name a member and counts as an old loan.
+- An old opening balance without a member shows as "Saldo awal tanpa nama".
+- Reversing a loan is rejected while existing repayments would make the remainder negative.
+- Old data that is already overpaid is NOT migrated; it shows as "Kelebihan bayar".
+- New screens: src/app/loans/index.tsx and src/app/loans/[memberId].tsx. No migration.
+- Done when (to be confirmed with evidence): tests for the guards pass, lint and typecheck clean, then the owner's phone check. Not marked done yet.
+
+### M7.2 spec (agreed design from ui-ux-designer; status: approved, starts after the owner checks M7.1)
+- Adopt layout patterns common to wallet apps only. No GoPay name, logo, brand colours or artwork. The current GoPay layout could not be fully confirmed from web sources.
+- Tabs: new group src/app/(tabs)/ with `<Tabs>`: Beranda, Riwayat, Laporan, Menu. `/` stays Beranda. Forms stay stacked above the tabs. The `dataVersion` key stays on the root Stack, never moved to Tabs. Tab bar about 64dp, icon 24, label 14sp, tabBarHideOnKeyboard true. @expo/vector-icons is not installed at the top level: check it; if a dependency is needed it is one small addition. An icon is never the only signal; a word always accompanies it.
+- Beranda order: (1) backup reminder band, only when due (existing rule); (2) Kas card (Total, Tunai, Debit, one Piutang line opening the loans list); (3) four quick actions Iuran, Tuan rumah, Catat kas, Anggota, disabled ones stay visible with a reason; (4) first-steps checklist while unfinished; (5) current meeting card with ONE main button by state, plus "Tutup pertemuan N", "Ubah tuan rumah / tanggal" and "Sudah bayar hari ini: X dari N"; (6) "Terakhir" with 3 entries and "Lihat semua riwayat".
+- Menu groups: Kelompok (Anggota, Periode, Jadwal periode when a period is active, Titipan anggota, Pinjaman anggota), Kas (Catat kas), Data (Cadangan dan ekspor, with a warning dot when late). Every existing route stays reachable. kas/index becomes the Catat kas screen. reports/index moves to (tabs)/laporan.
+- Riwayat: repos.ledger.listKas() already returns all entries newest first. SectionList by date ("Hari ini", "Kemarin", then full date). Row: 40dp icon per type, title 16sp, second line 14sp with member and pos, amount 18sp. Sign rules: money in + green, money out - red; transfers, loans and repayments neutral, e.g. "Dipindah: Tunai -> Piutang"; write-off neutral, "Tidak mengubah saldo kas". Member payments have no week and always go to Tunai. Corrected entries stay visible, struck through with "Dikoreksi"; a reversal row reads "Koreksi: <jenis>"; a type chip also shows that type's corrections. Chips: Semua, Iuran, Tuan rumah, Pinjaman, Pindah saldo, Pengeluaran, Koreksi; a Filter screen for Anggota, Pos, Periode, Jenis. No total of filtered results in this version (owner agreed).
+- Detail: update kas/[entryId].tsx: header with status Tercatat, Dikoreksi or Koreksi; rows Tanggal, Dicatat, Pos, Anggota, Pertemuan, Periode, Catatan, Alasan; correction chain; remaining loan for loan entries; paid meetings for member payments, using payments.ledger_entry_id and allocations. No share button in this version.
+- Steps (each with tests and a phone check): (1) tab frame; (2) Riwayat; (3) detail; (4) new Beranda and docs.
+- Conflicts with earlier decisions (to be settled when step 1 starts, owner informed): M5c decision 5 "No bottom tabs" and "Deferred UX: Tabs" are superseded by M7.2; the M5c deferred "Single Catat kas button" is partly covered by the quick action and the Menu entry; CLAUDE.md does not yet mention the Piutang opening-balance-names-a-member rule or the loan repayment cap (main session to update, this PM does not edit it).
+
+### M7b proposal: installable APK before real money (PROPOSED 2026-11-06, NOT approved; waits for "approved M7b")
+Goal: an APK installed on the owner's phone, signed with a key that is backed up, BEFORE any real money is recorded. Nothing below has started. Estimates are rough ranges.
+
+Docs checked on 2026-11-06 (Expo docs for the current SDK, SDK 58 project):
+- EAS Build makes an AAB by default; an installable APK needs a profile with `android.buildType: "apk"` in eas.json (build with `eas build -p android --profile preview`).
+- `eas build --local` is supported on macOS and Linux only; Windows is NOT supported (WSL works but is untested by Expo). So "local" on this Windows 10 laptop means a manual Gradle build instead (see comparison).
+- Local signing guide (local-app-production) is written for an AAB and says to generate the keystore with `keytool` from a JDK; it does not give Windows or APK steps. Not verified on Windows.
+- app.json: `android.allowBackup` defaults to the Android default (true); `android.package` must be reverse-DNS; `android.versionCode` is a positive integer to raise per release; `version` becomes versionName.
+
+What will be built (all in config; no app logic, no migration, no domain change):
+| File | Change |
+|------|--------|
+| app.json | add `android.package` (fixed forever), `android.versionCode: 1`, `android.allowBackup` per the decision; `version` stays 1.0.0; the expo-sharing plugin is NOT added (Expo Go run showed sharing works without it; recheck on the APK) |
+| eas.json (new) | one `preview` profile with `android.buildType: "apk"` and `distribution: "internal"`; no production/store profile |
+| .gitignore | make sure `*.jks`, `*.keystore`, `credentials.json` and any downloaded keystore are ignored (never commit a keystore) |
+| src/db/... (L6 only) | the in-progress restore marker; written by fullstack-developer with acceptance criteria below |
+| CLAUDE.md | one sentence after the APK works: "tested via Expo Go" becomes "installed as APK"; this PM does not edit it |
+Not touched: schema, migrations, money rules, screens other than what L6 needs.
+
+How the APK gets built (comparison for this owner: Windows 10, intermediate web dev, new to RN):
+| | EAS cloud build | Manual local Gradle build on Windows |
+|--|--|--|
+| Setup | Expo account (free), `npx eas-cli` login, one eas.json | Android Studio + SDK + JDK, `expo prebuild` creates an android/ folder, Gradle signing config |
+| Effort and risk | low; Expo's servers do the heavy part; waiting in a queue is possible on the free tier (not verified) | high for a first time; many environment problems possible (JDK/SDK versions, Windows path length); the docs give no Windows steps |
+| Source code | uploaded to Expo's service (owner decision; no secrets are in the repo, but the code and domain rules go to a third party) | stays on the laptop |
+| Keystore | EAS can generate and hold it; owner must download a copy | owner creates it with keytool and keeps it |
+| Repeatability | same command each release | needs the same toolchain each time |
+Recommendation: EAS cloud build, profile `preview`, keystore generated by EAS and then downloaded. Reason: lowest risk for a first APK; the only cost is the Expo account and the source upload. If the owner does not accept the upload, the fallback is the manual Gradle build, and the estimate becomes about 2-3 days with more risk.
+
+Keystore (losing it means the installed app can never be updated; the only way out would be uninstalling, which deletes the data unless a backup exists):
+- Kept by EAS, plus ONE downloaded copy (`eas credentials` > Android > credentials.json > download). Keep the keystore file, alias and both passwords.
+- Backup: at least two places outside the repo and outside this phone (for example a private cloud folder and a USB stick), and the passwords stored separately in the owner's password manager. Not in git, not in the shared backup folder with the data backups.
+- The PM task: after the first build, the owner reports "keystore sudah disalin ke 2 tempat" before M7b is marked done. Evidence is the owner's confirmation; the file is never sent to the assistant.
+
+allowBackup (deferred by the security review to this stage): Android Auto Backup would copy the app database to the owner's Google account without the app's checks and without encryption (member names and money), and it could restore an OLD copy on a new phone, which conflicts with the rule "one active phone, never merge". The app already has its own backup. Recommendation: `allowBackup: false`. Cost: reinstalling or a new phone never restores data by itself; the owner must restore from the app's own backup file (this is already the documented way to move phones).
+
+Debts before real money:
+| Debt | Before real money? | Reason |
+|------|--------------------|--------|
+| L6 no "restore in progress" marker | MUST close in M7b | if the app dies or the phone shuts off midway through a restore on real data, nothing tells the next start that the database is half replaced. Acceptance: a marker is written before the swap and cleared after verification; if found at start, the app says so and offers "Pulihkan salinan pengaman"; test with a simulated crash |
+| L1 WAL/journal_mode | CHECK (not a code fix) | not checked on the Expo Go run; read PRAGMA journal_mode on the APK. If WAL, confirm the backup still passes the byte check (header bytes 18/19). Only fix code if the check fails |
+| M2 backup does not check live DB health | SHOULD close (small) | a backup of an already damaged DB would look fine; real data makes this matter. If the owner wants a smaller M7b, it can move to a separate step with a note |
+| M1 verifyLive counts only | can wait | the post-restore check plus safety copy already cover the main risk; revisit if a restore ever fails |
+| M4 healthCheck vs rule changes | can wait | only matters when business rules change; update the check together with any rule change |
+| L2 fingerprint brittle with RENAME/DROP COLUMN | can wait | only a problem from migration 0005 on; handle in that migration |
+| L3 | already closed | safety copy recreated inside runExclusive |
+| L5 no timeout/reentrancy guard on runExclusive | can wait | single user, one screen at a time; no failure seen on the phone |
+| Backups unsigned / no size cap / unencrypted | can wait (risk accepted) | accepted in the M7 decisions; owner keeps the backup files private |
+| npm audit findings in dev tooling | can wait | dev tools only; do NOT run `npm audit fix --force` |
+
+Storage note: the APK is a different app install from Expo Go, with its own separate database. Nothing from the dummy data in Expo Go carries over. The APK starts empty. Data only appears in it if the owner restores a backup file (the dummy backup MUST NOT be restored into the real app; real data starts fresh at the cutover). The owner can keep Expo Go for dummy tests.
+
+Recheck on the phone with the APK (Expo Go passing does not prove the APK; use dummy data again):
+1. The APK installs, the name "Mas Catat" and icon show, and it opens to Home on an empty database (migrations 0001-0004 run in the release build).
+2. Add a member and a period, record one payment: it survives closing and reopening the app.
+3. Share a backup to Drive and check the size; the share sheet works without the expo-sharing plugin.
+4. Restore through the file picker (the dummy file) and "Mulai dari nol" with HAPUS SEMUA; Home shows the new data.
+5. Share the four CSVs and open them in a spreadsheet.
+6. The 7-day reminder appears and disappears.
+7. L1: PRAGMA journal_mode value noted in the log.
+8. L6: simulate dying midway (force-stop during a restore if possible); the next start shows the recovery message.
+9. allowBackup: confirm in the build output / app info that it matches the decision (not a user-visible feature).
+10. Keystore copies confirmed by the owner (two places).
+After this list passes, M7b is marked done, then the dummy data in the APK is wiped at the cutover.
+
+Decisions the owner must make (plain questions with my recommendation):
+1. Is it OK to create an Expo account and upload the source code to Expo's cloud build? Recommend: yes.
+2. Which fixed package name? It cannot change later without becoming a different app. Recommend: `com.muharifs.mascatat` (based on the git user name; the owner may pick another).
+3. allowBackup on or off? Recommend: off.
+4. Is the keystore backup plan OK (EAS copy + downloaded file in two places outside the phone, passwords in a password manager)? Recommend: yes; which two places do you want to use?
+5. Include L6 (and the small M2) in M7b? Recommend: L6 yes (must), M2 yes if it stays small, otherwise a separate step.
+6. Install over Expo Go or keep both? Recommend: keep both; Expo Go for dummy tests only, the APK for real data.
+
+Cutover is a LATER, SEPARATE step after M7b is done and the owner says so; it is NOT part of M7b: (1) "Mulai dari nol" in the APK only after a separate owner "ya" (destructive); (2) enter paper meetings 1-2 (opening balance = kas before meeting 1; per meeting: payments, pay the host, then close); (3) after each closed meeting, take a backup off the phone; (4) never test restore on real data.
+Inconsistencies in this plan that M7b touches: listed in the progress log entry of 2026-11-06 (M7 verified).
+
+### M7 phone checklist (owner, Expo Go; passed on 2026-11-06: "cek sudah lolos", one-line owner report, dummy data)
 1. Share a backup to Drive and check that the file arrives whole (compare size).
 2. Check PRAGMA journal_mode on the phone (WAL bytes 18/19, risk L1). Full cycle on dummy data: share, "Mulai dari nol", restore from the Drive file via the picker, compare kas before and after.
 3. Restore onto the same phone: the result says "sama".
@@ -152,10 +253,10 @@ M7 status: M7 was approved by the owner in the main session on 2026-11-06 ("appr
 ## 4. Risks and assumptions
 - Owner is new to React Native: first milestones may run slower; agents explain RN specifics.
 - Money must be integer rupiah; floating point bugs are the main correctness risk. Mitigation: M1 tests first.
-- Phone-only storage: losing the phone loses data. Mitigation: M7 backup/export (implemented, not yet proven on the phone).
+- Phone-only storage: losing the phone loses data. Mitigation: M7 backup/export (verified on the phone in Expo Go, owner report 2026-11-06; to be rechecked on the APK).
 - M7 open review debts (database-engineer, NOT fixed): M1 verifyLive compares only counts + integrity, not content; M2 backup does not check the health of the live DB; M4 healthCheck invariants must be updated together with business rules (consider hard vs soft split); L1 WAL header bytes 18/19, verify PRAGMA journal_mode on the phone; L2 the sql fingerprint is brittle if a migration from 0005 on uses RENAME/DROP COLUMN; L3 TOCTOU between prepare and commit (closed by recreating the safety copy inside runExclusive); L5 runExclusive has no timeout or reentrancy guard; L6 no "restore in progress" marker if the app dies midway.
 - M7 security debts (security-reviewer, no critical/high): Android Auto Backup (allowBackup) must be decided consciously at APK time (M7b); backups carry no signature (a forged file with a valid schema is accepted, risk accepted); no size cap on bytes() after the picker; npm audit shows 31 findings in dev tooling (do NOT run `npm audit fix --force`; its suggestion to downgrade to expo@52 is wrong); backups and safety copies are unencrypted and contain member names and money.
-- M7 uncertainties provable only on the phone: serializeAsync, deserializeDatabaseAsync, backupDatabaseAsync (expo-sqlite ignores the backup_step result, hence the post-restore verification), File.pickFileAsync (content:// size/bytes; if unreliable, replace pickBackupFile() in src/ui/shareFile.ts with expo-document-picker), Sharing.shareAsync from cache (does the file reach Drive whole?), navigation after restore, screen layout. Plan B is NOT built: if plan A fails on the phone, the main session reports to the owner first.
+- M7 uncertainties (the phone run on 2026-11-06 passed per the owner's one-line report, so they are considered settled for Expo Go; the APK may behave differently, see the M7b recheck list): serializeAsync, deserializeDatabaseAsync, backupDatabaseAsync (expo-sqlite ignores the backup_step result, hence the post-restore verification), File.pickFileAsync (content:// size/bytes; if unreliable, replace pickBackupFile() in src/ui/shareFile.ts with expo-document-picker), Sharing.shareAsync from cache (does the file reach Drive whole?), navigation after restore, screen layout. Plan B is NOT built: if plan A fails on the phone, the main session reports to the owner first.
 - Assumption: the host also pays Rp15.000 in their own week.
 - Flexible payments (advance/late/partial) are the main modelling risk; M1 must define allocation rules with tests before any UI.
 - Assumption: Expo managed workflow is enough (no custom native code).
@@ -370,11 +471,13 @@ Developer deviations and assumptions in M5c, to be reviewed by the owner:
 - (l) The DB error screen title is now "Terjadi masalah".
 - (m) CLAUDE.md gets one extra clause: the UI calls member credit "Titipan". (Noted here only; this PM did not edit CLAUDE.md. Check that the clause is actually in the file.)
 
-Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M5d, M6 and M5e were implemented afterwards (see the progress log) and were also verified on the owner's phone on 2026-11-06 ("sudah lolos"). M7 (backup and export) was approved afterwards and is implemented, NOT yet verified on the phone (npm test 33 suites, 695 tests; sql.js proves logic only). M7b (APK) is proposed, not approved.
+Current state: M5c is implemented on top of M5b (npm test 413 passed in 21 suites; lint, typecheck clean; `expo export --platform android` bundles). Migration 0004 (M5b), the M5b screens and all M5c screens were then verified on the owner's phone (2026-11-06), since tests use sql.js and there are no automated UI tests. M5d, M6 and M5e were implemented afterwards (see the progress log) and were also verified on the owner's phone on 2026-11-06 ("sudah lolos"). M7 (backup and export) was approved afterwards, committed (a769bed) and verified on the phone in Expo Go on 2026-11-06 per the owner's report (npm test 33 suites, 695 tests). M7b (APK) is proposed, not approved.
 
-Planned cutover order (real money): (a) M7 proven on the phone with dummy data; (b) "Mulai dari nol" only after a separate "ya" from the owner; (c) enter the paper meetings: opening balance = kas BEFORE meeting 1, then per meeting: payments, pay the host, only then close; (d) take a backup off the phone after every closed meeting; (e) never test restore on real data.
+Planned cutover order (real money; M7 step (a) is done; M7.1, M7.2 and M7b come before (b), see the build order above): (a) M7 proven on the phone with dummy data (done 2026-11-06, owner report); (b) "Mulai dari nol" only after a separate "ya" from the owner; (c) enter the paper meetings: opening balance = kas BEFORE meeting 1, then per meeting: payments, pay the host, only then close. Real members have old loans on paper: enter them as a Piutang opening balance that names the member (one per member; unnamed Piutang opening balance is no longer allowed after M7.1); (d) take a backup off the phone after every closed meeting; (e) never test restore on real data. After the cutover comes M8.
 
 ## 6. Progress log (newest first)
+- 2026-11-06: Owner approval in the main session: "ada anggota yang masih punya pinjaman. approved M7.1 dan M7.2, ikut usul". Recorded M7.1 (loan repayment guard, Piutang opening balance names a member; in progress with fullstack-developer) and M7.2 (wallet-style tabs, Riwayat, detail, new Beranda; approved, starts after the owner checks M7.1) with rows in the milestone table and the full spec in section 3. Order: M7.1 built, owner phone check, M7.2 in four small steps with phone checks, M7b (still proposed, NOT approved), cutover, M8. Cutover order now says old paper loans go in as a named Piutang opening balance. Evidence so far: owner message only; no code result for M7.1 or M7.2 yet, nothing marked done. Docs only, no code touched, no commit by this PM. Contradictions noted: M5c "No bottom tabs" and "Deferred UX: Tabs" are superseded by M7.2; M5a "opening balance per pos" (no member) is changed for Piutang by M7.1; CLAUDE.md lacks these two rules (main session to update). Next: developer result for M7.1, owner phone check, then M7.2 step 1.
+- 2026-11-06: Phone verification of M7. The owner told the main session "cek sudah lolos" about the 10-step M7 checklist (Expo Go, dummy data). Recorded as the owner's one-line report; no per-step detail. Evidence: owner confirmation; code at commit a769bed. Marked Done: M7. It also shows sharing works in Expo Go without the expo-sharing plugin in app.json. L1 (journal_mode) was not specifically checked and stays open (moved to the M7b recheck list). The M7b proposal was written in section 3 ("M7b proposal"): EAS cloud build recommended (local `eas build --local` is not supported on Windows), keystore from EAS plus two off-phone copies, allowBackup false recommended, L6 must close before real money, cutover kept as a separate later step. M7b is NOT approved; nothing built, no other file changed, no commit by this PM. Inconsistencies noticed in this file: (1) the M8 row and the 2026-11-04 decision still say the APK is deferred / Expo Go only, which M7b contradicts (M8 row annotated; section 5 line "APK build is deferred" and CLAUDE.md "no APK yet" to be updated after M7b); (2) the "Total v1 estimate" and "Out of scope/In scope" lines do not mention M7b; (3) section 5 has no "open decisions" heading, so the owner questions live inside the M7b proposal; (4) the M7 progress entry said "Not committed by this PM", while git shows commit a769bed; (5) the M5 progress notes say "M5 not verified" in older entries, superseded by later entries and the table. Next: owner answers the six questions in the M7b proposal and says "approved M7b".
 - 2026-11-06: M7 (backup and export) implemented by fullstack-developer after the owner approved in the main session ("approved m7, ikut usul dan checklist m5d, m6, dan m5e sudah lolos. ambang geser pas"). Status "implemented, NOT yet verified on the phone". Decisions, implementation facts, deviations, review fixes and debts are in sections 4 and 5; the phone checklist (10 items, plan A first) is under the milestone table. Verified (real results): `npm test` 33 suites, 695 tests pass (was 28 suites, 490: +205); `npm run lint` clean; `npm run typecheck` clean; `npx expo-doctor` 20/20 (on the initial build); `npx expo export --platform android` succeeded (Hermes bundle about 3.1 MB, output in a temp folder outside the project, deleted). Reviews: database-engineer found no critical; HIGH H1 and H2 fixed, M3, M5, L4 fixed; M1, M2, M4, L1, L2, L3, L5, L6 left as debt (section 4). Security-reviewer found no critical/high; medium and low items fixed, debts in section 4. Old assertions changed (all due to review fixes, not old behaviour): csv.test.ts csvCell(' =x') is now "' =x"; domain backup.test.ts "2 newest" became 5 newest plus an empty-copy test; db/backup.test.ts "keeps only the 2 newest" became 5 (7 restores) and "failed cleanup" became 7 restores; backupLabels.test.ts lastSharedText regex follows the new text; errors.test.ts only an import and a new test block. NOT verified: everything that needs the phone (see section 4 uncertainties). Plan B is not built. Proposed, NOT approved: M7b (APK with fixed android.package and stored keystore, allowBackup decision, expo-sharing plugin check in app.json), to be done BEFORE real money; waits for "approved M7b". Not committed by this PM. Next: owner phone run of the M7 checklist with dummy data, then the M7b decision.
 - 2026-11-06: Phone verification. Owner ran the Expo Go checklists for M5d (12 steps), M6 (10 steps) and M5e (6 steps) and reported "sudah lolos"; the swipe threshold of 70% of the row width (minimum 180) was confirmed right. Evidence: owner confirmation. Marked Done: M5d, M6, M5e. HEAD at this point: b936a35, no code change. Next: M7 (backup and export) proposal; starts only after the owner says "approved M7".
 - 2026-11-06: M5e (paid-today marker on Pembayaran) implemented by fullstack-developer after the owner approved in the main session ("approved M5e, ikut usul"). Status "implemented, not yet verified on the phone"; M5d and M6 also stay "not verified on the phone"; M7 stays proposed, NOT approved. Decisions and implementation facts are in section 5; phone checklist (6 items) is under the milestone table. Verified (real results): `npm test` 28 suites, 490 tests pass (was 483); `npm run lint` clean; `npm run typecheck` clean; `npx expo export --platform android` bundles OK. The owner's 19-member sheet was simulated by test (kas akhir 1.580.000, offset 210.000, write-off 225.000); one assertion flipped (double swipe: accepted became rejected). Not committed yet. NOT verified: the screen on the phone (no automated UI tests). Known limit: a screen left open past midnight refreshes the "today" marker only on the next reload or focus. Next: owner phone check of M5d, M6 and M5e; M7 only after owner approval.

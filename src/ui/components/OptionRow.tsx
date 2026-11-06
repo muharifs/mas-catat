@@ -5,6 +5,8 @@ interface OptionRowProps {
   label: string;
   /** Small second line, for example "(tuan rumah pertemuan 2)". */
   hint?: string;
+  /** Bold text at the right edge, for example "Sisa Rp300.000". Display only. */
+  trailing?: string;
   selected: boolean;
   onPress: () => void;
   /** checkbox = many can be selected (members of a period); radio = exactly one (the host). */
@@ -13,12 +15,12 @@ interface OptionRowProps {
 
 // A selectable row with a VISIBLE checkbox or radio mark (so selection never depends on colour alone).
 // React Native has no <input type="checkbox">: this is a Pressable that draws its own mark.
-export function OptionRow({ label, hint, selected, onPress, mode = 'checkbox' }: OptionRowProps) {
+export function OptionRow({ label, hint, trailing, selected, onPress, mode = 'checkbox' }: OptionRowProps) {
   return (
     <Pressable
       accessibilityRole={mode}
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={hint ? `${label}, ${hint}` : label}
+      accessibilityLabel={[label, hint, trailing].filter(Boolean).join(', ')}
       onPress={onPress}
       style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}
     >
@@ -29,6 +31,7 @@ export function OptionRow({ label, hint, selected, onPress, mode = 'checkbox' }:
         <Text style={styles.label}>{label}</Text>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
+      {trailing ? <Text style={styles.trailing}>{trailing}</Text> : null}
     </Pressable>
   );
 }
@@ -57,4 +60,5 @@ const styles = StyleSheet.create({
   text: { flex: 1 },
   label: { ...type.body, color: colors.text },
   hint: { ...type.caption, color: colors.textMuted },
+  trailing: { ...type.body, fontWeight: '700', color: colors.text },
 });

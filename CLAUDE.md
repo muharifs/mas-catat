@@ -52,6 +52,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
   files will be created/changed; start only after the owner says "approved". After it, summarize
   changes and test results and make a reviewable git commit.
 - PROJECT.md is the plan and progress log; update it, do not create copies.
+- Coordination (owner decision 2026-11-09): every task for project-manager, fullstack-developer, ui-ux-designer, database-engineer and qa-tester goes through the `asisten-utama` agent. The main session does not brief those agents directly.
 - Small steps, run tests/lint after each change, report real results.
 - Ask before destructive actions (deleting data, resetting the database, force push).
 - Never commit secrets.

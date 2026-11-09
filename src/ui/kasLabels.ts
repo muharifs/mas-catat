@@ -7,7 +7,7 @@ import type { Account, LedgerEntryType } from '@/domain/types';
 export const TYPE_LABELS: Record<LedgerEntryType, string> = {
   member_payment: 'Iuran anggota',
   host_payout: 'Pembayaran tuan rumah',
-  host_offset: 'Potongan tunggakan tuan rumah',
+  host_offset: 'Dipotong dari bayaran tuan rumah',
   opening_balance: 'Saldo awal',
   transfer: 'Pindah saldo',
   loan: 'Pinjaman ke anggota',

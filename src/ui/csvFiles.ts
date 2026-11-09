@@ -81,7 +81,7 @@ export const MEETING_HEADER = [
   'Anggota',
   'Iuran (Rp)',
   'Dibayar (Rp)',
-  'Potongan tuan rumah (Rp)',
+  'Iuran dilunasi lewat potongan (Rp)',
   'Dari titipan (Rp)',
   'Belum dibayar (Rp)',
 ] as const;
@@ -114,7 +114,7 @@ export const PERIOD_HEADER = [
   'Iuran seharusnya (Rp)',
   'Iuran diterima (Rp)',
   'Pembayaran tuan rumah (Rp)',
-  'Potongan tunggakan tuan rumah (Rp)',
+  'Dipotong dari bayaran tuan rumah (Rp)',
   'Penghapusan tunggakan (Rp)',
   'Pengeluaran bersama (Rp)',
   'Pengembalian titipan (Rp)',

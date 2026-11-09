@@ -137,7 +137,7 @@ export default function PayoutScreen() {
               Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tanpa pos'}
             </Text>
             <Text style={styles.body}>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
-            {paid.offset ? <Text style={styles.body}>Potongan tunggakan: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan tunggakan.</Text>}
+            {paid.offset ? <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada yang dipotong dari bayaran ini.</Text>}
             {active && !correcting ? (
               <Button label="Koreksi pembayaran tuan rumah" variant="secondary" onPress={() => setCorrecting(true)} />
             ) : null}
@@ -184,7 +184,7 @@ export default function PayoutScreen() {
                 <Text style={styles.body}>Pembayaran penuh ke tuan rumah: {formatRupiah(preview.payout)}</Text>
                 {preview.offsetWeeks.length > 0 ? (
                   <>
-                    <Text style={styles.body}>Potongan tunggakan tuan rumah: {formatRupiah(preview.offset)}</Text>
+                    <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(preview.offset)}</Text>
                     {preview.offsetWeeks.map((w) => (
                       <Text key={w.week} style={styles.muted}>
                         - pertemuan {w.week}: {formatRupiah(w.amount)}

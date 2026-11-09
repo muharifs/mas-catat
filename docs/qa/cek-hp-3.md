@@ -8,8 +8,6 @@ Pakai Expo Go dan data contoh saja. Angka dihitung tangan dari aturan CLAUDE.md 
 3. Menu > Anggota: tambah Ani, Budi, Citra, Dedi, Eka.
 4. Buat periode "QA Satu" dengan kelima anggota. Semua tanggal pakai hari ini.
 
-**JANGAN** memakai "Ubah" tuan rumah pada pertemuan yang sudah "Sudah dibayar" sampai temuan F1 diperbaiki.
-
 Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas naik 25.000 kalau semua lunas.
 
 ## Skenario A: bayar beberapa pertemuan sekaligus, lalu jadi tuan rumah
@@ -44,8 +42,8 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 | Beranda "Bulan ini" dan ringkasan di Riwayat | Pemasukan **225.000**, Pengeluaran **150.000** |
 | Laporan > Saldo kas | Tunai 75.000. Kas seharusnya: 75.000 + tunggakan 105.000 - titipan 15.000 = **165.000** |
 | Laporan > periode QA Satu | Total iuran 375.000, Terkumpul 195.000, Pembayaran tuan rumah 150.000, Potongan 30.000, Perubahan kas bersih 75.000 |
-| Laporan > Pertemuan 3 | Dibayar anggota 45.000, Potongan tuan rumah 15.000, Belum dibayar 15.000 (Eka), Potongan tunggakan tuan rumah 30.000 |
-| Laporan > Pertemuan 2 | Potongan tuan rumah 15.000, Potongan tunggakan tuan rumah 0 (normal, lihat F2) |
+| Laporan > Pertemuan 3 | Dibayar anggota 45.000, Iuran dilunasi lewat potongan 15.000, Belum dibayar 15.000 (Eka), Dipotong dari bayaran tuan rumah ini 30.000 |
+| Laporan > Pertemuan 2 | Iuran dilunasi lewat potongan 15.000, Dipotong dari bayaran tuan rumah ini 0 (normal: pertemuan 2 dilunasi dari bayaran pertemuan 3) |
 
 ## Skenario B: tuan rumah menunggak (lanjutan periode yang sama)
 
@@ -64,12 +62,15 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 | B6 | Tentukan tuan rumah Dedi | |
 | B7 | Koreksi pembayaran Dedi yang 75.000 (alasan "salah catat") | Tunai **30.000**. Dedi menunggak 75.000 dan punya titipan 15.000 (titipan tidak otomatis menutup tunggakan, lihat R1) |
 | B8 | Ani bayar 15.000 | Tunai **45.000** |
-| B9 | Bayar tuan rumah Dedi, lalu tutup pertemuan 5 | Potongan **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
-| B10 | Koreksi pembayaran tuan rumah pertemuan **4** | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
-| B11 | Coba "Akhiri periode" | **Ditolak**, karena tuan rumah pertemuan 4 belum dibayar |
-| B12 | Bayar tuan rumah pertemuan 4 lagi | Potongan 50.000. Tunai tetap **45.000** |
-| B13 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, dihapus (write-off) **80.000**. Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |
-| B14 | Akhiri periode | 4 entri write-off. Saldo kas tidak berubah |
+| B9 | Bayar tuan rumah Dedi, **jangan tutup pertemuan 5 dulu** | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
+| B10 | Buka Periode > Jadwal, lihat Pertemuan 5 (F1) | Tombol "Ubah" tidak ada. Tampil tulisan "Koreksi pembayaran tuan rumah dulu untuk mengganti tuan rumah." Tombol "Sudah dibayar" ada |
+| B11 | Koreksi pembayaran tuan rumah pertemuan **5** (alasan "uji ganti tuan rumah"), lalu lihat Jadwal lagi (F1) | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000**. Tombol "Ubah" muncul lagi di Pertemuan 5 dan layarnya terbuka normal (tekan Batal, jangan ganti tuan rumah) |
+| B12 | Bayar tuan rumah Dedi lagi, lalu tutup pertemuan 5 | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
+| B13 | Koreksi pembayaran tuan rumah pertemuan **4** | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
+| B14 | Coba "Akhiri periode" | **Ditolak**, karena tuan rumah pertemuan 4 belum dibayar |
+| B15 | Bayar tuan rumah pertemuan 4 lagi | Dipotong dari bayaran tuan rumah ini 50.000. Tunai tetap **45.000** |
+| B16 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, dihapus (write-off) **80.000**. Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |
+| B17 | Akhiri periode | 4 entri write-off. Saldo kas tidak berubah |
 
 ### Cek angka akhir
 | Layar | Angka yang diharapkan |

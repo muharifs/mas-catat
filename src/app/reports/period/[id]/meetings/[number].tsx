@@ -44,7 +44,7 @@ export default function MeetingReportScreen() {
       <Card>
         <ReportLine label="Total iuran" amount={meeting.totalDues} hint="15.000 x jumlah anggota" />
         <ReportLine label="Dibayar anggota" amount={meeting.coveredByPayments} />
-        <ReportLine label="Potongan tuan rumah" amount={meeting.coveredByOffset} />
+        <ReportLine label="Iuran dilunasi lewat potongan" amount={meeting.coveredByOffset} />
         <ReportLine label="Dari titipan" amount={meeting.coveredByTitipan} />
         <ReportLine label="Belum dibayar" amount={meeting.unpaid} strong tone={meeting.unpaid > 0 ? 'negative' : 'neutral'} />
       </Card>
@@ -53,7 +53,7 @@ export default function MeetingReportScreen() {
       <Card>
         <ReportLine label="Pembayaran tuan rumah (seharusnya)" amount={meeting.hostPayoutDue} hint="10.000 x jumlah anggota" />
         <ReportLine label="Pembayaran tuan rumah (tercatat)" amount={meeting.hostPayout} emptyText="Belum dibayar" />
-        <ReportLine label="Potongan tunggakan tuan rumah" amount={meeting.hostOffset} />
+        <ReportLine label="Dipotong dari bayaran tuan rumah ini" amount={meeting.hostOffset} />
         <ReportLine
           label="Kontribusi kas"
           amount={meeting.kasContribution}

@@ -52,7 +52,7 @@ export default function PeriodReportScreen() {
         <ReportLine label="Total iuran periode" amount={summary.totalDues} hint="15.000 x anggota x pertemuan" />
         <ReportLine label="Terkumpul dari anggota" amount={summary.collected} />
         <ReportLine label="Pembayaran tuan rumah" amount={summary.payouts} />
-        <ReportLine label="Potongan tunggakan tuan rumah" amount={summary.offsets} />
+        <ReportLine label="Dipotong dari bayaran tuan rumah" amount={summary.offsets} />
         <ReportLine label="Penghapusan tunggakan" amount={summary.writeoffs} hint="Ditanggung kas, tidak mengubah saldo." />
         <ReportLine label="Pengeluaran bersama" amount={summary.sharedGoal} />
         <ReportLine label="Pengembalian titipan" amount={summary.creditRefunds} />

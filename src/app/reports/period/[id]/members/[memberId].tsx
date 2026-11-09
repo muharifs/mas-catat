@@ -50,7 +50,7 @@ export default function MemberHistoryScreen() {
 
       <Card>
         <ReportLine label="Dibayar" amount={history.totals.paid} />
-        <ReportLine label="Potongan tuan rumah" amount={history.totals.offset} />
+        <ReportLine label="Iuran dilunasi lewat potongan" amount={history.totals.offset} />
         <ReportLine label="Dari titipan" amount={history.totals.titipanUsed} />
         <ReportLine label="Tunggakan" amount={history.totals.outstanding} strong tone={history.totals.outstanding > 0 ? 'negative' : 'neutral'} />
         <Text style={styles.hint}>{CORRECTED_NOT_COUNTED}</Text>

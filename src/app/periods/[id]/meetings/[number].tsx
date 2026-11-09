@@ -17,7 +17,7 @@ import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
-import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
+import { toIndonesian } from '@/ui/errors';
 import { describeDateProblem } from '@/ui/meetingDate';
 import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
@@ -61,21 +61,20 @@ export default function MeetingHostScreen() {
   const canEdit = period.status === 'active' && week.status === 'open' && selectableWeekNumbers(weeks).includes(number);
   // A standing host payout locks the host (correct the payout first). The list comes from the repository.
   const payoutStands = week.hostMemberId !== null && standingPayoutWeeks.includes(number);
-  if (!canEdit || payoutStands) {
+  if (!canEdit) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Pertemuan {number}</Text>
         <Text style={styles.body}>
-          {canEdit
-            ? HOST_PAYOUT_STANDS_TEXT
-            : 'Tuan rumah dan tanggal hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya yang belum ditutup.'}
+          Tuan rumah dan tanggal hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya yang belum ditutup.
         </Text>
         <Button label="Kembali" variant="secondary" onPress={() => router.back()} />
       </View>
     );
   }
 
-  const host = pickedHost ?? week.hostMemberId;
+  // With a standing payout the host is locked (same host re-sent) and only the date can change (owner decision 2026-11-10).
+  const host = payoutStands ? week.hostMemberId : (pickedHost ?? week.hostMemberId);
   const date = dateInput ?? (week.hostMemberId ? week.date : defaultMeetingDate(weeks, number));
   const problem = meetingDateProblem(weeks, number, date);
   const eligible = sortByName(eligibleHostIds(weeks, memberIds), (memberId) => nameOf(memberId));
@@ -120,18 +119,29 @@ export default function MeetingHostScreen() {
       <Text style={styles.hint}>Tuan rumah saat ini: {nameOf(week.hostMemberId)}</Text>
 
       <SectionHeader title="Tuan rumah" />
-      <Text style={styles.hint}>Hanya anggota yang belum pernah jadi tuan rumah di pertemuan yang sudah ditutup.</Text>
-      <View style={styles.list}>
-        {eligible.map((memberId) => (
-          <OptionRow
-            key={memberId}
-            mode="radio"
-            label={nameOf(memberId)}
-            selected={host === memberId}
-            onPress={() => setPickedHost(memberId)}
-          />
-        ))}
-      </View>
+      {payoutStands ? (
+        <>
+          <Text style={styles.body}>{nameOf(week.hostMemberId)}</Text>
+          <Text style={styles.hint}>
+            Tuan rumah sudah dibayar, jadi tidak bisa diganti. Tanggal masih bisa diubah. Uang tidak berubah.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.hint}>Hanya anggota yang belum pernah jadi tuan rumah di pertemuan yang sudah ditutup.</Text>
+          <View style={styles.list}>
+            {eligible.map((memberId) => (
+              <OptionRow
+                key={memberId}
+                mode="radio"
+                label={nameOf(memberId)}
+                selected={host === memberId}
+                onPress={() => setPickedHost(memberId)}
+              />
+            ))}
+          </View>
+        </>
+      )}
       {holder ? (
         <Notice tone="warn">
           {`${nameOf(host)} sudah tuan rumah pertemuan ${holder.number}. Jika disimpan, tuan rumah kedua pertemuan ditukar.`}

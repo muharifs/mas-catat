@@ -63,10 +63,12 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 | B7 | Koreksi pembayaran Dedi yang 75.000 (alasan "salah catat") | Tunai **30.000**. Dedi menunggak 75.000 dan punya titipan 15.000 (titipan tidak otomatis menutup tunggakan, lihat R1) |
 | B8 | Ani bayar 15.000 | Tunai **45.000** |
 | B9 | Bayar tuan rumah Dedi, **jangan tutup pertemuan 5 dulu** | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
-| B10 | Buka Periode > Jadwal, lihat Pertemuan 5 (F1) | Tombol "Ubah" tidak ada. Tampil tulisan "Koreksi pembayaran tuan rumah dulu untuk mengganti tuan rumah." Tombol "Sudah dibayar" ada |
+| B10 | Buka Periode > Jadwal, lihat Pertemuan 5 (F1) | Tombol "Ubah" tidak ada, tetapi tombol "Ubah tanggal" ada. Tampil tulisan "Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah." Tombol "Sudah dibayar" ada |
 | B11 | Koreksi pembayaran tuan rumah pertemuan **5** (alasan "uji ganti tuan rumah"), lalu lihat Jadwal lagi (F1) | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000**. Tombol "Ubah" muncul lagi di Pertemuan 5 dan layarnya terbuka normal (tekan Batal, jangan ganti tuan rumah) |
-| B12 | Bayar tuan rumah Dedi lagi, lalu tutup pertemuan 5 | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
-| B13 | Koreksi pembayaran tuan rumah pertemuan **4** | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
+| B12 | Bayar tuan rumah Dedi lagi, **jangan tutup pertemuan 5 dulu** | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
+| B12a | Setelah tuan rumah dibayar, tekan "Ubah tanggal" (di Jadwal, lalu di layar Pertemuan 5), pilih tanggal lain dan simpan | Hanya tanggal yang berubah; angka tidak berubah. Tuan rumah terkunci (tetap Dedi), Tunai tetap **45.000**, payout 50.000 dan potongan 50.000 tetap ada di Riwayat. Teks bantu "Tuan rumah sudah dibayar, jadi tidak bisa diganti. Tanggal masih bisa diubah. Uang tidak berubah." terbaca penuh dan tidak terpotong di layar sempit |
+| B12b | Tutup pertemuan 5 | Pertemuan 5 tertutup. Tunai tetap **45.000** |
+| B13 | Koreksi pembayaran tuan rumah pertemuan **4** (pertemuan 4 sudah tertutup) | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
 | B14 | Coba "Akhiri periode" | **Ditolak**, karena tuan rumah pertemuan 4 belum dibayar |
 | B15 | Bayar tuan rumah pertemuan 4 lagi | Dipotong dari bayaran tuan rumah ini 50.000. Tunai tetap **45.000** |
 | B16 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, dihapus (write-off) **80.000**. Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |

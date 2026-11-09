@@ -392,7 +392,7 @@ export default function HomeScreen() {
                     tone="alt"
                     onPress={() => goPayout(period.id, week.number)}
                   />
-                  <ListRow title="Ubah tuan rumah / tanggal" tone="alt" onPress={() => goMeeting(period.id, week.number)} />
+                  <ListRow title={hostPaid ? 'Ubah tanggal' : 'Ubah tuan rumah / tanggal'} tone="alt" onPress={() => goMeeting(period.id, week.number)} />
                   <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive onPress={confirmCloseWeek} />
                 </>
               )}

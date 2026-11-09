@@ -8,7 +8,7 @@ import { HostPayoutStandsError } from '@/domain/schedule';
 import { formatRupiah } from './format';
 
 /** Shown when a host change is refused because the host payout of that meeting stands. */
-export const HOST_PAYOUT_STANDS_TEXT = 'Koreksi pembayaran tuan rumah dulu untuk mengganti tuan rumah.';
+export const HOST_PAYOUT_STANDS_TEXT = 'Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah.';
 
 export const GENERIC_ERROR = 'Terjadi kesalahan. Coba lagi.';
 

@@ -21,6 +21,8 @@ interface ButtonProps {
   /** Narrower padding for buttons inside a row. The touch height stays 48. */
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Longer text for screen readers when the visible label is short (for example "Ubah tanggal"). */
+  accessibilityLabel?: string;
 }
 
 // React Native has no <button>: Pressable is the building block and Text must wrap every string.
@@ -35,13 +37,14 @@ export function Button({
   selected,
   compact = false,
   style,
+  accessibilityLabel,
 }: ButtonProps) {
   const inactive = disabled || loading;
   const showReason = disabled && !loading && Boolean(disabledReason);
   const button = (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={loading ? `${label}, sedang menyimpan` : label}
+      accessibilityLabel={loading ? `${accessibilityLabel ?? label}, sedang menyimpan` : (accessibilityLabel ?? label)}
       accessibilityHint={showReason ? disabledReason : undefined}
       accessibilityState={{ disabled: inactive, selected, busy: loading }}
       onPress={onPress}

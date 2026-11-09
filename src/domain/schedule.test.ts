@@ -300,6 +300,18 @@ describe('standing host payout locks the host (owner decision 2026-11-10)', () =
     expect(() => planAssignment({ weeks, memberIds: MEMBERS, number: 1, memberId: 'a', date: '2026-01-06' })).not.toThrow();
   });
 
+  it('changes only the date of a paid meeting (same host) and returns just that change', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']), 1);
+    const changes = planAssignment({ weeks, memberIds: MEMBERS, number: 1, memberId: 'a', date: '2026-01-07' });
+    expect(changes).toEqual([{ number: 1, hostMemberId: 'a', date: '2026-01-07' }]);
+  });
+
+  it('rejects a date of a paid meeting that reaches the next meeting that has a host', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']), 1);
+    const next = weeks[1]?.date as string;
+    expect(() => planAssignment({ weeks, memberIds: MEMBERS, number: 1, memberId: 'a', date: next })).toThrow(DomainError);
+  });
+
   it('assertNoStandingPayout checks only the given meetings', () => {
     const weeks = withPayout(schedule(3, ['a', 'b', 'c']), 2);
     expect(() => assertNoStandingPayout(weeks, [1, 3])).not.toThrow();

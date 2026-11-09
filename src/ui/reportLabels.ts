@@ -25,9 +25,9 @@ export const LOAN_LABELS: Record<HistoryLoan['kind'], string> = {
 
 export const WEEK_STATE_LABELS: Record<WeekState, string> = {
   paid: 'Lunas',
-  offset: 'Lunas lewat potongan tuan rumah',
+  offset: 'Lunas lewat potongan',
   credited: 'Lunas lewat titipan',
-  partial_offset: 'Sebagian lewat potongan tuan rumah',
+  partial_offset: 'Sebagian lewat potongan',
   partial_credited: 'Sebagian lewat titipan',
   partial: 'Kurang',
   unpaid: 'Belum bayar',

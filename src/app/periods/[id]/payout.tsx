@@ -28,7 +28,7 @@ function confirmMessage(hostName: string, week: number, date: string, p: PayoutP
     `${hostName} menerima ${formatRupiah(p.payout)} untuk pertemuan ${week} pada ${formatDate(date)}, dari ${ACCOUNT_LABELS[p.account]}.`,
   ];
   if (p.offset > 0) {
-    lines.push(`Tunggakan ${hostName} ${formatRupiah(p.offset)} dipotong dan dicatat sebagai entri terpisah.`);
+    lines.push(`Tunggakan ${hostName} ${formatRupiah(p.offset)} dipotong dari bayarannya dan dicatat sebagai entri terpisah.`);
     lines.push(`Uang yang benar-benar keluar dari ${ACCOUNT_LABELS[p.account]}: ${formatRupiah(p.netCash)}.`);
   }
   if (p.remainingDebt > 0) lines.push(`Sisa tunggakan ${formatRupiah(p.remainingDebt)} tetap tercatat sebagai utang.`);
@@ -137,7 +137,7 @@ export default function PayoutScreen() {
               Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tanpa pos'}
             </Text>
             <Text style={styles.body}>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
-            {paid.offset ? <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada yang dipotong dari bayaran ini.</Text>}
+            {paid.offset ? <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan dari bayaran ini.</Text>}
             {active && !correcting ? (
               <Button label="Koreksi pembayaran tuan rumah" variant="secondary" onPress={() => setCorrecting(true)} />
             ) : null}
@@ -203,7 +203,7 @@ export default function PayoutScreen() {
 
                 {preview.kasShort ? (
                   <Notice tone="warn">
-                    {`Peringatan: Tunai + Debit (${formatRupiah(preview.kasBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}. Pembayaran penuh ke tuan rumah ${formatRupiah(preview.payout)}, dipotong tunggakan ${formatRupiah(preview.offset)}. Tetap bisa disimpan.`}
+                    {`Peringatan: Tunai + Debit (${formatRupiah(preview.kasBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}. Pembayaran penuh ke tuan rumah ${formatRupiah(preview.payout)}, dipotong dari bayaran tuan rumah ${formatRupiah(preview.offset)}. Tetap bisa disimpan.`}
                   </Notice>
                 ) : null}
                 {preview.accountShort ? (

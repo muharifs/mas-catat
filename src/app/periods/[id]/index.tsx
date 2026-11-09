@@ -129,9 +129,10 @@ export default function PeriodDetailScreen() {
               {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
             </View>
             <View style={styles.actions}>
-              {canPick && !(isPaid && w.hostMemberId) ? (
+              {canPick ? (
                 <Button
-                  label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
+                  label={isPaid && w.hostMemberId ? 'Ubah tanggal' : w.hostMemberId ? 'Ubah' : 'Tentukan'}
+                  accessibilityLabel={isPaid && w.hostMemberId ? 'Ubah tanggal pertemuan' : undefined}
                   variant="secondary"
                   compact
                   onPress={() =>

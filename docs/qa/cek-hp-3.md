@@ -1,0 +1,93 @@
+# Cek HP ke-3: naskah skenario (disusun qa-tester, 2026-11-09)
+
+Pakai Expo Go dan data contoh saja. Angka dihitung tangan dari aturan CLAUDE.md dan dibuktikan dengan tes otomatis (sql.js).
+
+## Persiapan (sekali)
+1. Menu > Cadangan dan ekspor > "Mulai dari nol". Langkah ini menimpa SEMUA data (salinan pengaman dibuat otomatis), jadi pakai hanya untuk data contoh.
+2. Jangan catat pinjaman dan saldo awal. Peringatan "kas kurang" boleh muncul dan tidak menghalangi.
+3. Menu > Anggota: tambah Ani, Budi, Citra, Dedi, Eka.
+4. Buat periode "QA Satu" dengan kelima anggota. Semua tanggal pakai hari ini.
+
+**JANGAN** memakai "Ubah" tuan rumah pada pertemuan yang sudah "Sudah dibayar" sampai temuan F1 diperbaiki.
+
+Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas naik 25.000 kalau semua lunas.
+
+## Skenario A: bayar beberapa pertemuan sekaligus, lalu jadi tuan rumah
+
+### Pertemuan 1 (tuan rumah: Ani)
+| Langkah | Catat | Yang harus tampak |
+|---|---|---|
+| A1 | Ani bayar 15.000, Budi bayar 45.000, Citra bayar 15.000 | Budi: pertemuan 1-3 lunas |
+| A2 | Dedi bayar 75.000 | Dedi lunas semua |
+| A3 | Dedi bayar lagi 15.000 | Muncul peringatan "Sebagian menjadi titipan - Rp15.000". Simpan |
+| A4 | Eka tidak bayar | Eka belum bayar |
+| A5 | Bayar tuan rumah: Ani | 50.000, tanpa potongan. Tunai **115.000** |
+| A6 | Tutup pertemuan 1 | |
+
+### Pertemuan 2 (tuan rumah: Budi)
+| Langkah | Catat | Yang harus tampak |
+|---|---|---|
+| A7 | Tentukan tuan rumah Budi, lalu Ani bayar 15.000 | |
+| A8 | Bayar tuan rumah: Budi | 50.000, tanpa potongan. Tunai **80.000** |
+| A9 | Tutup pertemuan 2 | |
+
+### Pertemuan 3 (tuan rumah: Citra)
+| Langkah | Catat | Yang harus tampak |
+|---|---|---|
+| A10 | Tentukan tuan rumah Citra, lalu Ani bayar 15.000 | |
+| A11 | Buka pratinjau "Bayar tuan rumah" Citra | Payout 50.000, potongan **30.000** (pertemuan 2 dan 3), kas keluar bersih 20.000 |
+| A12 | Simpan, lalu tutup pertemuan 3 | Di Riwayat ada dua entri terpisah (payout 50.000 dan potongan 30.000). Tunai **75.000** |
+
+### Cek angka setelah A12
+| Layar | Angka yang diharapkan |
+|---|---|
+| Beranda "Bulan ini" dan ringkasan di Riwayat | Pemasukan **225.000**, Pengeluaran **150.000** |
+| Laporan > Saldo kas | Tunai 75.000. Kas seharusnya: 75.000 + tunggakan 105.000 - titipan 15.000 = **165.000** |
+| Laporan > periode QA Satu | Total iuran 375.000, Terkumpul 195.000, Pembayaran tuan rumah 150.000, Potongan 30.000, Perubahan kas bersih 75.000 |
+| Laporan > Pertemuan 3 | Dibayar anggota 45.000, Potongan tuan rumah 15.000, Belum dibayar 15.000 (Eka), Potongan tunggakan tuan rumah 30.000 |
+| Laporan > Pertemuan 2 | Potongan tuan rumah 15.000, Potongan tunggakan tuan rumah 0 (normal, lihat F2) |
+
+## Skenario B: tuan rumah menunggak (lanjutan periode yang sama)
+
+### Pertemuan 4 (tuan rumah: Eka, belum bayar sama sekali, tunggakan 60.000)
+| Langkah | Catat | Yang harus tampak |
+|---|---|---|
+| B1 | Tentukan tuan rumah Eka, lalu Ani bayar 15.000 | |
+| B2 | Buka pratinjau "Bayar tuan rumah" Eka | Payout 50.000, potongan **50.000** (dibatasi sebesar payout), kas keluar bersih 0, sisa utang **10.000** |
+| B3 | Simpan, lalu tutup pertemuan 4 | Tunai **90.000** |
+| B4 | Eka bayar 15.000 | Pertemuan 4 lunas, pertemuan 5 kurang 10.000. Tunai **105.000** |
+| B5 | Coba bayar Eka 10.000 | Ditolak (harus kelipatan Rp15.000) |
+
+### Pertemuan 5 (tuan rumah: Dedi, dengan koreksi)
+| Langkah | Catat | Yang harus tampak |
+|---|---|---|
+| B6 | Tentukan tuan rumah Dedi | |
+| B7 | Koreksi pembayaran Dedi yang 75.000 (alasan "salah catat") | Tunai **30.000**. Dedi menunggak 75.000 dan punya titipan 15.000 (titipan tidak otomatis menutup tunggakan, lihat R1) |
+| B8 | Ani bayar 15.000 | Tunai **45.000** |
+| B9 | Bayar tuan rumah Dedi, lalu tutup pertemuan 5 | Potongan **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
+| B10 | Koreksi pembayaran tuan rumah pertemuan **4** | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
+| B11 | Coba "Akhiri periode" | **Ditolak**, karena tuan rumah pertemuan 4 belum dibayar |
+| B12 | Bayar tuan rumah pertemuan 4 lagi | Potongan 50.000. Tunai tetap **45.000** |
+| B13 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, dihapus (write-off) **80.000**. Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |
+| B14 | Akhiri periode | 4 entri write-off. Saldo kas tidak berubah |
+
+### Cek angka akhir
+| Layar | Angka yang diharapkan |
+|---|---|
+| Beranda "Bulan ini" dan Riwayat | Pemasukan **295.000**, Pengeluaran **250.000** |
+| Laporan > Saldo kas | Tunai **45.000**, kas seharusnya juga 45.000 |
+| Laporan periode | Terkumpul 165.000, Pembayaran tuan rumah 250.000, Potongan 130.000, Penghapusan 80.000, Perubahan kas bersih 45.000 |
+| Menu > Titipan anggota | Kosong |
+
+## Butir tampilan (H, K1, K2, M, E)
+- **Riwayat:** pindah bulan dengan panah. Kalau filter aktif, ringkasan tetap menghitung seluruh bulan.
+- **Keypad:** 4, 5, 000 menampilkan Rp45.000. Hapus menghapus satu angka, tekan lama menghapus semua.
+- **Kalender:** kalender Android di semua kolom tanggal. Hari yang akan datang terkunci kecuali di kolom tanggal pertemuan.
+- **Ikon mata Beranda:** menyembunyikan semua angka saldo. Setelah aplikasi ditutup paksa lalu dibuka lagi, angka masih tersembunyi tanpa sempat muncul.
+- **Anggota:**
+  - anggota tanpa data bisa dihapus, anggota dengan riwayat diarsipkan;
+  - arsip ditolak untuk anggota periode aktif, yang punya pinjaman, atau yang punya titipan;
+  - "Aktifkan lagi" mengembalikan anggota;
+  - nama anggota yang diarsipkan tidak bisa dipakai lagi.
+- **Cadangan lama:** pulihkan sekali cadangan yang dibuat sebelum versi ini (data contoh). Aplikasi harus terbuka normal.
+- **Huruf besar:** dengan ukuran huruf HP dibesarkan, tidak ada teks yang terpotong di semua layar.

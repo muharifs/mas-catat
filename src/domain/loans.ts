@@ -135,6 +135,29 @@ export function assertRepaymentWithinLoan(amount: Rupiah, remaining: Rupiah): vo
   }
 }
 
+export type RepaymentAmountCheck = 'ok' | 'empty' | 'no_loan' | 'above_remaining';
+
+/**
+ * Form-friendly answer to "may this amount be repaid?", so a screen never compares amounts itself. It runs
+ * assertRepaymentWithinLoan and only translates the outcome, so the two can never disagree:
+ * - 'empty': nothing typed, or not a positive whole amount
+ * - 'no_loan': the member has nothing left to repay (remaining <= 0)
+ * - 'above_remaining': more than the remaining loan
+ * - 'ok': any positive amount up to the remaining (no multiple of Rp15.000 here)
+ * The repository still runs the assert inside the write transaction.
+ */
+export function checkRepaymentAmount(amount: Rupiah | null, remaining: Rupiah): RepaymentAmountCheck {
+  if (amount === null) return 'empty';
+  try {
+    assertRepaymentWithinLoan(amount, remaining);
+    return 'ok';
+  } catch (e) {
+    if (e instanceof LoanError) return e.code === 'above_remaining' ? 'above_remaining' : 'no_loan';
+    if (e instanceof DomainError) return 'empty'; // amount is not a positive integer
+    throw e;
+  }
+}
+
 /**
  * Correcting a loan (or a named Piutang opening balance) takes `amount` away from what was lent, so it is refused
  * when the member's remaining would go below zero. Correcting a repayment is always fine, and so is an unnamed

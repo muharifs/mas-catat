@@ -1,17 +1,22 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { appendAmountDigits, deleteLastDigit } from '@/domain/amount-input';
 import { ACCOUNT_LABELS, KAS_KINDS, type KasEntryInput, type KasKind } from '@/domain/kas';
-import { LoanError } from '@/domain/loans';
+import { checkRepaymentAmount, LoanError } from '@/domain/loans';
 import { AMOUNT_FORMAT_HINT, parseRupiahInput } from '@/domain/payment-preview';
 import { sortByName } from '@/domain/sort';
 import type { Account } from '@/domain/types';
 import { useRepos } from '@/db/provider';
-import { AmountField } from '@/ui/components/AmountField';
+import { AmountDisplay } from '@/ui/components/AmountDisplay';
+import { AmountKeypad } from '@/ui/components/AmountKeypad';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { DateField } from '@/ui/components/DateField';
 import { ErrorState } from '@/ui/components/ErrorState';
+import { IconChoice } from '@/ui/components/IconChoice';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
@@ -21,12 +26,18 @@ import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { KIND_LABELS } from '@/ui/kasLabels';
 import { toasts } from '@/ui/messages';
-import { colors, spacing, type } from '@/ui/theme';
+import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 type CashPos = 'tunai' | 'debit';
 type TransferDirection = 'tunai_debit' | 'debit_tunai';
+
+const POS_ICONS: Record<Account, keyof typeof Ionicons.glyphMap> = {
+  tunai: 'cash-outline',
+  debit: 'card-outline',
+  piutang: 'people-outline',
+};
 
 const HELP: Record<KasKind, string> = {
   opening_balance:
@@ -50,6 +61,7 @@ function isKind(value: string | undefined): value is KasKind {
 export default function NewKasEntryScreen() {
   const { kind: kindParam, memberId: memberParam } = useLocalSearchParams<{ kind: string; memberId?: string }>();
   const repos = useRepos();
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     const [active, periods] = await Promise.all([repos.periods.getActive(), repos.periods.list()]);
@@ -82,6 +94,17 @@ export default function NewKasEntryScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The system keyboard (for the note) would cover the keypad, so the keypad hides while it is visible. On the web the
+  // browser does this for you; in React Native you listen to Keyboard events yourself.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   if (!isKind(kindParam)) return <ErrorState message="Jenis catatan tidak dikenal." />;
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
@@ -196,6 +219,27 @@ export default function NewKasEntryScreen() {
     }
   }
 
+  // Amount line and Lanjut state. The repayment rule comes from the domain (checkRepaymentAmount); this only words it.
+  const typedAmount = parseRupiahInput(amountText);
+  const repayCheck = kind === 'loan_repayment' && memberId ? checkRepaymentAmount(typedAmount, pickedRemaining) : null;
+  const noteMissing = kind === 'shared_goal' && note.trim().length === 0;
+  const block: string | null =
+    typedAmount === null || typedAmount === 0
+      ? 'Isi jumlah dulu.'
+      : needsMember && !memberId
+        ? 'Pilih anggota dulu.'
+        : repayCheck === 'above_remaining'
+          ? `Kurangi jumlah sampai ${formatRupiah(pickedRemaining)} atau kurang.`
+          : noteMissing
+            ? 'Catatan wajib diisi.'
+            : null;
+  const amountHelp =
+    repayCheck === 'above_remaining'
+      ? { text: `Jumlah melebihi sisa pinjaman ${picked?.name ?? ''} (${formatRupiah(pickedRemaining)}). Kurangi jumlah, atau ketuk Bayar lunas.`, error: true }
+      : typedAmount !== null && typedAmount > 0
+        ? { text: `Terbaca: ${formatRupiah(typedAmount)}`, error: false }
+        : { text: 'Ketuk angka untuk mengisi jumlah.', error: false };
+
   const memberPicker = needsMember ? (
     <>
       <Text style={styles.label}>{oldLoan ? 'Anggota yang meminjam' : 'Anggota'}</Text>
@@ -221,21 +265,22 @@ export default function NewKasEntryScreen() {
         <Text style={styles.title}>{KIND_LABELS[kind]}</Text>
         <Text style={styles.hint}>{oldLoan ? HELP_OLD_LOAN : HELP[kind]}</Text>
 
-        {kind === 'loan_repayment' ? memberPicker : null}
+        <DateField label="Tanggal" value={date} onChange={setDate} maxDate={todayIso()} />
 
-        <DateField label="Tanggal" value={date} onChange={setDate} />
-        <AmountField
-          label="Jumlah (rupiah)"
-          value={amountText}
-          onChangeText={(t) => {
-            setAmountText(t);
-            setError(null);
-          }}
-          placeholder="50000"
-        />
+        {memberPicker}
+
+        <View style={styles.amountBox}>
+          <AmountDisplay value={amountText} />
+          <View style={styles.helpRow} accessibilityLiveRegion="polite">
+            {amountHelp.error ? <Ionicons name="alert-circle-outline" size={ICON.sm} color={colors.error} /> : null}
+            <Text style={[styles.help, amountHelp.error && styles.helpError]}>{amountHelp.text}</Text>
+          </View>
+        </View>
         {kind === 'loan_repayment' && picked ? (
           <View style={styles.limit}>
-            <Text style={styles.limitText}>Maksimal {formatRupiah(pickedRemaining)}</Text>
+            <Text style={styles.limitText}>
+              Sisa pinjaman {picked.name}: {formatRupiah(pickedRemaining)}
+            </Text>
             <View style={styles.chipRow}>
               <Chip
                 label={`Bayar lunas ${formatRupiah(pickedRemaining)}`}
@@ -249,24 +294,22 @@ export default function NewKasEntryScreen() {
         ) : null}
 
         {kind === 'opening_balance' ? (
-          <PosPicker label="Pos" options={['tunai', 'debit', 'piutang']} value={openingPos} onChange={(a) => setOpeningPos(a)} />
+          <PosChoice label="Pos" options={['tunai', 'debit', 'piutang']} value={openingPos} onChange={setOpeningPos} />
         ) : null}
 
         {kind === 'transfer' ? (
-          <>
+          <View style={styles.choiceGroup} accessibilityRole="radiogroup">
             <Text style={styles.label}>Arah</Text>
             <View style={styles.row}>
-              <Button label="Tunai ke Debit" variant={direction === 'tunai_debit' ? 'primary' : 'secondary'} selected={direction === 'tunai_debit'} style={styles.flex} onPress={() => setDirection('tunai_debit')} />
-              <Button label="Debit ke Tunai" variant={direction === 'debit_tunai' ? 'primary' : 'secondary'} selected={direction === 'debit_tunai'} style={styles.flex} onPress={() => setDirection('debit_tunai')} />
+              <IconChoice label="Tunai ke Debit" icon="arrow-forward-outline" selected={direction === 'tunai_debit'} onPress={() => setDirection('tunai_debit')} />
+              <IconChoice label="Debit ke Tunai" icon="arrow-forward-outline" selected={direction === 'debit_tunai'} onPress={() => setDirection('debit_tunai')} />
             </View>
-          </>
+          </View>
         ) : null}
 
         {kind === 'loan' || kind === 'shared_goal' ? (
-          <PosPicker label="Uang keluar dari" options={['tunai', 'debit']} value={source} onChange={(a) => setSource(a as CashPos)} />
+          <PosChoice label="Uang keluar dari" options={['tunai', 'debit']} value={source} onChange={(a) => setSource(a as CashPos)} />
         ) : null}
-
-        {kind === 'loan_repayment' ? null : memberPicker}
 
         <TextField
           label={kind === 'shared_goal' ? 'Catatan (wajib)' : 'Catatan (boleh kosong)'}
@@ -276,31 +319,54 @@ export default function NewKasEntryScreen() {
           numberOfLines={2}
           placeholder={kind === 'shared_goal' ? 'Contoh: DP tur ke Bali' : ''}
         />
-
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-        <Button label="Lanjut" disabled={busy} onPress={() => void submit()} />
-        <Button label="Batal" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
+
+      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+        {keyboardVisible ? null : (
+          <AmountKeypad
+            onKey={(key) => {
+              setAmountText((current) => appendAmountDigits(current, key));
+              setError(null);
+            }}
+            onBackspace={() => {
+              setAmountText(deleteLastDigit);
+              setError(null);
+            }}
+            onClear={() => {
+              setAmountText('');
+              setError(null);
+            }}
+          />
+        )}
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        <Button label="Lanjut" loading={busy} disabled={block !== null} disabledReason={block ?? undefined} onPress={() => void submit()} />
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
-function PosPicker({ label, options, value, onChange }: { label: string; options: readonly Account[]; value: Account; onChange: (a: Account) => void }) {
+function PosChoice({ label, options, value, onChange }: { label: string; options: readonly Account[]; value: Account; onChange: (a: Account) => void }) {
   return (
-    <>
+    <View style={styles.choiceGroup} accessibilityRole="radiogroup">
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
         {options.map((a) => (
-          <Button key={a} label={ACCOUNT_LABELS[a]} variant={value === a ? 'primary' : 'secondary'} selected={value === a} style={styles.flex} onPress={() => onChange(a)} />
+          <IconChoice key={a} label={ACCOUNT_LABELS[a]} icon={POS_ICONS[a]} selected={value === a} onPress={() => onChange(a)} />
         ))}
       </View>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  container: { padding: spacing.lg, gap: spacing.md },
+  amountBox: { gap: spacing.xs, paddingVertical: spacing.sm },
+  helpRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  help: { ...type.secondary, color: colors.textSecondary, textAlign: 'center' },
+  helpError: { color: colors.error },
+  choiceGroup: { gap: spacing.sm },
+  bottom: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, backgroundColor: colors.bgPage },
   title: { ...type.title, color: colors.text },
   label: { ...type.label, color: colors.text },
   row: { flexDirection: 'row', gap: spacing.sm },

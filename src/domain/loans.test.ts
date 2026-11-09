@@ -2,6 +2,7 @@ import { buildKasEntry, computeKasBalances, previewKasEntry } from './kas';
 import {
   assertLoanReversalAllowed,
   assertRepaymentWithinLoan,
+  checkRepaymentAmount,
   computeLoanBalances,
   isLoanEntry,
   LoanError,
@@ -244,5 +245,37 @@ describe('member history agrees with the loan page', () => {
     expect(h.loans.map((x) => x.kind)).toEqual(['opening_loan', 'loan', 'loan_repayment', 'loan_repayment']);
     expect(h.totals.piutang).toBe(350_000);
     expect(h.totals.piutang).toBe(loanBalanceOf(computeLoanBalances(all), 'a').remaining);
+  });
+});
+
+describe('checkRepaymentAmount', () => {
+  it('accepts any positive amount up to the remaining, including partial and non-multiples of 15.000', () => {
+    expect(checkRepaymentAmount(1, 300_000)).toBe('ok');
+    expect(checkRepaymentAmount(7_500, 300_000)).toBe('ok');
+    expect(checkRepaymentAmount(300_000, 300_000)).toBe('ok');
+  });
+  it('rejects an amount above the remaining', () => {
+    expect(checkRepaymentAmount(300_001, 300_000)).toBe('above_remaining');
+  });
+  it('rejects a member with nothing left to repay', () => {
+    expect(checkRepaymentAmount(10_000, 0)).toBe('no_loan');
+    expect(checkRepaymentAmount(10_000, -5_000)).toBe('no_loan');
+  });
+  it('treats nothing typed, zero, negative and fractions as empty', () => {
+    expect(checkRepaymentAmount(null, 300_000)).toBe('empty');
+    expect(checkRepaymentAmount(0, 300_000)).toBe('empty');
+    expect(checkRepaymentAmount(-1, 300_000)).toBe('empty');
+    expect(checkRepaymentAmount(1.5, 300_000)).toBe('empty');
+  });
+  it('agrees with assertRepaymentWithinLoan for every case', () => {
+    for (const [amount, remaining] of [[1, 10], [10, 10], [11, 10], [5, 0], [5, -3], [0, 10], [-1, 10]] as const) {
+      let threw = false;
+      try {
+        assertRepaymentWithinLoan(amount, remaining);
+      } catch {
+        threw = true;
+      }
+      expect(checkRepaymentAmount(amount, remaining) === 'ok').toBe(!threw);
+    }
   });
 });

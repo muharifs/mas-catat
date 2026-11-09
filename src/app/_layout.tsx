@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { colors } from '@/ui/theme';
 import { DatabaseProvider, useDatabaseControl } from '@/db/provider';
 
 // Root navigator. Every file under src/app/ is a screen.
@@ -16,7 +17,14 @@ export default function RootLayout() {
 function AppStack() {
   const { dataVersion } = useDatabaseControl();
   return (
-    <Stack key={dataVersion} screenOptions={{ headerTitle: 'Mas Catat' }}>
+    <Stack key={dataVersion} screenOptions={{
+        headerTitle: 'Mas Catat',
+        // Paper-coloured screens so white cards stand out; the header sits on the same paper.
+        contentStyle: { backgroundColor: colors.bgPage },
+        headerStyle: { backgroundColor: colors.bgPage },
+        headerShadowVisible: false,
+        headerTintColor: colors.text,
+      }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="members/index" options={{ title: 'Anggota' }} />
       <Stack.Screen name="periods/index" options={{ title: 'Periode' }} />

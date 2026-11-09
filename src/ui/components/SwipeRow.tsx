@@ -88,16 +88,16 @@ export function SwipeRow({ children, enabled, label, onSwipe }: SwipeRowProps) {
 }
 
 const styles = StyleSheet.create({
-  frame: { borderRadius: radius.row, overflow: 'hidden' },
+  frame: { borderRadius: radius.md, overflow: 'hidden' },
   background: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.moneyIn,
     justifyContent: 'center',
     paddingLeft: spacing.lg,
   },
-  label: { ...type.heading, color: colors.onPrimary },
+  label: { ...type.titleM, color: colors.onBrand },
 });

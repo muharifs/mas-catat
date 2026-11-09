@@ -48,6 +48,6 @@ export function DateField({ label, value, onChange, shortcuts = BASIC_SHORTCUTS,
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  read: { ...type.label, color: colors.primary },
-  hint: { ...type.caption, color: colors.textMuted },
+  read: { ...type.label, color: colors.textSecondary },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

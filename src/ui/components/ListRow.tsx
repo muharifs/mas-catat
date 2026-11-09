@@ -17,6 +17,7 @@ interface ListRowProps {
 
 // One list row: title (and details) on the left, optional right-hand content. A tappable row is a Pressable with
 // accessibilityRole="button" so TalkBack announces it as actionable (on the web it would be an <a> or <button>).
+// Rows are flat (no shadow: a long list of shadows is slow); a hairline border separates them from the page.
 export function ListRow({ title, children, right, onPress, tone = 'default', strikeTitle = false, accessibilityLabel }: ListRowProps) {
   const body = (
     <>
@@ -33,7 +34,7 @@ export function ListRow({ title, children, right, onPress, tone = 'default', str
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, toneStyle[tone], pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, toneStyle[tone], pressed && pressedTone[tone]]}
     >
       {body}
     </Pressable>
@@ -52,25 +53,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: radius.row,
+    borderRadius: radius.md,
   },
-  main: { flex: 1, gap: 2 },
-  right: { alignItems: 'flex-end', gap: 2 },
-  title: { ...type.body, fontWeight: '600', color: colors.text },
+  main: { flex: 1, gap: spacing.xs },
+  right: { alignItems: 'flex-end', gap: spacing.xs },
+  title: { ...type.bodyStrong, color: colors.text },
   strike: { textDecorationLine: 'line-through' },
-  sub: { ...type.caption },
-  pressed: { opacity: 0.75 },
+  sub: { ...type.secondary },
 });
 
 const toneStyle = StyleSheet.create({
-  default: { backgroundColor: colors.surface },
-  alt: { backgroundColor: colors.surfaceAlt },
-  danger: { backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.danger },
+  default: { backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.divider },
+  alt: { backgroundColor: colors.bgMute },
+  danger: { backgroundColor: colors.errorTint, borderWidth: 1, borderColor: colors.error },
+});
+
+const pressedTone = StyleSheet.create({
+  default: { backgroundColor: colors.bgMute },
+  alt: { backgroundColor: colors.bgDisabled },
+  danger: { backgroundColor: colors.errorTint },
 });
 
 const subTone = StyleSheet.create({
-  muted: { color: colors.textMuted },
-  danger: { color: colors.danger, fontWeight: '600' },
-  ok: { color: colors.primary, fontWeight: '600' },
+  muted: { color: colors.textSecondary },
+  danger: { color: colors.error, fontWeight: '700' },
+  ok: { color: colors.moneyIn, fontWeight: '700' },
   warn: { color: colors.warn },
 });

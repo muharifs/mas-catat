@@ -34,9 +34,9 @@ export function ReportLine({ label, amount, emptyText = '-', tone = 'neutral', s
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  main: { flex: 1, gap: 2 },
+  main: { flex: 1, gap: spacing.xs },
   label: { ...type.body, color: colors.text },
-  strong: { fontWeight: '700' },
-  hint: { ...type.caption, color: colors.textMuted },
-  empty: { ...type.body, color: colors.textMuted },
+  strong: { ...type.bodyStrong },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  empty: { ...type.body, color: colors.textSecondary },
 });

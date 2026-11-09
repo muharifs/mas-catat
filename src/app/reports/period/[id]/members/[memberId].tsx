@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   strike: { textDecorationLine: 'line-through' },
   head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   rowTitle: { ...type.body, fontWeight: '600', color: colors.text },
-  ok: { ...type.label, color: colors.primary, flexShrink: 1, textAlign: 'right' },
+  ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
   bad: { ...type.label, color: colors.danger, flexShrink: 1 },
 });

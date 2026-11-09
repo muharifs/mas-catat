@@ -23,6 +23,6 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  title: { ...type.heading, textAlign: 'center', color: colors.danger },
+  title: { ...type.titleM, textAlign: 'center', color: colors.error },
   message: { ...type.body, textAlign: 'center', color: colors.text },
 });

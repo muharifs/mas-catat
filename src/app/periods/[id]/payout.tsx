@@ -233,6 +233,6 @@ const styles = StyleSheet.create({
   body: { ...type.body, color: colors.text },
   accounts: { flexDirection: 'row', gap: spacing.sm },
   card: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surface, gap: spacing.sm },
-  ok: { ...type.heading, color: colors.primary },
+  ok: { ...type.heading, color: colors.moneyIn },
   muted: { ...type.body, color: colors.textMuted },
 });

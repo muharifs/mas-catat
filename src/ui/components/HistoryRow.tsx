@@ -7,6 +7,7 @@ import type { LedgerEntryType } from '@/domain/types';
 import { entryDirection, historyFlowText, reversalTitle } from '../history';
 import { entryTitle, showsNoPosWarning, visibleNote } from '../kasLabels';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { Badge } from './Badge';
 import { Money } from './Money';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -29,6 +30,13 @@ const TYPE_ICONS: Record<LedgerEntryType, IconName> = {
 
 const SIGN = { in: '+', out: '-', neutral: '' } as const;
 
+// Icon circle by direction: green for money in, red for money out, neutral ink for transfer, loan, write-off and so on.
+const DIRECTION_ICON = {
+  in: { circle: colors.moneyInTint, icon: colors.moneyIn },
+  out: { circle: colors.errorTint, icon: colors.error },
+  neutral: { circle: colors.neutralTint, icon: colors.text },
+} as const;
+
 interface HistoryRowProps {
   entry: LedgerListItem;
   /** Every entry of the list, to find the original of a reversal. */
@@ -43,23 +51,24 @@ export function HistoryRow({ entry: e, byId, memberName }: HistoryRowProps) {
   const corrected = Boolean(e.reversedById);
   const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(' - ');
   const note = visibleNote(e);
+  const direction = entryDirection(e);
   return (
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } })}
       style={({ pressed }) => [styles.row, corrected && styles.rowCorrected, pressed && styles.pressed]}
     >
-      <View style={styles.icon}>
-        <Ionicons name={TYPE_ICONS[e.type]} size={24} color={colors.primary} />
+      <View style={[styles.icon, { backgroundColor: DIRECTION_ICON[direction].circle }]}>
+        <Ionicons name={TYPE_ICONS[e.type]} size={24} color={DIRECTION_ICON[direction].icon} />
       </View>
       <View style={styles.main}>
         <Text style={[styles.title, corrected && styles.strike]}>{title}</Text>
         <Text style={styles.sub}>{second}</Text>
         {note ? <Text style={styles.sub}>{note}</Text> : null}
-        {corrected ? <Text style={[styles.sub, styles.danger]}>Dikoreksi</Text> : null}
+        {corrected ? <Badge label="Dikoreksi" tone="error" /> : null}
         {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>Peringatan: tanpa pos, tidak dihitung di saldo</Text> : null}
       </View>
-      <Money amount={e.amount} size="heading" sign={SIGN[entryDirection(e)]} />
+      <Money amount={e.amount} size="heading" sign={SIGN[direction]} />
     </Pressable>
   );
 }
@@ -71,23 +80,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.row,
-    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
-  rowCorrected: { backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.danger },
-  pressed: { opacity: 0.75 },
+  rowCorrected: { backgroundColor: colors.errorTint, borderColor: colors.error },
+  pressed: { backgroundColor: colors.bgMute },
   icon: {
     width: ICON_BOX,
     height: ICON_BOX,
     borderRadius: ICON_BOX / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
   },
-  main: { flex: 1, gap: 2 },
-  title: { ...type.body, fontWeight: '600', color: colors.text },
+  main: { flex: 1, gap: spacing.xs },
+  title: { ...type.bodyStrong, color: colors.text },
   strike: { textDecorationLine: 'line-through' },
-  sub: { fontSize: 14, color: colors.textMuted },
-  danger: { color: colors.danger, fontWeight: '600' },
+  sub: { ...type.secondary, color: colors.textSecondary },
   warn: { color: colors.warn },
 });

@@ -5,7 +5,7 @@ import { colors, spacing, type } from '../theme';
 export function Loading({ label = 'Memuat...' }: { label?: string }) {
   return (
     <View style={styles.wrap} accessibilityRole="progressbar" accessibilityLabel={label}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <ActivityIndicator size="large" color={colors.brandStrong} />
       <Text style={styles.text}>{label}</Text>
     </View>
   );
@@ -13,5 +13,5 @@ export function Loading({ label = 'Memuat...' }: { label?: string }) {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  text: { ...type.body, color: colors.textMuted },
+  text: { ...type.body, color: colors.textSecondary },
 });

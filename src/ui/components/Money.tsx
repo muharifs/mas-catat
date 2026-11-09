@@ -1,5 +1,5 @@
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
-import { colors, type } from '../theme';
+import { colors, TABULAR, type } from '../theme';
 import { formatSigned, moneyTone, type MoneyTone } from '../format';
 
 type Size = 'display' | 'large' | 'heading' | 'body';
@@ -16,20 +16,25 @@ interface MoneyProps {
 }
 
 // Displays integer rupiah. It only formats (formatSigned); it never computes money.
+// Green is moneyIn (never the teal brand); the sign or a word stays the real signal next to the colour.
 export function Money({ amount, size = 'body', sign = '', tone, style }: MoneyProps) {
   const resolved = tone ?? moneyTone(amount, sign);
-  return <Text style={[sizeStyle[size], toneStyle[resolved], style]}>{formatSigned(amount, sign)}</Text>;
+  return (
+    <Text maxFontSizeMultiplier={1.3} style={[sizeStyle[size], TABULAR, toneStyle[resolved], style]}>
+      {formatSigned(amount, sign)}
+    </Text>
+  );
 }
 
 const sizeStyle = StyleSheet.create({
   display: { ...type.display },
-  large: { fontSize: 20, fontWeight: '700' },
-  heading: { ...type.heading },
-  body: { ...type.body, fontWeight: '600' },
+  large: { ...type.amountL },
+  heading: { ...type.titleM },
+  body: { ...type.bodyStrong },
 });
 
 const toneStyle = StyleSheet.create({
-  positive: { color: colors.primary },
-  negative: { color: colors.danger },
+  positive: { color: colors.moneyIn },
+  negative: { color: colors.moneyOut },
   neutral: { color: colors.text },
 });

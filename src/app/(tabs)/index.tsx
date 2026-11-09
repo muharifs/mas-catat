@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   heading: { ...type.heading, color: colors.text },
   title: { ...type.title, color: colors.text },
   body: { ...type.body, color: colors.text },
-  ok: { color: colors.primary, fontWeight: '600' },
+  ok: { color: colors.moneyIn, fontWeight: '600' },
   flex: { flex: 1 },
   arrearsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkItem: { ...type.body, color: colors.text },

@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   actions: { gap: spacing.sm },
   weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
-  open: { ...type.body, color: colors.primary },
+  open: { ...type.body, color: colors.brandStrong },
   closed: { ...type.body, color: colors.textMuted },
   hint: { ...type.caption, color: colors.textMuted },
 });

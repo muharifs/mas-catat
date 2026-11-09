@@ -145,8 +145,8 @@ const styles = StyleSheet.create({
   name: { ...type.body, fontWeight: '600', color: colors.text },
   amount: { textAlign: 'right' },
   flag: { ...type.label, color: colors.danger },
-  ok: { ...type.label, color: colors.primary },
-  paidToday: { ...type.label, color: colors.primary },
+  ok: { ...type.label, color: colors.moneyIn },
+  paidToday: { ...type.label, color: colors.moneyIn },
   summary: { ...type.heading, color: colors.text },
   muted: { ...type.caption, color: colors.textMuted },
 });

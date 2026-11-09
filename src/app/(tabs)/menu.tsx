@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { backupReminder } from '@/domain/backup';
 import { useRepos } from '@/db/provider';
+import { Dot } from '@/ui/components/Badge';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { readLastShared } from '@/ui/shareFile';
@@ -31,9 +32,9 @@ function MenuRow({ label, icon, onPress, warning }: MenuRowProps) {
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Ionicons name={icon} size={24} color={colors.primary} />
+      <Ionicons name={icon} size={24} color={colors.brandStrong} />
       <Text style={styles.rowLabel}>{label}</Text>
-      {warning ? <View style={styles.dot} /> : null}
+      {warning ? <Dot tone="error" /> : null}
       <View style={styles.spacer} />
       <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
     </Pressable>
@@ -111,5 +112,4 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   rowLabel: { ...type.body, color: colors.text },
   spacer: { flex: 1 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
 });

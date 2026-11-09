@@ -34,5 +34,5 @@ export function AmountField({ label, value, onChangeText, placeholder }: AmountF
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },
-  read: { ...type.label, color: colors.primary },
+  read: { ...type.label, color: colors.textSecondary },
 });

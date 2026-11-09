@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
 
@@ -7,16 +8,20 @@ interface ChipProps {
   selected?: boolean;
 }
 
-// Small tappable shortcut (date shortcuts, quick amounts). The touch height is still 48.
+// Small tappable shortcut or filter (date shortcuts, quick amounts). The touch height is still 48.
+// Selected = teal accent fill with DARK text (white on the teal fails contrast) plus a check mark, so it is not colour only.
 export function Chip({ label, onPress, selected = false }: ChipProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, selected && styles.selected, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.chip, selected && styles.selected, pressed && !selected && styles.pressed]}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>
+      {selected ? <Ionicons name="checkmark" size={16} color={colors.text} /> : null}
+      <Text maxFontSizeMultiplier={1.3} style={styles.label}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -24,15 +29,17 @@ export function Chip({ label, onPress, selected = false }: ChipProps) {
 const styles = StyleSheet.create({
   chip: {
     minHeight: MIN_TOUCH,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.row,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.bgCard,
   },
-  selected: { backgroundColor: colors.primary },
-  pressed: { opacity: 0.75 },
-  label: { ...type.label, color: colors.primary },
-  labelSelected: { color: colors.onPrimary },
+  selected: { backgroundColor: colors.brand, borderColor: colors.brandStrong },
+  pressed: { backgroundColor: colors.bgMute },
+  label: { ...type.label, color: colors.text },
 });

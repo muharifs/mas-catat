@@ -94,6 +94,6 @@ const styles = StyleSheet.create({
   action: { gap: spacing.xs },
   piutang: { minHeight: MIN_TOUCH, gap: spacing.xs, justifyContent: 'center' },
   pressed: { opacity: 0.75 },
-  link: { ...type.label, color: colors.primary },
+  link: { ...type.label, color: colors.brandStrong },
   hint: { ...type.caption, color: colors.textMuted },
 });

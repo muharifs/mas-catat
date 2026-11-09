@@ -171,7 +171,7 @@ describe('archive', () => {
     await finishPeriod(f);
     expect(await archiveCode(f, a)).toBe('has_credit');
     expect(await f.repos.members.archiveBlocker(a)).toEqual({ code: 'has_credit', amount: 30_000 });
-    expect(archiveBlockText('has_credit', 30_000)).toBe('Masih punya titipan Rp30.000 — kembalikan dulu.');
+    expect(archiveBlockText('has_credit', 30_000)).toBe('Masih punya titipan Rp30.000 - kembalikan dulu.');
     await f.repos.credits.refund(f.periodId, a, '2026-12-30', 'tunai');
     expect(await archiveCode(f, a)).toBe('ok');
   });

@@ -100,11 +100,18 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
 };
 
+// Messages raised by the database triggers of migration 0005. They are the last line of defence and should be
+// unreachable (the domain and repository check first), but when one fires the driver throws a plain Error.
+const TRIGGER_RULES: readonly { pattern: RegExp; text: string }[] = [
+  { pattern: /member of the active period cannot be archived/, text: 'Anggota masih ikut periode aktif, jadi belum bisa diarsipkan.' },
+  { pattern: /archived member cannot join a period/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.' },
+];
+
 /** Why a member cannot be archived, in plain words. */
 export function archiveBlockText(code: ArchiveBlockCode, amount: number): string {
   if (code === 'in_active_period') return 'Masih ikut periode aktif.';
   if (code === 'has_loan') return `Masih punya sisa pinjaman ${formatRupiah(amount)}.`;
-  return `Masih punya titipan ${formatRupiah(amount)} — kembalikan dulu.`;
+  return `Masih punya titipan ${formatRupiah(amount)} - kembalikan dulu.`;
 }
 
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
@@ -118,6 +125,10 @@ export function toIndonesian(error: unknown): string {
       if (match) return typeof rule.text === 'function' ? rule.text(match) : rule.text;
     }
     return GENERIC_ERROR;
+  }
+  if (error instanceof Error) {
+    const trigger = TRIGGER_RULES.find((rule) => rule.pattern.test(error.message));
+    if (trigger) return trigger.text;
   }
   return GENERIC_ERROR;
 }

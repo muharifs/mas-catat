@@ -2,7 +2,7 @@ import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
-import { BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
+import { archiveBlockText, BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
   it.each([
@@ -81,6 +81,19 @@ describe('toIndonesian', () => {
     expect(toIndonesian(new RepositoryError('something new'))).toBe(GENERIC_ERROR);
     expect(toIndonesian(new Error('raw'))).toBe(GENERIC_ERROR);
     expect(toIndonesian('text')).toBe(GENERIC_ERROR);
+  });
+});
+
+describe('toIndonesian: migration 0005 triggers and archive texts', () => {
+  it('maps the raw trigger messages (plain driver errors) to Indonesian', () => {
+    expect(toIndonesian(new Error('a member of the active period cannot be archived'))).toBe('Anggota masih ikut periode aktif, jadi belum bisa diarsipkan.');
+    expect(toIndonesian(new Error('Error code 19: an archived member cannot join a period'))).toBe('Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.');
+  });
+
+  it('writes the credit block with a plain hyphen, never a long dash', () => {
+    const text = archiveBlockText('has_credit', 15000);
+    expect(text).toContain(' - kembalikan dulu.');
+    expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 });
 

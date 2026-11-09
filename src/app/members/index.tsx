@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
 import { canHardDelete } from '@/domain/members';
@@ -8,10 +8,11 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { TextField } from '@/ui/components/TextField';
 import { archiveBlockText, toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
-import { colors, spacing, type } from '@/ui/theme';
+import { colors, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 // Members: list, add, tap a row to rename, delete (no data at all) or archive (has history). Archived members sit in a
@@ -36,6 +37,10 @@ export default function MembersScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
+  // Error of "Aktifkan lagi", shown on the archived row that was tapped (not in the add form).
+  const [unarchiveError, setUnarchiveError] = useState<{ id: string; message: string } | null>(null);
+  // Counts startEdit calls so a slow getUsage answer for an earlier tap cannot overwrite the member now being edited.
+  const usageRequest = useRef(0);
 
   async function add() {
     try {
@@ -65,13 +70,19 @@ export default function MembersScreen() {
     setEditName(name);
     setEditError(null);
     setEditCanDelete(null);
+    const request = ++usageRequest.current;
     repos.members.getUsage(id).then(
-      (usage) => setEditCanDelete(canHardDelete(usage)),
-      (e: unknown) => setEditError(toIndonesian(e)),
+      (usage) => {
+        if (request === usageRequest.current) setEditCanDelete(canHardDelete(usage));
+      },
+      (e: unknown) => {
+        if (request === usageRequest.current) setEditError(toIndonesian(e));
+      },
     );
   }
 
   function stopEdit() {
+    usageRequest.current++; // ignore a getUsage answer that is still on its way
     setEditingId(null);
     setEditError(null);
   }
@@ -135,11 +146,12 @@ export default function MembersScreen() {
   }
 
   async function unarchive(id: string) {
+    setUnarchiveError(null);
     try {
       await repos.members.unarchive(id);
       await reload();
     } catch (e) {
-      setAddError(toIndonesian(e));
+      setUnarchiveError({ id, message: toIndonesian(e) });
     }
   }
 
@@ -170,7 +182,7 @@ export default function MembersScreen() {
             error={addError}
           />
           <Button label="Tambah" onPress={add} />
-          <Text style={styles.count}>{members.length} anggota</Text>
+          <SectionHeader title={`${members.length} anggota`} />
           {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubahnya, menghapus, atau mengarsipkannya.</Text> : null}
         </View>
       }
@@ -192,6 +204,7 @@ export default function MembersScreen() {
                     right={<Button label="Aktifkan lagi" variant="secondary" compact onPress={() => void unarchive(m.id)} />}
                   >
                     {data?.remaining.has(m.id) ? <RowText>Pinjaman: sisa {formatRupiah(data.remaining.get(m.id) ?? 0)}</RowText> : null}
+                    {unarchiveError?.id === m.id ? <RowText tone="danger">{unarchiveError.message}</RowText> : null}
                   </ListRow>
                 ))
               : null}
@@ -230,9 +243,8 @@ export default function MembersScreen() {
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.sm },
   form: { gap: spacing.md, marginBottom: spacing.md },
-  count: { ...type.heading, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
-  editRow: { padding: spacing.md, borderRadius: 8, backgroundColor: colors.surface, gap: spacing.sm },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  editRow: { padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.bgCard, gap: spacing.sm },
   archived: { gap: spacing.sm, marginTop: spacing.lg },
   actions: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },

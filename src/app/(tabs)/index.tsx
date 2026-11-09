@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,25 +8,34 @@ import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
-import { ListRow, RowText } from '@/ui/components/ListRow';
+import { HistoryRow } from '@/ui/components/HistoryRow';
+import { InitialsRow } from '@/ui/components/InitialsRow';
+import { ListRow } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
-import { HistoryRow } from '@/ui/components/HistoryRow';
 import { Notice } from '@/ui/components/Notice';
 import { PillLink } from '@/ui/components/PillLink';
+import { QuickAction } from '@/ui/components/QuickAction';
+import { ReminderRow } from '@/ui/components/ReminderRow';
 import { SectionHeader } from '@/ui/components/SectionHeader';
-import { reminderText } from '@/ui/backupLabels';
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
-import { readLastShared } from '@/ui/shareFile';
 import { closeWeekMessage, overdueNotice, toasts } from '@/ui/messages';
-import { colors, spacing, type } from '@/ui/theme';
+import { paidTodayView } from '@/ui/paidToday';
+import { quickActionReasons } from '@/ui/quickActions';
+import { homeReminders, type Reminder } from '@/ui/reminders';
+import { readLastShared } from '@/ui/shareFile';
+import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
-// Home, top to bottom: kas header (total, Tunai, Debit, Piutang and Titipan pills, two side actions), backup reminder,
-// first-run checklist (until set up), the running meeting with ONE primary action, the last three entries, and links. All numbers come from the repositories; nothing is computed here.
+const NO_PERIOD_REASON = 'Buat periode dulu.';
+
+// Home, top to bottom: kas header (total, Tunai, Debit, Piutang and Titipan pills, two side actions), first-run checklist
+// (until set up), Pengingat (what to do now, from the pure homeReminders), the running meeting with ONE primary action,
+// the quick-action grid, who paid today, and the last three entries. All numbers come from the repositories; nothing is
+// computed here. Every other screen is reachable from the grid or the Menu tab.
 export default function HomeScreen() {
   const repos = useRepos();
 
@@ -44,22 +54,29 @@ export default function HomeScreen() {
     const hasOpeningBalance = kasEntries.some((e) => e.type === 'opening_balance' && !e.reversedById);
     const hasEndedPeriod = periods.some((p) => p.status === 'closed');
     // Nothing to remind about while the database holds no data at all.
-    const reminder = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
+    const backup = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
+    const common = { members, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, backup };
     if (!period) {
-      return { members, period: null, week: null, hostName: null, arrears: null, hostPaid: false, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks: [], reminder };
+      return { ...common, period: null, week: null, hostName: null, arrears: null, hostPaid: false, paidPayoutWeeks: new Set<number>(), paidTodayIds: [] as string[], weeks: [] };
     }
     const weeks = await repos.weeks.listByPeriod(period.id);
     const week = weeks.find((w) => w.status === 'open') ?? null;
     const hostName = week
       ? week.hostMemberId === null
         ? 'Belum ditentukan'
-        : (members.find((m) => m.id === week.hostMemberId)?.name ?? '-')
+        : (names.get(week.hostMemberId) ?? '-')
       : null;
-    const [arrears, paid] = await Promise.all([
+    // One payout lookup per meeting that has a host (open or closed): Pengingat needs to know which are unpaid.
+    const [arrears, payouts, paidTodayIds] = await Promise.all([
       repos.payments.getArrearsSummary(period.id),
-      week ? repos.ledger.getWeekPayout(period.id, week.number) : Promise.resolve(null),
+      Promise.all(
+        weeks.filter((w) => w.hostMemberId !== null).map(async (w) => [w.number, await repos.ledger.getWeekPayout(period.id, w.number)] as const),
+      ),
+      week ? repos.payments.listMemberIdsPaidOn(period.id, todayIso()) : Promise.resolve([] as string[]),
     ]);
-    return { members, period, week, hostName, arrears, hostPaid: Boolean(paid), balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder };
+    const paidPayoutWeeks = new Set(payouts.filter(([, payout]) => payout !== null).map(([number]) => number));
+    const hostPaid = week ? paidPayoutWeeks.has(week.number) : false;
+    return { ...common, period, week, hostName, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, weeks };
   }, [repos]);
 
   const { data, error, reload } = useLoad(load);
@@ -68,7 +85,7 @@ export default function HomeScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { period, week, hostName, members, arrears, hostPaid, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder } = data;
+  const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup } = data;
   const memberCount = members.length;
   const checklist = firstRunChecklist({
     memberCount,
@@ -82,10 +99,25 @@ export default function HomeScreen() {
         }
       : null,
   });
+  const today = todayIso();
   const hasAnyPeriod = periods.length > 0;
   const lastEntries = kasEntries.slice(0, 3);
   const entriesById = new Map(kasEntries.map((e) => [e.id, e]));
-  const overdue = week ? overdueNotice(week.date, todayIso()) : null;
+  const reminders = homeReminders({
+    today,
+    hasActivePeriod: period !== null,
+    weeks,
+    paidPayoutWeeks,
+    currentHostName: week?.hostMemberId != null ? (names.get(week.hostMemberId) ?? null) : null,
+    membersInArrears: arrears?.membersInArrears ?? 0,
+    backup,
+  });
+  const reasons = quickActionReasons({ hasActivePeriod: period !== null, hasAnyPeriod, currentWeek: week });
+  const paidView = paidTodayView(
+    paidTodayIds.map((id) => ({ id, name: names.get(id) ?? '-' })),
+    period?.memberCount ?? 0,
+  );
+  const overdue = week ? overdueNotice(week.date, today) : null;
 
   function confirmCloseWeek() {
     if (!period || !week) return;
@@ -113,6 +145,31 @@ export default function HomeScreen() {
   const goPayments = (id: string) => router.push({ pathname: '/periods/[id]/payments', params: { id } });
   const goMeeting = (id: string, number: number) =>
     router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id, number: String(number) } });
+  const goPayout = (id: string, number: number) =>
+    router.push({ pathname: '/periods/[id]/payout', params: { id, week: String(number) } });
+
+  // The button of a Pengingat row opens the same screen or dialog as the matching button elsewhere on this screen.
+  function runReminder(r: Reminder) {
+    if (r.kind === 'backup') {
+      router.push('/backup');
+      return;
+    }
+    if (!period) return;
+    switch (r.kind) {
+      case 'pay_host':
+        goPayout(period.id, r.week as number);
+        break;
+      case 'choose_host':
+        goMeeting(period.id, r.week as number);
+        break;
+      case 'close_week':
+        confirmCloseWeek();
+        break;
+      case 'close_period':
+        router.push({ pathname: '/periods/[id]/close', params: { id: period.id } });
+        break;
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -157,13 +214,6 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {reminder.due ? (
-        <Card tone="alt">
-          <Notice tone="warn">{reminderText(reminder)}</Notice>
-          <Button label="Buka Cadangan dan ekspor" variant="secondary" onPress={() => router.push('/backup')} />
-        </Card>
-      ) : null}
-
       {checklist.visible ? (
         <Card tone="alt">
           <Text style={styles.heading}>Langkah awal</Text>
@@ -173,6 +223,35 @@ export default function HomeScreen() {
             </Text>
           ))}
         </Card>
+      ) : null}
+
+      {reminders.length > 0 || period ? (
+        <>
+          <SectionHeader title={reminders.length > 0 ? `Pengingat (${reminders.length})` : 'Pengingat'} />
+          <Card>
+            {reminders.length === 0 ? (
+              <View style={styles.allClear}>
+                <Ionicons name="checkmark-circle-outline" size={ICON.md} color={colors.moneyIn} />
+                <Text style={styles.allClearText}>Semua beres. Tidak ada yang perlu dikerjakan sekarang.</Text>
+              </View>
+            ) : (
+              reminders.map((r, index) => (
+                <View key={r.key}>
+                  {index > 0 ? <View style={styles.divider} /> : null}
+                  <ReminderRow
+                    kind={r.kind}
+                    title={r.title}
+                    detail={r.detail}
+                    actionLabel={r.actionLabel}
+                    urgent={r.urgent}
+                    onAction={() => runReminder(r)}
+                  />
+                </View>
+              ))
+            )}
+          </Card>
+          {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
+        </>
       ) : null}
 
       {period ? (
@@ -207,7 +286,7 @@ export default function HomeScreen() {
                   <ListRow
                     title={hostPaid ? 'Tuan rumah sudah dibayar' : 'Bayar tuan rumah'}
                     tone="alt"
-                    onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(week.number) } })}
+                    onPress={() => goPayout(period.id, week.number)}
                   />
                   <ListRow title="Ubah tuan rumah / tanggal" tone="alt" onPress={() => goMeeting(period.id, week.number)} />
                   <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive onPress={confirmCloseWeek} />
@@ -223,7 +302,6 @@ export default function HomeScreen() {
               />
             </>
           )}
-          {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
         </Card>
       ) : memberCount === 0 ? (
         <EmptyState
@@ -241,6 +319,40 @@ export default function HomeScreen() {
         />
       )}
 
+      <Card>
+        <View style={styles.gridRow}>
+          <QuickAction label="Iuran" icon="cash-outline" disabledReason={reasons.iuran} onPress={() => period && goPayments(period.id)} />
+          <QuickAction
+            label="Tuan rumah"
+            icon="home-outline"
+            disabledReason={reasons.tuanRumah}
+            onPress={() => period && week && goPayout(period.id, week.number)}
+          />
+          <QuickAction label="Catat kas" icon="create-outline" disabledReason={reasons.catatKas} onPress={() => router.push('/kas')} />
+          <QuickAction label="Anggota" icon="people-outline" onPress={() => router.push('/members')} />
+        </View>
+        <View style={styles.gridRow}>
+          <QuickAction label="Pinjaman" icon="arrow-redo-outline" onPress={() => router.push('/loans')} />
+          <QuickAction label="Titipan" icon="wallet-outline" onPress={() => router.push('/credits')} />
+          <QuickAction
+            label="Jadwal"
+            icon="calendar-number-outline"
+            disabledReason={reasons.jadwal}
+            onPress={() => period && router.push({ pathname: '/periods/[id]', params: { id: period.id } })}
+          />
+          <QuickAction label="Lihat semua" icon="grid-outline" onPress={() => router.push('/menu')} />
+        </View>
+      </Card>
+
+      {period && week ? (
+        <>
+          <SectionHeader title={paidView.summary} actionLabel="Lihat" onAction={() => goPayments(period.id)} />
+          <Card>
+            <InitialsRow view={paidView} onPress={() => goPayments(period.id)} />
+          </Card>
+        </>
+      ) : null}
+
       <SectionHeader title="Terakhir" actionLabel="Lihat semua riwayat" onAction={() => router.push('/riwayat')} />
       <Card>
         {lastEntries.length === 0 ? (
@@ -254,32 +366,13 @@ export default function HomeScreen() {
           ))
         )}
       </Card>
-
-      <View style={styles.links}>
-        <ListRow title="Anggota" tone="alt" onPress={() => router.push('/members')} right={<RowText>{memberCount} anggota</RowText>} />
-        <ListRow title="Kas" tone="alt" onPress={() => router.push('/kas')} />
-        <ListRow title="Pinjaman anggota" tone="alt" onPress={() => router.push('/loans')} />
-        <ListRow title="Laporan" tone="alt" onPress={() => router.push('/laporan')} />
-        <ListRow title="Titipan anggota" tone="alt" onPress={() => router.push('/credits')} />
-        <ListRow title="Periode" tone="alt" onPress={() => router.push('/periods')} />
-        <ListRow title="Cadangan dan ekspor" tone="alt" onPress={() => router.push('/backup')} />
-        {period ? (
-          <ListRow
-            title="Jadwal periode"
-            tone="alt"
-            onPress={() => router.push({ pathname: '/periods/[id]', params: { id: period.id } })}
-          />
-        ) : null}
-      </View>
     </ScrollView>
   );
 }
 
-const NO_PERIOD_REASON = 'Buat periode dulu.';
-
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.lg },
-  cardLabel: { ...type.label, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
+  cardLabel: { ...type.label, color: colors.textSecondary },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   total: { flex: 1, gap: spacing.xs },
   sideActions: { width: 128, gap: spacing.sm },
@@ -287,13 +380,15 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.divider },
   posRow: { flexDirection: 'row', gap: spacing.lg },
   pos: { flex: 1, gap: spacing.xs },
-  heading: { ...type.heading, color: colors.text },
-  title: { ...type.title, color: colors.text },
+  heading: { ...type.titleM, color: colors.text },
+  title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
-  ok: { color: colors.moneyIn, fontWeight: '600' },
+  ok: { color: colors.moneyIn, fontWeight: '700' },
   flex: { flex: 1 },
   arrearsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkItem: { ...type.body, color: colors.text },
-  checkDone: { color: colors.textMuted, textDecorationLine: 'line-through' },
-  links: { gap: spacing.sm },
+  checkDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
+  gridRow: { flexDirection: 'row', gap: spacing.xs },
+  allClear: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  allClearText: { ...type.body, color: colors.text, flex: 1 },
 });

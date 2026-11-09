@@ -52,6 +52,16 @@ export interface RecordPaymentInput {
   account: Extract<Account, 'tunai' | 'debit'>;
 }
 
+/** A payment found through its ledger entry (see getByLedgerEntry). */
+export interface PaymentOfEntry {
+  payment: Payment;
+  /** Weeks this payment paid, with the original payment date. Kept after a correction, but no longer counted. */
+  allocations: Allocation[];
+  /** Amount beyond the allocations (Titipan). 0 for a corrected payment. */
+  credit: number;
+  reversed: boolean;
+}
+
 export type PreviewPaymentInput = Omit<RecordPaymentInput, 'account'>;
 
 export interface RecordedPayment {
@@ -236,6 +246,29 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         [paymentId],
       );
       return rows.map(toAllocation);
+    },
+
+    /**
+     * The payment behind a member_payment ledger entry (payments.ledger_entry_id), with the weeks it paid and the
+     * part that became credit. Read-only. A corrected payment keeps its allocations but reports credit 0 and
+     * `reversed: true`. Returns null when no payment points at the entry (any other entry type).
+     */
+    async getByLedgerEntry(ledgerEntryId: string): Promise<PaymentOfEntry | null> {
+      const row = await db.getFirst<PaymentRow & { reversal_reason: string | null; allocated: number }>(
+        `SELECT p.id, p.member_id, p.date, p.amount, pr.reason AS reversal_reason,
+                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id), 0) AS allocated
+           FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
+          WHERE p.ledger_entry_id = ?`,
+        [ledgerEntryId],
+      );
+      if (!row) return null;
+      const reversed = row.reversal_reason !== null;
+      return {
+        payment: toPayment(row),
+        allocations: await repo.getAllocationsForPayment(row.id),
+        credit: reversed ? 0 : row.amount - row.allocated,
+        reversed,
+      };
     },
 
     /**

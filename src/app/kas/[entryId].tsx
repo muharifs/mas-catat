@@ -1,15 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useCallback, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import { useRepos } from '@/db/provider';
+import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { CorrectionForm } from '@/ui/components/CorrectionForm';
 import { ErrorState } from '@/ui/components/ErrorState';
+import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
+import { Notice } from '@/ui/components/Notice';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
+import { createdDate, entryStatus, loanMemberOf, paidMeetingRows } from '@/ui/entryDetail';
 import { formatRupiah } from '@/ui/format';
 import { amountSign, correctionRoute, entryTitle, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -23,68 +28,127 @@ export default function KasEntryScreen() {
 
   const load = useCallback(async () => {
     const entry = await repos.ledger.getEntry(entryId);
-    if (!entry) return { entry: null, period: null, member: null, related: null };
-    const [period, member, related] = await Promise.all([
+    if (!entry) return null;
+    // The other end of the correction: the entry that this one cancels, or the reversal that cancelled it.
+    const relatedId = entry.reversesEntryId ?? entry.reversedById;
+    const related = relatedId ? await repos.ledger.getEntry(relatedId) : null;
+    // The original is the entry that was cancelled, whichever side we are looking from.
+    const original = entry.type === 'reversal' ? related : entry;
+    const loanMemberId = loanMemberOf(entry, original);
+    const [period, member, loan, paid] = await Promise.all([
       repos.periods.getById(entry.periodId),
       entry.memberId ? repos.members.getById(entry.memberId) : Promise.resolve(null),
-      // The entry that this one cancels, or the reversal that cancelled it.
-      entry.reversesEntryId
-        ? repos.ledger.getEntry(entry.reversesEntryId)
-        : entry.reversedById
-          ? repos.ledger.getEntry(entry.reversedById)
-          : Promise.resolve(null),
+      loanMemberId ? repos.ledger.getLoanBalance(loanMemberId) : Promise.resolve(null),
+      entry.type === 'member_payment' ? repos.payments.getByLedgerEntry(entry.id) : Promise.resolve(null),
     ]);
-    return { entry, period, member, related };
+    return { entry, period, member, related, loan, paid };
   }, [repos, entryId]);
   const { data, error, reload } = useLoad(load);
   const [correcting, setCorrecting] = useState(false);
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  const { entry, period, member, related } = data;
-  if (!entry) return <ErrorState message="Catatan kas tidak ditemukan." />;
+  if (!data.entry) return <ErrorState message="Catatan kas tidak ditemukan." />;
+  const { entry, period, member, related, loan, paid } = data;
 
   const route = correctionRoute(entry, period?.status === 'active');
   const note = visibleNote(entry);
+  const status = entryStatus(entry);
+  const corrected = Boolean(entry.reversedById);
+  const openEntry = (id: string) => router.push({ pathname: '/kas/[entryId]', params: { entryId: id } });
+  // Chain: original first, then its reversal. Whichever one this screen shows is marked "Catatan ini".
+  const original = entry.type === 'reversal' ? related : entry;
+  const reversal = entry.type === 'reversal' ? entry : related;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{entryTitle(entry)}</Text>
       <Card>
+        <Badge label={status.label} tone={status.tone} />
+        <Text style={[styles.title, corrected && styles.strike]}>{entryTitle(entry)}</Text>
         <Money amount={entry.amount} size="display" sign={amountSign(entry)} />
-        <Text style={styles.body}>Tanggal: {formatDate(entry.date)}</Text>
-        <Text style={styles.body}>
-          Pos: {flowText(entry)}
-          {entry.account && !entry.toAccount ? ` (${ACCOUNT_LABELS[entry.account]})` : ''}
-        </Text>
-        {member ? <Text style={styles.body}>Anggota: {member.name}</Text> : null}
-        {entry.week !== null ? <Text style={styles.body}>Pertemuan: {entry.week}</Text> : null}
-        {period ? <Text style={styles.body}>Periode: {period.name}</Text> : null}
-        {note ? <Text style={styles.body}>Catatan: {note}</Text> : null}
-        {showsNoPosWarning(entry) ? (
-          <Text style={styles.warn}>
-            Peringatan: catatan ini tanpa pos, jadi tidak dihitung di saldo. Catatan tidak diubah; kalau perlu, koreksi lalu catat ulang dengan pos yang benar.
-          </Text>
-        ) : null}
-        {entry.type === 'reversal' ? (
-          <>
-            <Text style={styles.bad}>Ini adalah koreksi{related ? ` atas "${TYPE_LABELS[related.type]}" ${formatRupiah(related.amount)}` : ''}.</Text>
-            <Text style={styles.body}>Alasan: {entry.correctionReason}</Text>
-          </>
-        ) : null}
-        {entry.reversedById ? (
-          <Text style={styles.bad}>
-            Sudah dikoreksi{related ? ` pada ${formatDate(related.date)}` : ''}. Alasan: {related?.correctionReason ?? '-'}
-          </Text>
-        ) : null}
+        <Text style={styles.flow}>{flowText(entry)}</Text>
       </Card>
 
+      {showsNoPosWarning(entry) ? (
+        <Notice tone="warn">
+          Catatan ini tanpa pos, jadi tidak dihitung di saldo. Catatan tidak diubah; kalau perlu, koreksi lalu catat ulang dengan pos yang benar.
+        </Notice>
+      ) : null}
+
+      <SectionHeader title="Rincian" />
+      <Card>
+        <DetailRow label="Tanggal" value={formatDate(entry.date)} />
+        <DetailRow label="Dicatat" value={formatDate(createdDate(entry.createdAt))} />
+        <DetailRow label="Pos" value={posText(entry)} />
+        {member ? <DetailRow label="Anggota" value={member.name} /> : null}
+        {entry.week !== null ? <DetailRow label="Pertemuan" value={String(entry.week)} /> : null}
+        {period ? <DetailRow label="Periode" value={period.name} /> : null}
+        {note ? <DetailRow label="Catatan" value={note} /> : null}
+        {entry.correctionReason ? <DetailRow label="Alasan" value={entry.correctionReason} /> : null}
+      </Card>
+
+      {loan ? (
+        <>
+          <SectionHeader title="Sisa pinjaman" />
+          <Card>
+            <Text style={styles.flow}>{`Sisa pinjaman ${member?.name ?? 'anggota'} sekarang (semua periode)`}</Text>
+            <Money amount={loan.remaining} size="large" tone={loan.remaining > 0 ? 'negative' : 'neutral'} />
+            <DetailRow label="Dipinjam" value={formatRupiah(loan.lent)} />
+            <DetailRow label="Sudah dibayar" value={formatRupiah(loan.repaid)} />
+            {loan.remaining < 0 ? <Text style={styles.flow}>{`Kelebihan bayar ${formatRupiah(loan.overpaid)} (data lama).`}</Text> : null}
+            <Button
+              label="Buka rincian pinjaman"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/loans/[memberId]', params: { memberId: loan.memberId } })}
+            />
+          </Card>
+        </>
+      ) : null}
+
+      {paid ? (
+        <>
+          <SectionHeader title="Pertemuan yang dibayar" />
+          <Card>
+            {paid.reversed ? <Notice tone="warn">Pembayaran ini sudah dikoreksi, jadi pertemuan di bawah tidak lagi terhitung lunas.</Notice> : null}
+            {paidMeetingRows(paid.allocations).map((row) => (
+              <View key={row.week} style={styles.detailRow}>
+                <Text style={[styles.detailLabel, paid.reversed && styles.strike]}>{row.label}</Text>
+                <Money amount={row.amount} size="body" tone="neutral" style={paid.reversed ? styles.strike : undefined} />
+              </View>
+            ))}
+            {paid.allocations.length === 0 && !paid.reversed ? <Text style={styles.flow}>Tidak ada pertemuan yang dibayar.</Text> : null}
+            {paid.credit > 0 ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Menjadi titipan</Text>
+                <Money amount={paid.credit} size="body" tone="neutral" />
+              </View>
+            ) : null}
+          </Card>
+        </>
+      ) : null}
+
       {related ? (
-        <Button
-          label={entry.type === 'reversal' ? 'Lihat catatan asli' : 'Lihat koreksinya'}
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/kas/[entryId]', params: { entryId: related.id } })}
-        />
+        <>
+          <SectionHeader title="Riwayat koreksi" />
+          <View style={styles.chain}>
+            {original ? (
+              <ChainRow
+                title={`Catatan asli: ${TYPE_LABELS[original.type]}`}
+                detail={`${formatDate(original.date)} - ${formatRupiah(original.amount)}`}
+                current={original.id === entry.id}
+                onPress={() => openEntry(original.id)}
+              />
+            ) : null}
+            {reversal ? (
+              <ChainRow
+                title="Koreksi"
+                detail={`${formatDate(reversal.date)} - Alasan: ${reversal.correctionReason ?? '-'}`}
+                current={reversal.id === entry.id}
+                onPress={() => openEntry(reversal.id)}
+              />
+            ) : null}
+          </View>
+        </>
       ) : null}
 
       {route === 'direct' && !correcting ? <Button label="Koreksi" variant="danger" onPress={() => setCorrecting(true)} /> : null}
@@ -135,11 +199,37 @@ export default function KasEntryScreen() {
   );
 }
 
+function posText(entry: Parameters<typeof flowText>[0]): string {
+  const base = flowText(entry);
+  return entry.account && !entry.toAccount ? `${base} (${ACCOUNT_LABELS[entry.account]})` : base;
+}
+
+// Label at the left, value at the right. The value wraps when long (a note), the label never shrinks.
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+function ChainRow({ title, detail, current, onPress }: { title: string; detail: string; current: boolean; onPress: () => void }) {
+  return (
+    <ListRow title={title} onPress={current ? undefined : onPress} right={current ? <Badge label="Catatan ini" tone="brand" /> : undefined}>
+      <RowText>{detail}</RowText>
+    </ListRow>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md },
-  title: { ...type.title, color: colors.text },
-  body: { ...type.body, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
-  bad: { ...type.body, color: colors.danger, fontWeight: '600' },
-  warn: { ...type.body, color: colors.warn, backgroundColor: colors.warnSoft, padding: spacing.sm, borderRadius: 6 },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  strike: { textDecorationLine: 'line-through' },
+  flow: { ...type.secondary, color: colors.textSecondary },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
+  detailLabel: { ...type.secondary, color: colors.textSecondary },
+  detailValue: { ...type.bodyStrong, color: colors.text, flex: 1, textAlign: 'right' },
+  chain: { gap: spacing.sm },
 });

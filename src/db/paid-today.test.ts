@@ -74,3 +74,32 @@ describe('M5e: paid today', () => {
     expect(await allowed()).toBe(true);
   });
 });
+
+describe('payments.getByLedgerEntry (entry detail)', () => {
+  it('returns the paid meetings and the credit of the payment behind a ledger entry', async () => {
+    const { repos, period, ids, pay } = await setup();
+    const member = ids[0] as string;
+    // 10 weeks of dues exist only up to the period length (3 members = 3 meetings): 4 x 15.000 leaves one week as credit.
+    const { payment } = await pay(period.id, member, TODAY, 60000);
+    const entry = (await repos.ledger.listByMember(period.id, member)).find((e) => e.type === 'member_payment');
+    const found = await repos.payments.getByLedgerEntry(entry?.id as string);
+    expect(found?.payment.id).toBe(payment.id);
+    expect(found?.allocations.map((a) => a.week)).toEqual([1, 2, 3]);
+    expect(found?.credit).toBe(15000);
+    expect(found?.reversed).toBe(false);
+  });
+
+  it('marks a corrected payment as reversed with no credit, and returns null for other entries', async () => {
+    const { repos, period, ids, pay } = await setup();
+    const member = ids[0] as string;
+    const { payment } = await pay(period.id, member, TODAY, 60000);
+    await repos.payments.reverse(payment.id, 'salah catat');
+    const entries = await repos.ledger.listByMember(period.id, member);
+    const paymentEntry = entries.find((e) => e.type === 'member_payment');
+    const found = await repos.payments.getByLedgerEntry(paymentEntry?.id as string);
+    expect(found?.reversed).toBe(true);
+    expect(found?.credit).toBe(0);
+    const reversalEntry = entries.find((e) => e.type === 'reversal');
+    expect(await repos.payments.getByLedgerEntry(reversalEntry?.id as string)).toBeNull();
+  });
+});

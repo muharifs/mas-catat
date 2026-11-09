@@ -11,6 +11,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
@@ -134,8 +135,8 @@ export default function ClosePeriodScreen() {
         </Card>
       ) : null}
 
+      <SectionHeader title="Ringkasan" />
       <Card>
-        <Text style={styles.section}>Ringkasan</Text>
         <Text style={styles.body}>Anggota menunggak: {preview.membersInArrears}</Text>
         <Text style={styles.body}>Total tunggakan sebelum titipan: {formatRupiah(preview.totalArrears)}</Text>
         <Text style={styles.body}>Dilunasi dari titipan anggota: {formatRupiah(preview.totalSettledByCredit)}</Text>
@@ -152,7 +153,7 @@ export default function ClosePeriodScreen() {
         </Text>
       </Card>
 
-      <Text style={styles.section}>Per anggota</Text>
+      <SectionHeader title="Per anggota" />
       {shown.length === 0 ? <Text style={styles.muted}>Tidak ada tunggakan dan tidak ada titipan.</Text> : null}
       {shown.map((m) => (
         <View key={m.memberId} style={styles.row}>
@@ -178,16 +179,15 @@ export default function ClosePeriodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  label: { ...type.label, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  label: { ...type.label, color: colors.textSecondary },
   body: { ...type.body, color: colors.text },
-  row: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surfaceAlt, gap: 2 },
-  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
-  blockerTitle: { ...type.label, color: colors.danger },
-  blockerText: { ...type.body, color: colors.danger },
-  hint: { ...type.caption, color: colors.textMuted },
-  bad: { ...type.body, color: colors.danger, fontWeight: '600' },
-  muted: { ...type.body, color: colors.textMuted },
+  row: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgMute, gap: spacing.xs },
+  weekTitle: { ...type.bodyStrong, color: colors.text },
+  blockerTitle: { ...type.label, color: colors.error },
+  blockerText: { ...type.body, color: colors.error },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  bad: { ...type.body, color: colors.error, fontWeight: '700' },
+  muted: { ...type.body, color: colors.textSecondary },
 });

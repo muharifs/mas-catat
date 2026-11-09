@@ -15,6 +15,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { describeDateProblem } from '@/ui/meetingDate';
@@ -113,7 +114,7 @@ export default function MeetingHostScreen() {
       <Text style={styles.title}>Pertemuan {number}</Text>
       <Text style={styles.hint}>Tuan rumah saat ini: {nameOf(week.hostMemberId)}</Text>
 
-      <Text style={styles.section}>Tuan rumah</Text>
+      <SectionHeader title="Tuan rumah" />
       <Text style={styles.hint}>Hanya anggota yang belum pernah jadi tuan rumah di pertemuan yang sudah ditutup.</Text>
       <View style={styles.list}>
         {eligible.map((memberId) => (
@@ -150,10 +151,9 @@ export default function MeetingHostScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
+  hint: { ...type.secondary, color: colors.textSecondary },
   list: { gap: spacing.sm },
 });

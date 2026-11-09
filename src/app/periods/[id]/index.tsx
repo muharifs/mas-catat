@@ -8,6 +8,7 @@ import { Card } from '@/ui/components/Card';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { closeWeekMessage, toasts } from '@/ui/messages';
@@ -90,7 +91,7 @@ export default function PeriodDetailScreen() {
 
       {isActive && oldestOpen ? (
         <Card tone="alt">
-          <Text style={styles.section}>Tutup pertemuan</Text>
+          <Text style={styles.cardTitle}>Tutup pertemuan</Text>
           <Text style={styles.hint}>
             Pertemuan yang ditutup selalu yang paling awal yang masih terbuka (pertemuan {oldestOpen.number}) dan harus
             sudah punya tuan rumah. Tunggakan dihitung sampai pertemuan ini. Saat libur (misalnya Ramadan) tidak ada iuran:
@@ -108,7 +109,7 @@ export default function PeriodDetailScreen() {
         </Card>
       ) : null}
 
-      <Text style={styles.section}>Jadwal</Text>
+      <SectionHeader title="Jadwal" />
       {weeks.map((w) => {
         const canPick = isActive && w.status === 'open' && selectable.includes(w.number);
         const isPaid = paidWeeks.has(w.number);
@@ -160,7 +161,7 @@ export default function PeriodDetailScreen() {
 
       {isActive ? (
         <Card tone="alt">
-          <Text style={styles.section}>Akhiri periode</Text>
+          <Text style={styles.cardTitle}>Akhiri periode</Text>
           <Text style={styles.hint}>
             Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
             masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum Anda
@@ -181,14 +182,14 @@ export default function PeriodDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.md },
-  title: { ...type.title, color: colors.text },
+  title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surface },
+  cardTitle: { ...type.titleM, color: colors.text },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard },
   flex: { flex: 1 },
   actions: { gap: spacing.sm },
-  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  weekTitle: { ...type.bodyStrong, color: colors.text },
   open: { ...type.body, color: colors.brandStrong },
-  closed: { ...type.body, color: colors.textMuted },
-  hint: { ...type.caption, color: colors.textMuted },
+  closed: { ...type.body, color: colors.textSecondary },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

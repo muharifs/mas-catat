@@ -10,6 +10,7 @@ import { CorrectionForm } from '@/ui/components/CorrectionForm';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
@@ -83,7 +84,7 @@ export default function MemberInPeriodScreen() {
         <Text style={styles.muted}>Periode sudah berakhir, pembayaran tidak bisa dicatat.</Text>
       )}
 
-      <Text style={styles.section}>Status per pertemuan</Text>
+      <SectionHeader title="Status per pertemuan" />
       {statuses.map((s) => {
         const state = weekState(s);
         const week = weeks.find((w) => w.number === s.week);
@@ -101,7 +102,7 @@ export default function MemberInPeriodScreen() {
         );
       })}
 
-      <Text style={styles.section}>Riwayat pembayaran</Text>
+      <SectionHeader title="Riwayat pembayaran" />
       {payments.length === 0 ? <Text style={styles.muted}>Belum ada pembayaran.</Text> : null}
       {payments.map((p) => {
         const own = allocations.filter((a) => a.paymentId === p.id);
@@ -145,16 +146,15 @@ export default function MemberInPeriodScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.md },
-  title: { ...type.title, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  label: { ...type.label, color: colors.textMuted },
+  title: { ...type.titleL, color: colors.text },
+  label: { ...type.label, color: colors.textSecondary },
   body: { ...type.body, color: colors.text },
-  row: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surfaceAlt, gap: spacing.sm },
-  reversedRow: { backgroundColor: colors.dangerSoft },
+  row: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgMute, gap: spacing.sm },
+  reversedRow: { backgroundColor: colors.errorTint },
   strike: { textDecorationLine: 'line-through' },
   head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  weekTitle: { ...type.bodyStrong, color: colors.text },
   ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
-  bad: { ...type.label, color: colors.danger, flexShrink: 1, textAlign: 'right' },
-  muted: { ...type.caption, color: colors.textMuted },
+  bad: { ...type.label, color: colors.error, flexShrink: 1, textAlign: 'right' },
+  muted: { ...type.secondary, color: colors.textSecondary },
 });

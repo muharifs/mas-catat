@@ -226,13 +226,13 @@ export default function PayoutScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  name: { ...type.heading, color: colors.text },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  name: { ...type.titleM, color: colors.text },
   label: { ...type.label, color: colors.text },
   body: { ...type.body, color: colors.text },
   accounts: { flexDirection: 'row', gap: spacing.sm },
-  card: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surface, gap: spacing.sm },
-  ok: { ...type.heading, color: colors.moneyIn },
-  muted: { ...type.body, color: colors.textMuted },
+  card: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard, gap: spacing.sm },
+  ok: { ...type.titleM, color: colors.moneyIn },
+  muted: { ...type.body, color: colors.textSecondary },
 });

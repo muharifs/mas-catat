@@ -14,6 +14,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
 import { TextField } from '@/ui/components/TextField';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
@@ -140,7 +141,7 @@ export default function NewPeriodScreen() {
       <TextField label="Nama periode" placeholder="Contoh: Periode 1" value={name} onChangeText={setNameInput} />
       <DateField label="Tanggal pertemuan 1" value={startDate} onChange={setStartDate} />
 
-      <Text style={styles.section}>Pilih anggota ({selected.length} dipilih)</Text>
+      <SectionHeader title="Pilih anggota ({selected.length} dipilih)" />
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>
       <View style={styles.bulk}>
         <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(data.members.map((m) => m.id))} />
@@ -154,7 +155,7 @@ export default function NewPeriodScreen() {
 
       {selected.length > 0 ? (
         <>
-          <Text style={styles.section}>Perkiraan tanggal pertemuan</Text>
+          <SectionHeader title="Perkiraan tanggal pertemuan" />
           <Text style={styles.hint}>
             Tuan rumah dan tanggal pasti dipilih nanti, per pertemuan: hanya untuk pertemuan saat ini dan pertemuan
             berikutnya.
@@ -172,7 +173,7 @@ export default function NewPeriodScreen() {
 
       {shownCarry.length > 0 ? (
         <>
-          <Text style={styles.section}>Titipan yang dibawa dari periode sebelumnya</Text>
+          <SectionHeader title="Titipan yang dibawa dari periode sebelumnya" />
           <Text style={styles.hint}>
             Titipan dipakai untuk iuran pertemuan terlama lebih dulu. Pertemuan terakhir yang tersentuh bisa terlunasi
             sebagian. Tidak ada uang yang bergerak: uangnya sudah masuk kas saat dibayar.
@@ -211,11 +212,10 @@ export default function NewPeriodScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  hint: { ...type.caption, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  hint: { ...type.secondary, color: colors.textSecondary },
   body: { ...type.body, color: colors.text },
-  strong: { ...type.body, fontWeight: '700', color: colors.text },
+  strong: { ...type.bodyStrong, color: colors.text },
   bulk: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },
   list: { gap: spacing.sm },

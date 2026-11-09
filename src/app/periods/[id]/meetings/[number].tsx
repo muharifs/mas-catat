@@ -15,7 +15,6 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
-import { MEETING_SHORTCUTS } from '@/ui/dateInput';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { describeDateProblem } from '@/ui/meetingDate';
@@ -137,7 +136,6 @@ export default function MeetingHostScreen() {
         label={`Tanggal pertemuan ${number}`}
         value={date}
         onChange={setDateInput}
-        shortcuts={MEETING_SHORTCUTS}
         error={problem ? describeDateProblem(problem) : null}
       />
       <Text style={styles.hint}>

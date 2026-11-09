@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors, ICON, MIN_TOUCH, radius, spacing, TABULAR, type } from '../theme';
+import { BALANCE_MASK } from '../balanceVisibilityStore';
 import { formatRupiah } from '../format';
 
 interface PillLinkProps {
@@ -11,15 +12,17 @@ interface PillLinkProps {
   onPress: () => void;
   /** Spoken hint, for example "Buka daftar pinjaman". */
   hint?: string;
+  /** Show the mask instead of the amount (the eye on Beranda). The pill stays tappable. */
+  hidden?: boolean;
 }
 
 // A pill-shaped button that opens another screen, showing a label and an amount. It is NOT a Chip: a Chip means
 // "selected / not selected", this one only navigates. Touch height 48, teal tint with strong-teal text.
-export function PillLink({ label, amount, onPress, hint }: PillLinkProps) {
+export function PillLink({ label, amount, onPress, hint, hidden = false }: PillLinkProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label} ${formatRupiah(amount)}`}
+      accessibilityLabel={hidden ? `${label}, saldo disembunyikan` : `${label} ${formatRupiah(amount)}`}
       accessibilityHint={hint}
       onPress={onPress}
       style={({ pressed }) => [styles.pill, pressed && styles.pressed]}
@@ -28,7 +31,7 @@ export function PillLink({ label, amount, onPress, hint }: PillLinkProps) {
         {label}
       </Text>
       <Text maxFontSizeMultiplier={1.3} style={styles.amount}>
-        {formatRupiah(amount)}
+        {hidden ? BALANCE_MASK : formatRupiah(amount)}
       </Text>
       <Ionicons name="chevron-forward" size={ICON.sm} color={colors.brandStrong} />
     </Pressable>

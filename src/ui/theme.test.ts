@@ -1,4 +1,4 @@
-import { colors } from './theme';
+import { colors, type } from './theme';
 
 // WCAG 2.x contrast, computed from the hex values so the accessibility claims of the design system stay honest.
 
@@ -84,6 +84,24 @@ describe('theme contrast', () => {
   test('brand teal and money-in green are different hues', () => {
     expect(Math.abs(hue(colors.brand) - hue(colors.moneyIn))).toBeGreaterThanOrEqual(30);
     expect(Math.abs(hue(colors.brandStrong) - hue(colors.moneyIn))).toBeGreaterThanOrEqual(30);
+  });
+
+  // The amount keypad: digits and backspace icon on a button, the typed amount on the card.
+  test('keypad buttons and amount display colours stay readable', () => {
+    expect(contrast(colors.text, colors.bgCard)).toBeGreaterThanOrEqual(TEXT); // key label
+    expect(contrast(colors.text, colors.bgMute)).toBeGreaterThanOrEqual(TEXT); // key label while pressed
+    expect(contrast(colors.textTertiary, colors.bgCard)).toBeGreaterThanOrEqual(TEXT); // empty amount "Rp 0"
+    expect(contrast(colors.borderStrong, colors.bgCard)).toBeGreaterThanOrEqual(UI); // date field border
+  });
+
+  test('type scale: hero is the largest step, display is the next one down', () => {
+    expect(type.hero.fontSize).toBe(36);
+    expect(type.hero.lineHeight).toBe(44);
+    expect(type.hero.fontSize).toBeGreaterThan(type.display.fontSize);
+    for (const [name, style] of Object.entries(type)) {
+      if (name !== 'hero') expect(style.fontSize).toBeLessThan(type.hero.fontSize);
+      expect(style.lineHeight).toBeGreaterThan(style.fontSize);
+    }
   });
 
   test('transition aliases point to the new values', () => {

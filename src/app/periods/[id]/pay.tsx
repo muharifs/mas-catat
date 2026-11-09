@@ -1,9 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { appendAmountDigits, checkPaymentAmount, deleteLastDigit, type PaymentAmountCheck } from '@/domain/amount-input';
 import { AMOUNT_FORMAT_HINT, parseRupiahInput, paymentChoices, type PaymentPreview } from '@/domain/payment-preview';
 import { useRepos } from '@/db/provider';
-import { AmountField } from '@/ui/components/AmountField';
+import { AmountDisplay } from '@/ui/components/AmountDisplay';
+import { AmountKeypad } from '@/ui/components/AmountKeypad';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { DateField } from '@/ui/components/DateField';
@@ -14,7 +18,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { arrearsRemainderNote, describeWeeks, paymentChoiceLabel, toasts } from '@/ui/messages';
-import { colors, spacing, type } from '@/ui/theme';
+import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
@@ -38,12 +42,22 @@ function confirmMessage(name: string, date: string, preview: PaymentPreview): st
   return lines.join('\n\n');
 }
 
+type AmountHelp = { text: string; tone: 'neutral' | 'error' };
+
+/** The line under the amount. Which amounts are valid is decided by checkPaymentAmount (domain); this only words it. */
+function amountHelp(check: PaymentAmountCheck, amount: number | null): AmountHelp {
+  if (check === 'not_multiple') return { text: 'Jumlah harus kelipatan Rp15.000, misalnya Rp30.000.', tone: 'error' };
+  if (check === 'ok' && amount !== null) return { text: `Terbaca: ${formatRupiah(amount)}`, tone: 'neutral' };
+  return { text: 'Ketuk angka untuk mengisi jumlah.', tone: 'neutral' };
+}
+
 // Record-payment form. The preview and the saved result come from the same function, so what the
 // confirmation says is exactly what gets stored. The quick-amount chips come from the domain (paymentChoices),
 // which only offers valid amounts (positive multiples of Rp15.000).
 export default function PayScreen() {
   const { id, memberId } = useLocalSearchParams<{ id: string; memberId: string }>();
   const repos = useRepos();
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     const [member, balances] = await Promise.all([repos.members.getById(memberId), repos.payments.listBalances(id)]);
@@ -103,16 +117,26 @@ export default function PayScreen() {
     }
   }
 
+  const check = checkPaymentAmount(typedAmount);
+  const help = amountHelp(check, typedAmount);
+
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <View style={styles.flex}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Catat pembayaran</Text>
         <Text style={styles.name}>{memberName}</Text>
 
-        <DateField label="Tanggal bayar" value={date} onChange={setDate} />
+        <DateField label="Tanggal bayar" value={date} onChange={setDate} maxDate={todayIso()} />
 
-        <Text style={styles.label}>Pilih jumlah cepat</Text>
-        <View style={styles.chips}>
+        <View style={styles.amountBox}>
+          <AmountDisplay value={amountText} />
+          <View style={styles.helpRow} accessibilityLiveRegion="polite">
+            {help.tone === 'error' ? <Ionicons name="alert-circle-outline" size={ICON.sm} color={colors.error} /> : null}
+            <Text style={[styles.help, help.tone === 'error' && styles.helpError]}>{help.text}</Text>
+          </View>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {choices.map((c) => (
             <Chip
               key={c.kind === 'weeks' ? `w${c.weeks}` : 'arrears'}
@@ -121,27 +145,41 @@ export default function PayScreen() {
               onPress={() => setAmountText(String(c.amount))}
             />
           ))}
-        </View>
+        </ScrollView>
         {remainderNote ? <Text style={styles.hint}>{remainderNote}</Text> : null}
-        <AmountField label="Jumlah (kelipatan Rp15.000)" value={amountText} onChangeText={setAmountText} placeholder="15000" />
 
         <Text style={styles.hint}>Uang masuk ke Tunai. Untuk memindahkannya ke Debit, gunakan transfer di menu Kas.</Text>
-
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-
-        <Button label="Lanjut" disabled={busy} onPress={() => void submit()} />
-        <Button label="Batal" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
-    </KeyboardAvoidingView>
+
+      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+        <AmountKeypad
+          onKey={(key) => setAmountText((current) => appendAmountDigits(current, key))}
+          onBackspace={() => setAmountText(deleteLastDigit)}
+          onClear={() => setAmountText('')}
+        />
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        <Button
+          label="Lanjut"
+          loading={busy}
+          disabled={check !== 'ok'}
+          disabledReason={check === 'empty' ? 'Isi jumlah dulu.' : 'Ubah jumlah jadi kelipatan Rp15.000.'}
+          onPress={() => void submit()}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  name: { ...type.heading, color: colors.text },
-  label: { ...type.label, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  container: { padding: spacing.lg, gap: spacing.md },
+  title: { ...type.titleL, color: colors.text },
+  name: { ...type.titleM, color: colors.text },
+  amountBox: { gap: spacing.xs, paddingVertical: spacing.sm },
+  helpRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  help: { ...type.secondary, color: colors.textSecondary, textAlign: 'center' },
+  helpError: { color: colors.error },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  chips: { flexDirection: 'row', gap: spacing.sm },
+  bottom: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, backgroundColor: colors.bgPage },
 });

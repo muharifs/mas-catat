@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   list: { padding: spacing.lg, gap: spacing.sm },
   header: { gap: spacing.md, marginBottom: spacing.xs },
   footer: { gap: spacing.sm, marginTop: spacing.xs },
-  cardLabel: { ...type.label, color: colors.textMuted },
-  hint: { ...type.caption, color: colors.textMuted },
-  muted: { ...type.body, color: colors.textMuted },
+  cardLabel: { ...type.label, color: colors.textSecondary },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  muted: { ...type.body, color: colors.textSecondary },
 });

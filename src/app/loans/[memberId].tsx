@@ -10,6 +10,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import { entryTitle } from '@/ui/kasLabels';
@@ -61,7 +62,7 @@ export default function MemberLoanScreen() {
         <Button label="Pinjamkan lagi" variant="secondary" onPress={() => router.push({ pathname: '/kas/new', params: { kind: 'loan', memberId } })} />
       ) : null}
 
-      <Text style={styles.section}>Riwayat pinjaman</Text>
+      <SectionHeader title="Riwayat pinjaman" />
       {history.length === 0 ? <Text style={styles.muted}>Belum ada pinjaman.</Text> : null}
       {history.map((e) => (
         <ListRow
@@ -82,8 +83,7 @@ export default function MemberLoanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  muted: { ...type.body, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  muted: { ...type.body, color: colors.textSecondary },
 });

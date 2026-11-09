@@ -87,7 +87,7 @@ export default function KasScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: spacing.lg, gap: spacing.md },
-  cardLabel: { ...type.label, color: colors.textMuted },
+  cardLabel: { ...type.label, color: colors.textSecondary },
   posRow: { flexDirection: 'row', gap: spacing.lg },
   pos: { flex: 1, gap: spacing.xs },
   actions: { gap: spacing.sm },
@@ -95,5 +95,5 @@ const styles = StyleSheet.create({
   piutang: { minHeight: MIN_TOUCH, gap: spacing.xs, justifyContent: 'center' },
   pressed: { opacity: 0.75 },
   link: { ...type.label, color: colors.brandStrong },
-  hint: { ...type.caption, color: colors.textMuted },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

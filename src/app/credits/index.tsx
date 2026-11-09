@@ -141,11 +141,11 @@ export default function CreditsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   flex: { flex: 1 },
   posRow: { flexDirection: 'row', gap: spacing.sm },
-  weekTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  weekTitle: { ...type.bodyStrong, color: colors.text },
   label: { ...type.label, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
-  muted: { ...type.body, color: colors.textMuted },
+  hint: { ...type.secondary, color: colors.textSecondary },
+  muted: { ...type.body, color: colors.textSecondary },
 });

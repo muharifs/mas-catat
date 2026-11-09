@@ -197,6 +197,13 @@ const INVARIANTS: readonly Invariant[] = [
     id: 'meeting_count_differs_from_member_count',
     sql: `SELECT p.id FROM periods p WHERE (SELECT COUNT(*) FROM weeks w WHERE w.period_id = p.id) <> p.member_count`,
   },
+  {
+    id: 'archived_member_in_active_period',
+    sql: `SELECT m.id FROM members m
+           WHERE m.archived_at IS NOT NULL
+             AND EXISTS (SELECT 1 FROM period_members pm JOIN periods p ON p.id = pm.period_id
+                          WHERE pm.member_id = m.id AND p.status = 'active')`,
+  },
 ];
 
 /** Runs integrity_check, foreign_key_check and the invariants on a MIGRATED database. Read-only. */

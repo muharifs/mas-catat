@@ -92,7 +92,7 @@ export default function HomeScreen() {
   if (!data) return <Loading />;
 
   const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup } = data;
-  const memberCount = members.length;
+  const memberCount = members.filter((m) => !m.archivedAt).length; // archived members do not count as "has members"
   const checklist = firstRunChecklist({
     memberCount,
     hasOpeningBalance,

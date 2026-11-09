@@ -2,6 +2,7 @@
 // Repositories and domain functions throw English messages (for logs and tests); screens call toIndonesian().
 import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
+import { MemberArchiveError, type ArchiveBlockCode } from '@/domain/members';
 import { DomainError } from '@/domain/money';
 import { formatRupiah } from './format';
 
@@ -72,6 +73,9 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
     pattern: /loan cannot be corrected: the member already repaid (\d+)/,
     text: (m) => `Pinjaman ini sudah dibayar ${formatRupiah(Number(m[1]))}. Koreksi pelunasannya dulu, baru koreksi pinjamannya.`,
   },
+  { pattern: /has history and cannot be deleted/, text: 'Anggota ini punya riwayat, jadi tidak bisa dihapus. Arsipkan saja.' },
+  { pattern: /archived and cannot join a period|archived member cannot join/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.' },
+  { pattern: /cannot be archived/, text: 'Masih ikut periode aktif.' },
   { pattern: /amount must be a positive integer/, text: 'Jumlah harus lebih dari nol.' },
 ];
 
@@ -96,9 +100,17 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
 };
 
+/** Why a member cannot be archived, in plain words. */
+export function archiveBlockText(code: ArchiveBlockCode, amount: number): string {
+  if (code === 'in_active_period') return 'Masih ikut periode aktif.';
+  if (code === 'has_loan') return `Masih punya sisa pinjaman ${formatRupiah(amount)}.`;
+  return `Masih punya titipan ${formatRupiah(amount)} — kembalikan dulu.`;
+}
+
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
 export function toIndonesian(error: unknown): string {
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
+  if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
   if (error instanceof MigrationError) return 'Database gagal disiapkan. Tutup lalu buka lagi aplikasinya.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
     for (const rule of RULES) {

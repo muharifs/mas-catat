@@ -1,7 +1,7 @@
 // M7 backup/restore tests. They run on sql.js behind the NativeBridge/SafetyStore seams, so they prove the LOGIC
 // (checks, order of steps, automatic recovery, nothing touched before the copy) but NOT that serializeAsync,
 // deserializeDatabaseAsync, backupDatabaseAsync, sharing or the file picker work on a phone.
-import { BackupError, parseSafetyName, safetyFileName, type BackupErrorCode } from '@/domain/backup';
+import { BackupError, diffSchema, parseSafetyName, safetyFileName, type BackupErrorCode } from '@/domain/backup';
 import { computeKasBalances } from '@/domain/kas';
 import { commitRestore, createBackupSnapshot, discardRestore, healthCheck, LATEST_VERSION, loadRecordIds, prepareRestore, readSchema, summarizeDb, type NativeBridge, type PreparedRestore } from './backup';
 import type { Db } from './db';
@@ -339,7 +339,7 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
     return env.liveBytes();
   }
 
-  it.each([1, 2, 3, 4])('a version %i backup is accepted, migrated and matches the fingerprint', async (version) => {
+  it.each([1, 2, 3, 4, 5])('a version %i backup is accepted, migrated and matches the fingerprint', async (version) => {
     const live = await seededEnv();
     const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: await legacyBytes(version) });
     try {
@@ -355,6 +355,41 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
       await discardRestore(prepared);
     }
     expect(live.openMemoryCount()).toBe(0);
+  });
+
+  it('a version 4 backup restores to version 5 with archived_at NULL and no schema difference', async () => {
+    const live = await seededEnv();
+    const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: await legacyBytes(4) });
+    try {
+      expect(prepared.originalVersion).toBe(4);
+      expect(prepared.candidate.userVersion).toBe(5);
+      const rows = await prepared.memory.db.getAll<{ archived_at: string | null }>('SELECT archived_at FROM members');
+      expect(rows).toEqual([{ archived_at: null }]);
+      expect(diffSchema(prepared.referenceSchema, await readSchema(prepared.memory.db))).toEqual([]);
+    } finally {
+      await discardRestore(prepared);
+    }
+  });
+
+  it('a version 5 backup with an archived member round-trips', async () => {
+    const source = await seededEnv('r');
+    await source.db.run("INSERT INTO members (id, name, created_at, archived_at) VALUES ('arch', 'Diarsipkan', 'x', '2026-11-01T00:00:00.000Z')");
+    const live = await createSqlJsEnv();
+    const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: source.liveBytes() });
+    try {
+      expect(prepared.originalVersion).toBe(5);
+      const row = await prepared.memory.db.getFirst<{ archived_at: string | null }>("SELECT archived_at FROM members WHERE id = 'arch'");
+      expect(row?.archived_at).toBe('2026-11-01T00:00:00.000Z');
+    } finally {
+      await discardRestore(prepared);
+    }
+  });
+
+  it('a version 6 backup is refused as version_newer', async () => {
+    const source = await seededEnv('s');
+    await source.db.exec('PRAGMA user_version = 6');
+    const live = await seededEnv('l');
+    expect(await codeOfAsync(prepareRestore(live.bridge, live.db, { kind: 'file', bytes: source.liveBytes() }))).toBe('version_newer');
   });
 
   it('the live data is only read while preparing', async () => {

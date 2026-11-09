@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
+import { canHardDelete } from '@/domain/members';
 import { sortByName } from '@/domain/sort';
 import { Button } from '@/ui/components/Button';
 import { EmptyState } from '@/ui/components/EmptyState';
@@ -8,12 +9,13 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { TextField } from '@/ui/components/TextField';
-import { toIndonesian } from '@/ui/errors';
+import { archiveBlockText, toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
-// Members: list, add, tap a row to rename. No delete in M3 (owner decision).
+// Members: list, add, tap a row to rename, delete (no data at all) or archive (has history). Archived members sit in a
+// collapsed section with "Aktifkan lagi".
 // FlatList is the React Native list: it renders only the visible rows, unlike mapping to <li> on the web.
 export default function MembersScreen() {
   const repos = useRepos();
@@ -22,7 +24,12 @@ export default function MembersScreen() {
     return { list, remaining: new Map(loans.members.filter((l) => l.remaining > 0).map((l) => [l.memberId, l.remaining])) };
   }, [repos]);
   const { data, error: loadError, reload } = useLoad(load);
-  const members = useMemo(() => (data ? sortByName(data.list, (m) => m.name) : null), [data]);
+  // list() holds everyone; the screen splits active from archived.
+  const members = useMemo(() => (data ? sortByName(data.list.filter((m) => !m.archivedAt), (m) => m.name) : null), [data]);
+  const archived = useMemo(() => (data ? sortByName(data.list.filter((m) => m.archivedAt), (m) => m.name) : []), [data]);
+  const [showArchived, setShowArchived] = useState(false);
+  // null = not known yet. true = the member has no data at all, so it can be deleted; false = archive instead.
+  const [editCanDelete, setEditCanDelete] = useState<boolean | null>(null);
 
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
@@ -50,6 +57,89 @@ export default function MembersScreen() {
       await reload();
     } catch (e) {
       setEditError(toIndonesian(e));
+    }
+  }
+
+  function startEdit(id: string, name: string) {
+    setEditingId(id);
+    setEditName(name);
+    setEditError(null);
+    setEditCanDelete(null);
+    repos.members.getUsage(id).then(
+      (usage) => setEditCanDelete(canHardDelete(usage)),
+      (e: unknown) => setEditError(toIndonesian(e)),
+    );
+  }
+
+  function stopEdit() {
+    setEditingId(null);
+    setEditError(null);
+  }
+
+  // Alert.alert is the native dialog (web: window.confirm); buttons are an array, the destructive one is styled red.
+  function confirmDelete(id: string, name: string) {
+    Alert.alert(
+      `Hapus ${name}?`,
+      `${name} belum punya data apa pun, jadi akan dihapus dari daftar. Tindakan ini tidak bisa dibatalkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: () => {
+            repos.members.remove(id).then(
+              () => {
+                stopEdit();
+                void reload();
+              },
+              (e: unknown) => setEditError(toIndonesian(e)),
+            );
+          },
+        },
+      ],
+    );
+  }
+
+  async function confirmArchive(id: string, name: string) {
+    try {
+      // Ask first, so a member that cannot be archived never sees the confirmation dialog.
+      const blocker = await repos.members.archiveBlocker(id);
+      if (blocker) {
+        setEditError(archiveBlockText(blocker.code, blocker.amount));
+        return;
+      }
+    } catch (e) {
+      setEditError(toIndonesian(e));
+      return;
+    }
+    Alert.alert(
+      `Arsipkan ${name}?`,
+      `${name} akan disembunyikan dari daftar anggota dan dari pilihan anggota periode baru. Riwayat dan laporan tetap utuh. Bisa diaktifkan lagi kapan saja.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Arsipkan',
+          style: 'destructive',
+          onPress: () => {
+            repos.members.archive(id).then(
+              () => {
+                stopEdit();
+                void reload();
+              },
+              (e: unknown) => setEditError(toIndonesian(e)),
+            );
+          },
+        },
+      ],
+    );
+  }
+
+  async function unarchive(id: string) {
+    try {
+      await repos.members.unarchive(id);
+      await reload();
+    } catch (e) {
+      setAddError(toIndonesian(e));
     }
   }
 
@@ -81,36 +171,53 @@ export default function MembersScreen() {
           />
           <Button label="Tambah" onPress={add} />
           <Text style={styles.count}>{members.length} anggota</Text>
-          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubahnya.</Text> : null}
+          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubahnya, menghapus, atau mengarsipkannya.</Text> : null}
         </View>
       }
       ListEmptyComponent={<EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." />}
+      ListFooterComponent={
+        archived.length > 0 ? (
+          <View style={styles.archived}>
+            <Button
+              label={`${showArchived ? 'Sembunyikan' : 'Tampilkan'} yang diarsipkan (${archived.length})`}
+              variant="tertiary"
+              onPress={() => setShowArchived((v) => !v)}
+            />
+            {showArchived
+              ? archived.map((m) => (
+                  <ListRow
+                    key={m.id}
+                    title={m.name}
+                    tone="alt"
+                    right={<Button label="Aktifkan lagi" variant="secondary" compact onPress={() => void unarchive(m.id)} />}
+                  >
+                    {data?.remaining.has(m.id) ? <RowText>Pinjaman: sisa {formatRupiah(data.remaining.get(m.id) ?? 0)}</RowText> : null}
+                  </ListRow>
+                ))
+              : null}
+          </View>
+        ) : undefined
+      }
       renderItem={({ item }) =>
         editingId === item.id ? (
           <View style={styles.editRow}>
             <TextField value={editName} onChangeText={setEditName} onSubmitEditing={saveEdit} autoFocus error={editError} />
             <View style={styles.actions}>
               <Button label="Simpan" onPress={saveEdit} style={styles.flex} />
-              <Button
-                label="Batal"
-                variant="secondary"
-                onPress={() => {
-                  setEditingId(null);
-                  setEditError(null);
-                }}
-                style={styles.flex}
-              />
+              <Button label="Batal" variant="secondary" onPress={stopEdit} style={styles.flex} />
             </View>
+            {editCanDelete === true ? (
+              <Button label="Hapus anggota" variant="dangerOutline" onPress={() => confirmDelete(item.id, item.name)} />
+            ) : null}
+            {editCanDelete === false ? (
+              <Button label="Arsipkan anggota" variant="dangerOutline" onPress={() => void confirmArchive(item.id, item.name)} />
+            ) : null}
           </View>
         ) : (
           <ListRow
             title={item.name}
             accessibilityLabel={`${item.name}, ketuk untuk mengubah nama`}
-            onPress={() => {
-              setEditingId(item.id);
-              setEditName(item.name);
-              setEditError(null);
-            }}
+            onPress={() => startEdit(item.id, item.name)}
           >
             {data?.remaining.has(item.id) ? <RowText>Pinjaman: sisa {formatRupiah(data.remaining.get(item.id) ?? 0)}</RowText> : null}
           </ListRow>
@@ -126,6 +233,7 @@ const styles = StyleSheet.create({
   count: { ...type.heading, color: colors.text },
   hint: { ...type.caption, color: colors.textMuted },
   editRow: { padding: spacing.md, borderRadius: 8, backgroundColor: colors.surface, gap: spacing.sm },
+  archived: { gap: spacing.sm, marginTop: spacing.lg },
   actions: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },
 });

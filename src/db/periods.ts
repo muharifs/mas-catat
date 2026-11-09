@@ -121,6 +121,10 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         // Only one active period at a time. Checked inside the transaction so it cannot race.
         const active = await tx.getFirst<{ id: string }>("SELECT id FROM periods WHERE status = 'active' LIMIT 1");
         if (active) throw new RepositoryError('another period is still active; end it before creating a new one');
+        for (const memberId of input.memberIds) {
+          const archived = await tx.getFirst<{ id: string }>('SELECT id FROM members WHERE id = ? AND archived_at IS NOT NULL', [memberId]);
+          if (archived) throw new RepositoryError(`member ${memberId} is archived and cannot join a period`);
+        }
         await tx.run(
           'INSERT INTO periods (id, name, member_count, status, start_date, end_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [period.id, period.name, period.memberCount, period.status, period.startDate, null, period.createdAt],

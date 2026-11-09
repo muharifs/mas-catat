@@ -44,7 +44,7 @@ describe('migration 0004 (period close and member credit)', () => {
     const before = await snapshot();
 
     expect(await migrate(db)).toEqual({ from: 3, to: MIGRATIONS.length });
-    expect(await userVersion(db)).toBe(4);
+    expect(await userVersion(db)).toBe(MIGRATIONS.length);
 
     expect(await snapshot()).toEqual(before); // no back-fill, nothing rewritten
     expect(await count(db, 'credit_applications')).toBe(0);
@@ -59,7 +59,7 @@ describe('migration 0004 (period close and member credit)', () => {
         'ledger_refund_shape',
       ]),
     );
-    expect(await migrate(db)).toEqual({ from: 4, to: 4 }); // idempotent
+    expect(await migrate(db)).toEqual({ from: MIGRATIONS.length, to: MIGRATIONS.length }); // idempotent
   });
 
   it('also upgrades an empty version 3 database', async () => {

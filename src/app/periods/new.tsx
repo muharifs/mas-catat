@@ -31,7 +31,7 @@ export default function NewPeriodScreen() {
   const repos = useRepos();
   const load = useCallback(async () => {
     const [members, active, refundable, periods] = await Promise.all([
-      repos.members.list(),
+      repos.members.listActive(), // archived members cannot join a new period
       repos.periods.getActive(),
       repos.credits.listRefundable(),
       repos.periods.list(),

@@ -9,6 +9,7 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { isSettledState, MEETING_STATUS_LABELS, WEEK_STATE_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -39,8 +40,8 @@ export default function MeetingReportScreen() {
         {formatDate(meeting.date)} - {MEETING_STATUS_LABELS[meeting.status]} - tuan rumah: {nameOf(meeting.hostMemberId)}
       </Text>
 
+      <SectionHeader title="Iuran pertemuan" />
       <Card>
-        <Text style={styles.heading}>Iuran pertemuan</Text>
         <ReportLine label="Total iuran" amount={meeting.totalDues} hint="15.000 x jumlah anggota" />
         <ReportLine label="Dibayar anggota" amount={meeting.coveredByPayments} />
         <ReportLine label="Potongan tuan rumah" amount={meeting.coveredByOffset} />
@@ -48,8 +49,8 @@ export default function MeetingReportScreen() {
         <ReportLine label="Belum dibayar" amount={meeting.unpaid} strong tone={meeting.unpaid > 0 ? 'negative' : 'neutral'} />
       </Card>
 
+      <SectionHeader title="Tuan rumah dan kas" />
       <Card>
-        <Text style={styles.heading}>Tuan rumah dan kas</Text>
         <ReportLine label="Pembayaran tuan rumah (seharusnya)" amount={meeting.hostPayoutDue} hint="10.000 x jumlah anggota" />
         <ReportLine label="Pembayaran tuan rumah (tercatat)" amount={meeting.hostPayout} emptyText="Belum dibayar" />
         <ReportLine label="Potongan tunggakan tuan rumah" amount={meeting.hostOffset} />
@@ -63,7 +64,7 @@ export default function MeetingReportScreen() {
         />
       </Card>
 
-      <Text style={styles.heading}>Status anggota</Text>
+      <SectionHeader title="Status anggota" />
       {sortByName(meeting.members, (m) => nameOf(m.memberId)).map((m) => (
         <ListRow
           key={m.memberId}
@@ -80,8 +81,7 @@ export default function MeetingReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  heading: { ...type.heading, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

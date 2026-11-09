@@ -7,6 +7,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import {
@@ -55,7 +56,7 @@ export default function MemberHistoryScreen() {
         <Text style={styles.hint}>{CORRECTED_NOT_COUNTED}</Text>
       </Card>
 
-      <Text style={styles.section}>Status per pertemuan</Text>
+      <SectionHeader title="Status per pertemuan" />
       {history.weeks.map((w) => (
         <View key={w.week} style={styles.row}>
           <View style={styles.head}>
@@ -69,7 +70,7 @@ export default function MemberHistoryScreen() {
         </View>
       ))}
 
-      <Text style={styles.section}>Riwayat</Text>
+      <SectionHeader title="Riwayat" />
       {history.events.length === 0 ? <Text style={styles.hint}>Belum ada catatan.</Text> : null}
       {history.events.map((e, index) => {
         const correction = correctionText(e);
@@ -90,7 +91,7 @@ export default function MemberHistoryScreen() {
         );
       })}
 
-      <Text style={styles.section}>Piutang (pinjaman)</Text>
+      <SectionHeader title="Piutang (pinjaman)" />
       {history.loans.length === 0 ? <Text style={styles.hint}>Tidak ada pinjaman.</Text> : null}
       {history.loans.map((l, index) => {
         const correction = correctionText(l);
@@ -116,17 +117,16 @@ export default function MemberHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  section: { ...type.heading, color: colors.text, marginTop: spacing.sm },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
+  hint: { ...type.secondary, color: colors.textSecondary },
   flex: { flex: 1 },
-  row: { padding: spacing.md, borderRadius: radius.row, backgroundColor: colors.surfaceAlt, gap: spacing.xs },
-  reversedRow: { backgroundColor: colors.dangerSoft },
+  row: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgMute, gap: spacing.xs },
+  reversedRow: { backgroundColor: colors.errorTint },
   strike: { textDecorationLine: 'line-through' },
   head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  rowTitle: { ...type.body, fontWeight: '600', color: colors.text },
+  rowTitle: { ...type.bodyStrong, color: colors.text },
   ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
-  bad: { ...type.label, color: colors.danger, flexShrink: 1 },
+  bad: { ...type.label, color: colors.error, flexShrink: 1 },
 });

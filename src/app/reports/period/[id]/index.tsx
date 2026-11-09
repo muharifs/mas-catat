@@ -9,6 +9,7 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { CORRECTED_NOT_COUNTED, MEETING_STATUS_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -46,8 +47,8 @@ export default function PeriodReportScreen() {
         {period.endDate ? ` - berakhir ${formatDate(period.endDate)}` : ''}
       </Text>
 
+      <SectionHeader title="Ringkasan periode" />
       <Card>
-        <Text style={styles.heading}>Ringkasan periode</Text>
         <ReportLine label="Total iuran periode" amount={summary.totalDues} hint="15.000 x anggota x pertemuan" />
         <ReportLine label="Terkumpul dari anggota" amount={summary.collected} />
         <ReportLine label="Pembayaran tuan rumah" amount={summary.payouts} />
@@ -65,7 +66,7 @@ export default function PeriodReportScreen() {
         <Text style={styles.hint}>{CORRECTED_NOT_COUNTED}</Text>
       </Card>
 
-      <Text style={styles.heading}>Per pertemuan</Text>
+      <SectionHeader title="Per pertemuan" />
       {meetings.map((m) => (
         <ListRow
           key={m.week}
@@ -81,7 +82,7 @@ export default function PeriodReportScreen() {
         </ListRow>
       ))}
 
-      <Text style={styles.heading}>Per anggota</Text>
+      <SectionHeader title="Per anggota" />
       {sortedMembers.map((m) => (
         <ListRow
           key={m.memberId}
@@ -95,8 +96,7 @@ export default function PeriodReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  title: { ...type.title, color: colors.text },
-  heading: { ...type.heading, color: colors.text, marginTop: spacing.sm },
-  hint: { ...type.caption, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  title: { ...type.titleL, color: colors.text },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

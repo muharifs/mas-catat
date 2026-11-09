@@ -10,6 +10,7 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { EXPECTED_FORMULA, EXPECTED_LABELS, unpaidPayoutText } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -36,8 +37,8 @@ export default function ReportsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <SectionHeader title="Saldo kas" />
       <Card>
-        <Text style={styles.heading}>Saldo kas</Text>
         <ReportLine label="Tunai" amount={balances.tunai} />
         <ReportLine label="Debit" amount={balances.debit} />
         <ReportLine label="Piutang (dipinjam anggota)" amount={balances.piutang} />
@@ -45,8 +46,8 @@ export default function ReportsScreen() {
         <Text style={styles.hint}>Sama dengan layar Kas. Piutang belum ada di tangan, jadi tidak masuk kas nyata.</Text>
       </Card>
 
+      <SectionHeader title={EXPECTED_LABELS.expected} />
       <Card>
-        <Text style={styles.heading}>{EXPECTED_LABELS.expected}</Text>
         <ReportLine label={EXPECTED_LABELS.actual} amount={expected.actualKas} />
         <ReportLine
           label={`+ ${EXPECTED_LABELS.outstanding}`}
@@ -64,13 +65,13 @@ export default function ReportsScreen() {
         <Text style={styles.hint}>{EXPECTED_FORMULA}</Text>
       </Card>
 
+      <SectionHeader title="Info (di luar rumus)" />
       <Card tone="alt">
-        <Text style={styles.heading}>Info (di luar rumus)</Text>
         <ReportLine label={EXPECTED_LABELS.prepaid} amount={expected.prepaidDues} hint="Iuran pertemuan setelah pertemuan berjalan yang sudah dibayar." />
         <ReportLine label={EXPECTED_LABELS.unpaidPayout} amount={expected.unpaidPayoutAmount} hint={unpaidPayoutText(expected.unpaidPayoutCount)} />
       </Card>
 
-      <Text style={styles.heading}>Laporan per periode</Text>
+      <SectionHeader title="Laporan per periode" />
       {periods.length === 0 ? <Notice>Belum ada periode.</Notice> : null}
       {preferred ? <Button label={`Buka ${preferred.name}`} onPress={() => goPeriod(preferred.id)} /> : null}
       {periods.map((p) => (
@@ -86,7 +87,6 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
-  heading: { ...type.heading, color: colors.text },
-  hint: { ...type.caption, color: colors.textMuted },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  hint: { ...type.secondary, color: colors.textSecondary },
 });

@@ -20,6 +20,7 @@ import { Card } from '@/ui/components/Card';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { TextField } from '@/ui/components/TextField';
 import { restoreErrorNeedsReload, toIndonesian } from '@/ui/errors';
 import { createSafetyStore, listSafetyCopies, pickBackupFile, readSafetyCopy, shareSafetyCopy } from '@/ui/shareFile';
@@ -270,25 +271,29 @@ export default function RestoreScreen() {
 
       <Button label="Pilih berkas cadangan" onPress={chooseFile} />
 
-      <Card tone="alt">
-        <Text style={styles.heading}>Salinan pengaman</Text>
-        <Text style={styles.caption}>
-          Sebelum setiap pemulihan, data sekarang disalin dulu ke sini. Hanya {SAFETY_KEEP} yang terakhir disimpan.
-        </Text>
-        {safetyNames.length === 0 ? <Text style={styles.body}>Belum ada salinan pengaman.</Text> : null}
-        {safetyNames.map((name) => (
-          <ListRow key={name} title={safetyCopyLabel(name)} onPress={() => chooseSafety(name)} right={<RowText>Pulihkan</RowText>} />
-        ))}
-      </Card>
+      <View style={styles.section}>
+        <SectionHeader title="Salinan pengaman" />
+        <Card tone="alt">
+          <Text style={styles.caption}>
+            Sebelum setiap pemulihan, data sekarang disalin dulu ke sini. Hanya {SAFETY_KEEP} yang terakhir disimpan.
+          </Text>
+          {safetyNames.length === 0 ? <Text style={styles.body}>Belum ada salinan pengaman.</Text> : null}
+          {safetyNames.map((name) => (
+            <ListRow key={name} title={safetyCopyLabel(name)} onPress={() => chooseSafety(name)} right={<RowText>Pulihkan</RowText>} />
+          ))}
+        </Card>
+      </View>
 
-      <Card tone="danger">
-        <Text style={styles.heading}>Mulai dari nol</Text>
-        <Text style={styles.body}>
-          Mengganti semua data dengan database kosong. Cara bersih untuk membuang data percobaan. Salinan pengaman dibuat lebih dulu.{' '}
-          {RESET_SAFETY_NOTE}
-        </Text>
-        <Button label="Mulai dari nol" variant="dangerOutline" onPress={chooseEmpty} />
-      </Card>
+      <View style={styles.section}>
+        <SectionHeader title="Mulai dari nol" />
+        <Card tone="danger">
+          <Text style={styles.body}>
+            Mengganti semua data dengan database kosong. Cara bersih untuk membuang data percobaan. Salinan pengaman dibuat lebih dulu.{' '}
+            {RESET_SAFETY_NOTE}
+          </Text>
+          <Button label="Mulai dari nol" variant="dangerOutline" onPress={chooseEmpty} />
+        </Card>
+      </View>
     </ScrollView>
   );
 }
@@ -304,12 +309,13 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.lg },
-  title: { ...type.title, color: colors.text },
-  heading: { ...type.heading, color: colors.text },
+  title: { ...type.titleL, color: colors.text },
+  heading: { ...type.titleM, color: colors.text },
   body: { ...type.body, color: colors.text },
-  caption: { ...type.caption, color: colors.textMuted },
-  value: { ...type.body, fontWeight: '600', color: colors.text },
+  caption: { ...type.secondary, color: colors.textSecondary },
+  value: { ...type.bodyStrong, color: colors.text },
   compare: { gap: spacing.md },
   half: { gap: spacing.xs },
-  line: { gap: 2 },
+  line: { gap: spacing.xs },
+  section: { gap: spacing.sm },
 });

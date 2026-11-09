@@ -9,6 +9,7 @@ import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Notice } from '@/ui/components/Notice';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import {
   BACKUP_WARNING,
   CSV_HINT,
@@ -86,48 +87,54 @@ export default function BackupScreen() {
       {busy ? <Notice tone="info">{busy}</Notice> : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
 
-      <Card>
-        <Text style={styles.heading}>Cadangan</Text>
-        <Text style={styles.body}>{lastSharedText(lastShared, reminder)}</Text>
-        <Notice tone="warn">{BACKUP_WARNING}</Notice>
-        <Text style={styles.body}>{OFFSITE_HINT}</Text>
-        <Button label="Buat dan bagikan cadangan" onPress={confirmBackup} disabled={busy !== null} />
-        <Text style={styles.caption}>{NO_ENCRYPTION_HINT}</Text>
-      </Card>
+      <View style={styles.section}>
+        <SectionHeader title="Cadangan" />
+        <Card>
+          <Text style={styles.body}>{lastSharedText(lastShared, reminder)}</Text>
+          <Notice tone="warn">{BACKUP_WARNING}</Notice>
+          <Text style={styles.body}>{OFFSITE_HINT}</Text>
+          <Button label="Buat dan bagikan cadangan" onPress={confirmBackup} disabled={busy !== null} />
+          <Text style={styles.caption}>{NO_ENCRYPTION_HINT}</Text>
+        </Card>
+      </View>
 
-      <Card>
-        <Text style={styles.heading}>Ekspor CSV untuk spreadsheet</Text>
-        <Notice tone="info">{CSV_HINT}</Notice>
-        {CSV_FILES.map((spec) => (
-          <View key={spec.kind} style={styles.csvRow}>
-            <Button
-              label={spec.label}
-              variant="secondary"
-              disabled={busy !== null}
-              onPress={() => void run('Menyiapkan file...', () => shareCsv(spec.kind))}
-            />
-            <Text style={styles.caption}>{spec.hint}</Text>
-          </View>
-        ))}
-      </Card>
+      <View style={styles.section}>
+        <SectionHeader title="Ekspor CSV untuk spreadsheet" />
+        <Card>
+          <Notice tone="info">{CSV_HINT}</Notice>
+          {CSV_FILES.map((spec) => (
+            <View key={spec.kind} style={styles.csvRow}>
+              <Button
+                label={spec.label}
+                variant="secondary"
+                disabled={busy !== null}
+                onPress={() => void run('Menyiapkan file...', () => shareCsv(spec.kind))}
+              />
+              <Text style={styles.caption}>{spec.hint}</Text>
+            </View>
+          ))}
+        </Card>
+      </View>
 
-      <Card tone="alt">
-        <Text style={styles.heading}>Pulihkan atau mulai dari nol</Text>
-        <Text style={styles.body}>{ONE_PHONE_HINT}</Text>
-        <ListRow
-          title="Pulihkan data"
-          onPress={busy === null ? () => router.push('/backup/restore') : undefined}
-          right={<RowText>Dari cadangan</RowText>}
-        />
-      </Card>
+      <View style={styles.section}>
+        <SectionHeader title="Pulihkan atau mulai dari nol" />
+        <Card tone="alt">
+          <Text style={styles.body}>{ONE_PHONE_HINT}</Text>
+          <ListRow
+            title="Pulihkan data"
+            onPress={busy === null ? () => router.push('/backup/restore') : undefined}
+            right={<RowText>Dari cadangan</RowText>}
+          />
+        </Card>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.lg },
-  heading: { ...type.heading, color: colors.text },
+  section: { gap: spacing.sm },
   body: { ...type.body, color: colors.text },
-  caption: { ...type.caption, color: colors.textMuted },
+  caption: { ...type.secondary, color: colors.textSecondary },
   csvRow: { gap: spacing.xs },
 });

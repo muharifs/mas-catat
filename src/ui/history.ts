@@ -1,10 +1,11 @@
 // Riwayat (history) helpers. Pure: grouping, filtering and display direction of kas entries. No money is computed
 // here; amounts are only passed through. Display only, the ledger itself is untouched.
+import { cashFlowSign } from '@/domain/flow';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { Account, LedgerEntryType } from '@/domain/types';
 import type { LedgerListItem } from '@/db/ledger';
 import { formatDate } from './dates';
-import { amountSign, TYPE_LABELS } from './kasLabels';
+import { TYPE_LABELS } from './kasLabels';
 
 /** Chip groups of Riwayat. 'other' has no chip (opening balance, write-off): it shows under "Semua" only. */
 export type EntryGroup = 'iuran' | 'tuan_rumah' | 'pinjaman' | 'pindah' | 'pengeluaran' | 'koreksi' | 'other';
@@ -47,8 +48,7 @@ type FlowFields = Pick<LedgerListItem, 'type' | 'direction' | 'account' | 'toAcc
  * repayments, write-offs, entries without a pos, and an old Piutang opening balance (an old loan, not cash).
  */
 export function entryDirection(e: FlowFields): EntryDirection {
-  if (e.account === 'piutang') return 'neutral';
-  const sign = amountSign(e);
+  const sign = cashFlowSign(e);
   return sign === '+' ? 'in' : sign === '-' ? 'out' : 'neutral';
 }
 

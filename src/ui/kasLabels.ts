@@ -1,4 +1,5 @@
 // Indonesian display text for ledger entries. Display only: no money is computed here.
+import { cashFlowSign } from '@/domain/flow';
 import { ACCOUNT_LABELS, type KasKind } from '@/domain/kas';
 import { DIRECTLY_REVERSIBLE_TYPES } from '@/domain/reversal';
 import type { Account, LedgerEntryType } from '@/domain/types';
@@ -63,13 +64,12 @@ export function flowText(e: FlowEntry): string {
 }
 
 /**
- * "+" for money that enters a pos, "-" for money that leaves one, "" when no pos balance really gains or loses:
- * a move between pos, a write-off (no balance change) and an entry without a pos. The text "Masuk ke / Keluar dari"
- * stays next to it, so the meaning never depends on colour or sign alone.
+ * "+" for money that enters Tunai or Debit, "-" for money that leaves one, "" when no cash balance really changes.
+ * One shared rule (cashFlowSign in the domain), also used by the Riwayat row and the monthly summary. The text
+ * "Masuk ke / Keluar dari" stays next to it, so the meaning never depends on colour or sign alone.
  */
 export function amountSign(e: FlowEntry): '+' | '-' | '' {
-  if (e.type === 'debt_writeoff' || e.account === null || e.toAccount) return '';
-  return e.direction === 'in' ? '+' : '-';
+  return cashFlowSign(e);
 }
 
 export type CorrectionRoute =

@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     minHeight: TILE_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: spacing.xs,
     paddingHorizontal: spacing.xs,
     borderRadius: radius.md,
     backgroundColor: colors.bgCard,

@@ -1,4 +1,4 @@
-import { colors, type } from './theme';
+import { colors, radius, type } from './theme';
 
 // WCAG 2.x contrast, computed from the hex values so the accessibility claims of the design system stay honest.
 
@@ -104,10 +104,11 @@ describe('theme contrast', () => {
     }
   });
 
-  test('transition aliases point to the new values', () => {
-    expect(colors.primary).toBe(colors.brandStrong);
-    expect(colors.danger).toBe(colors.error);
-    expect(colors.surface).toBe(colors.bgCard);
-    expect(colors.textMuted).toBe(colors.textSecondary);
+  test('the transition aliases are gone', () => {
+    const gone = ['primary', 'primarySoft', 'surface', 'surfaceAlt', 'danger', 'dangerSoft', 'warnSoft', 'textMuted', 'placeholder', 'border', 'background', 'onPrimary'];
+    for (const key of gone) expect(colors).not.toHaveProperty(key);
+    for (const key of ['title', 'heading', 'caption']) expect(type).not.toHaveProperty(key);
+    for (const key of ['row', 'card']) expect(radius).not.toHaveProperty(key);
   });
+
 });

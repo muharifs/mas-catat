@@ -92,10 +92,10 @@ export default function FilterRiwayatScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.bgCard },
   container: { padding: spacing.lg, gap: spacing.sm },
-  heading: { ...type.heading, color: colors.text, marginTop: spacing.md },
+  heading: { ...type.titleM, color: colors.text, marginTop: spacing.md },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  muted: { ...type.body, color: colors.textMuted },
-  footer: { padding: spacing.lg, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
+  muted: { ...type.body, color: colors.textSecondary },
+  footer: { padding: spacing.lg, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
 });

@@ -9,7 +9,7 @@ import { Dot } from '@/ui/components/Badge';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { readLastShared } from '@/ui/shareFile';
-import { colors, radius, spacing, type } from '@/ui/theme';
+import { colors, ICON, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -32,11 +32,11 @@ function MenuRow({ label, icon, onPress, warning }: MenuRowProps) {
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Ionicons name={icon} size={24} color={colors.brandStrong} />
+      <Ionicons name={icon} size={ICON.md} color={colors.brandStrong} />
       <Text style={styles.rowLabel}>{label}</Text>
       {warning ? <Dot tone="error" /> : null}
       <View style={styles.spacer} />
-      <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
+      <Ionicons name="chevron-forward" size={ICON.md} color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -99,15 +99,15 @@ export default function MenuScreen() {
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.xl },
   group: { gap: spacing.xs },
-  groupTitle: { ...type.label, color: colors.textMuted, marginBottom: spacing.xs },
+  groupTitle: { ...type.label, color: colors.textSecondary, marginBottom: spacing.xs },
   row: {
     height: ROW_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.row,
-    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgMute,
   },
   pressed: { opacity: 0.75 },
   rowLabel: { ...type.body, color: colors.text },

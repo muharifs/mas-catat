@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { StyleSheet, View, type ColorValue } from 'react-native';
-import { colors, elevation, radius, type } from '@/ui/theme';
+import { colors, elevation, radius, spacing, type } from '@/ui/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -43,7 +43,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.brandStrong,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: { height: TAB_BAR_HEIGHT, backgroundColor: colors.bgCard, borderTopColor: colors.divider, ...elevation.high },
-        tabBarItemStyle: { paddingVertical: 6 },
+        tabBarItemStyle: { paddingVertical: spacing.xs },
         sceneStyle: { backgroundColor: colors.bgPage },
         headerStyle: { backgroundColor: colors.bgPage },
         headerShadowVisible: false,

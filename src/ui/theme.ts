@@ -41,33 +41,6 @@ export const colors = {
   borderStrong: '#7B8294',
   divider: '#E1E4EB',
   scrim: 'rgba(27,31,42,0.4)',
-
-  // Transition aliases (design system step A). They point to the new values and are deleted in step E,
-  // once no screen uses them any more. New code must not use these names.
-  /** @deprecated brand meaning -> brandStrong; money-in meaning -> moneyIn. */
-  primary: '#1F7271',
-  /** @deprecated use brandTint or moneyInTint. */
-  primarySoft: '#E6F5F5',
-  /** @deprecated use bgCard or bgPage. */
-  surface: '#FFFFFF',
-  /** @deprecated use bgCard with a divider, or bgMute. */
-  surfaceAlt: '#EEF0F5',
-  /** @deprecated use error. */
-  danger: '#B3261E',
-  /** @deprecated use errorTint. */
-  dangerSoft: '#FDECEA',
-  /** @deprecated use warnTint. */
-  warnSoft: '#FFF4E0',
-  /** @deprecated use textSecondary. */
-  textMuted: '#4A5162',
-  /** @deprecated use textTertiary. */
-  placeholder: '#636A7B',
-  /** @deprecated use borderStrong (inputs) or divider (hairlines). */
-  border: '#7B8294',
-  /** @deprecated use bgCard. */
-  background: '#FFFFFF',
-  /** @deprecated use onBrand. */
-  onPrimary: '#FFFFFF',
 } as const;
 
 export const type = {
@@ -81,10 +54,6 @@ export const type = {
   bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   label: { fontSize: 14, lineHeight: 20, fontWeight: '700' },
   secondary: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
-  // Transition aliases (removed in step E). caption (13) is gone: secondary (14) replaces it.
-  title: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  heading: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
-  caption: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
 } as const satisfies Record<string, TextStyle>;
 
 /** Digits of equal width, so amounts line up in columns. */
@@ -97,9 +66,6 @@ export const radius = {
   md: 12,
   lg: 16,
   pill: 999,
-  // Transition aliases (removed in step E).
-  row: 12,
-  card: 16,
 } as const;
 
 // Two shadow levels. Android draws `elevation` only on a view with an opaque background colour; the shadow* props are for iOS.

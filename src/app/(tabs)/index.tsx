@@ -23,7 +23,7 @@ import { BALANCE_MASK, balanceToggleLabel, toggleBalanceHidden, useBalanceHidden
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
-import { setHistoryMonth } from '@/ui/historyFilterStore';
+import { resetHistoryFilter, setHistoryMonth } from '@/ui/historyFilterStore';
 import { closeWeekMessage, overdueNotice, toasts } from '@/ui/messages';
 import { monthSummaryLabel, monthSummaryTitle } from '@/ui/monthSummary';
 import { paidTodayView } from '@/ui/paidToday';
@@ -39,7 +39,7 @@ const NO_PERIOD_REASON = 'Buat periode dulu.';
 // Home, top to bottom: kas header (total, Tunai, Debit, Piutang and Titipan pills, "Bulan ini" summary, two side actions), first-run checklist
 // (until set up), Pengingat (what to do now, from the pure homeReminders), the running meeting with ONE primary action,
 // the quick-action grid, who paid today, and the last three entries. All numbers come from the repositories; nothing is
-// computed here. The eye hides Total kas, the Piutang/Titipan pills and the Bulan ini amounts (not Tunai/Debit). Every other screen is reachable from the grid or the Menu tab.
+// computed here. The eye hides every balance amount: Total kas, Tunai, Debit, the Piutang/Titipan pills and the Bulan ini amounts. Every other screen is reachable from the grid or the Menu tab.
 export default function HomeScreen() {
   const repos = useRepos();
   const balanceHidden = useBalanceHidden();
@@ -154,6 +154,8 @@ export default function HomeScreen() {
   }
 
   function openMonthInRiwayat() {
+    // Riwayat is a tab that stays mounted, so its old chip/filter would survive: clear them so the list matches the summary.
+    resetHistoryFilter();
     setHistoryMonth(thisMonth);
     router.push('/riwayat');
   }
@@ -234,11 +236,23 @@ export default function HomeScreen() {
         <View style={styles.posRow}>
           <View style={styles.pos}>
             <Text style={styles.cardLabel}>Tunai</Text>
-            <Money amount={balances.tunai} size="large" />
+            {balanceHidden ? (
+              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.monthMask}>
+                {BALANCE_MASK}
+              </Text>
+            ) : (
+              <Money amount={balances.tunai} size="large" fit />
+            )}
           </View>
           <View style={styles.pos}>
             <Text style={styles.cardLabel}>Debit</Text>
-            <Money amount={balances.debit} size="large" />
+            {balanceHidden ? (
+              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.monthMask}>
+                {BALANCE_MASK}
+              </Text>
+            ) : (
+              <Money amount={balances.debit} size="large" fit />
+            )}
           </View>
         </View>
         <View style={styles.pills}>

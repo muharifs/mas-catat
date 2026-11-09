@@ -104,7 +104,7 @@ export default function CreditsScreen() {
             <Text style={styles.hint}>Titipan dari {item.periodName}</Text>
             {isSelected ? (
               <>
-                <DateField label="Tanggal" value={date} onChange={setDate} />
+                <DateField label="Tanggal" value={date} onChange={setDate} maxDate={todayIso()} />
                 <Text style={styles.label}>Uang keluar dari</Text>
                 <View style={styles.posRow}>
                   {POS.map((a) => (

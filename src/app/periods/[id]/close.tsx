@@ -167,7 +167,7 @@ export default function ClosePeriodScreen() {
         </View>
       ))}
 
-      <DateField label="Tanggal berakhir" value={endDate} onChange={setEndDate} error={problem ? END_DATE_MESSAGE[problem] : null} />
+      <DateField label="Tanggal berakhir" value={endDate} onChange={setEndDate} maxDate={todayIso()} error={problem ? END_DATE_MESSAGE[problem] : null} />
 
       {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
       <Button label={busy ? 'Memproses...' : 'Akhiri periode'} variant="danger" disabled={!canClose} onPress={confirmClose} />

@@ -160,7 +160,7 @@ export default function PayoutScreen() {
           <Text style={styles.muted}>Periode sudah berakhir. Tuan rumah tidak bisa dibayar lagi.</Text>
         ) : (
           <>
-            <DateField label="Tanggal bayar" value={date} onChange={setDate} />
+            <DateField label="Tanggal bayar" value={date} onChange={setDate} maxDate={todayIso()} />
 
             <Text style={styles.label}>Uang keluar dari</Text>
             <View style={styles.accounts}>

@@ -12,17 +12,19 @@ interface ListRowProps {
   onPress?: () => void;
   tone?: 'default' | 'alt' | 'danger';
   strikeTitle?: boolean;
+  /** Title in the error colour, for an action that ends something (for example closing a meeting). The words still say it. */
+  destructive?: boolean;
   accessibilityLabel?: string;
 }
 
 // One list row: title (and details) on the left, optional right-hand content. A tappable row is a Pressable with
 // accessibilityRole="button" so TalkBack announces it as actionable (on the web it would be an <a> or <button>).
 // Rows are flat (no shadow: a long list of shadows is slow); a hairline border separates them from the page.
-export function ListRow({ title, children, right, onPress, tone = 'default', strikeTitle = false, accessibilityLabel }: ListRowProps) {
+export function ListRow({ title, children, right, onPress, tone = 'default', strikeTitle = false, destructive = false, accessibilityLabel }: ListRowProps) {
   const body = (
     <>
       <View style={styles.main}>
-        <Text style={[styles.title, strikeTitle && styles.strike]}>{title}</Text>
+        <Text style={[styles.title, strikeTitle && styles.strike, destructive && styles.destructive]}>{title}</Text>
         {children}
       </View>
       {right ? <View style={styles.right}>{right}</View> : null}
@@ -59,6 +61,7 @@ const styles = StyleSheet.create({
   right: { alignItems: 'flex-end', gap: spacing.xs },
   title: { ...type.bodyStrong, color: colors.text },
   strike: { textDecorationLine: 'line-through' },
+  destructive: { color: colors.error },
   sub: { ...type.secondary },
 });
 

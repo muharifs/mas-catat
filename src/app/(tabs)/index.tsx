@@ -10,7 +10,10 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
+import { HistoryRow } from '@/ui/components/HistoryRow';
 import { Notice } from '@/ui/components/Notice';
+import { PillLink } from '@/ui/components/PillLink';
+import { SectionHeader } from '@/ui/components/SectionHeader';
 import { reminderText } from '@/ui/backupLabels';
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
@@ -21,25 +24,29 @@ import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
-// Home, top to bottom: kas card, first-run checklist (until set up), the running meeting with ONE primary action,
-// and links to the other screens. All numbers come from the repositories; nothing is computed here.
+// Home, top to bottom: kas header (total, Tunai, Debit, Piutang and Titipan pills, two side actions), backup reminder,
+// first-run checklist (until set up), the running meeting with ONE primary action, the last three entries, and links. All numbers come from the repositories; nothing is computed here.
 export default function HomeScreen() {
   const repos = useRepos();
 
   const load = useCallback(async () => {
-    const [members, period, periods, balances, kasEntries] = await Promise.all([
+    const [members, period, periods, kasReport, kasEntries] = await Promise.all([
       repos.members.list(),
       repos.periods.getActive(),
       repos.periods.list(),
-      repos.ledger.getKasBalances(),
+      // Same numbers as the Laporan tab: balances (Tunai, Debit, Piutang) and the Titipan line (credit held).
+      repos.reports.getKasReport(),
       repos.ledger.listKas(),
     ]);
+    const balances = kasReport.balances;
+    const creditHeld = kasReport.expected.creditHeld;
+    const names = new Map(members.map((m) => [m.id, m.name]));
     const hasOpeningBalance = kasEntries.some((e) => e.type === 'opening_balance' && !e.reversedById);
     const hasEndedPeriod = periods.some((p) => p.status === 'closed');
     // Nothing to remind about while the database holds no data at all.
     const reminder = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
     if (!period) {
-      return { members, period: null, week: null, hostName: null, arrears: null, hostPaid: false, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks: [], reminder };
+      return { members, period: null, week: null, hostName: null, arrears: null, hostPaid: false, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks: [], reminder };
     }
     const weeks = await repos.weeks.listByPeriod(period.id);
     const week = weeks.find((w) => w.status === 'open') ?? null;
@@ -52,7 +59,7 @@ export default function HomeScreen() {
       repos.payments.getArrearsSummary(period.id),
       week ? repos.ledger.getWeekPayout(period.id, week.number) : Promise.resolve(null),
     ]);
-    return { members, period, week, hostName, arrears, hostPaid: Boolean(paid), balances, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder };
+    return { members, period, week, hostName, arrears, hostPaid: Boolean(paid), balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder };
   }, [repos]);
 
   const { data, error, reload } = useLoad(load);
@@ -61,7 +68,7 @@ export default function HomeScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { period, week, hostName, members, arrears, hostPaid, balances, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder } = data;
+  const { period, week, hostName, members, arrears, hostPaid, balances, creditHeld, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, reminder } = data;
   const memberCount = members.length;
   const checklist = firstRunChecklist({
     memberCount,
@@ -75,6 +82,9 @@ export default function HomeScreen() {
         }
       : null,
   });
+  const hasAnyPeriod = periods.length > 0;
+  const lastEntries = kasEntries.slice(0, 3);
+  const entriesById = new Map(kasEntries.map((e) => [e.id, e]));
   const overdue = week ? overdueNotice(week.date, todayIso()) : null;
 
   function confirmCloseWeek() {
@@ -107,8 +117,30 @@ export default function HomeScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Card>
-        <Text style={styles.cardLabel}>Total kas</Text>
-        <Money amount={balances.actual} size="display" />
+        <View style={styles.headerRow}>
+          <View style={styles.total}>
+            <Text style={styles.cardLabel}>Total kas</Text>
+            <Money amount={balances.actual} size="hero" fit />
+          </View>
+          <View style={styles.sideActions}>
+            <Button
+              label="Pindah saldo"
+              variant="secondary"
+              compact
+              disabled={!hasAnyPeriod}
+              disabledReason={NO_PERIOD_REASON}
+              onPress={() => router.push({ pathname: '/kas/new', params: { kind: 'transfer' } })}
+            />
+            <Button
+              label="Catat kas"
+              variant="secondary"
+              compact
+              disabled={!hasAnyPeriod}
+              disabledReason={NO_PERIOD_REASON}
+              onPress={() => router.push('/kas')}
+            />
+          </View>
+        </View>
         <View style={styles.posRow}>
           <View style={styles.pos}>
             <Text style={styles.cardLabel}>Tunai</Text>
@@ -118,6 +150,10 @@ export default function HomeScreen() {
             <Text style={styles.cardLabel}>Debit</Text>
             <Money amount={balances.debit} size="large" />
           </View>
+        </View>
+        <View style={styles.pills}>
+          <PillLink label="Piutang" amount={balances.piutang} hint="Buka daftar pinjaman" onPress={() => router.push('/loans')} />
+          <PillLink label="Titipan" amount={creditHeld} hint="Buka daftar titipan anggota" onPress={() => router.push('/credits')} />
         </View>
       </Card>
 
@@ -168,13 +204,13 @@ export default function HomeScreen() {
               ) : (
                 <>
                   <Button label="Catat pembayaran" onPress={() => goPayments(period.id)} />
-                  <Button
-                    label={hostPaid ? 'Tuan rumah sudah dibayar' : 'Bayar tuan rumah'}
-                    variant="secondary"
+                  <ListRow
+                    title={hostPaid ? 'Tuan rumah sudah dibayar' : 'Bayar tuan rumah'}
+                    tone="alt"
                     onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(week.number) } })}
                   />
-                  <Button label={`Tutup pertemuan ${week.number}`} variant="dangerOutline" onPress={confirmCloseWeek} />
                   <ListRow title="Ubah tuan rumah / tanggal" tone="alt" onPress={() => goMeeting(period.id, week.number)} />
+                  <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive onPress={confirmCloseWeek} />
                 </>
               )}
             </>
@@ -205,6 +241,20 @@ export default function HomeScreen() {
         />
       )}
 
+      <SectionHeader title="Terakhir" actionLabel="Lihat semua riwayat" onAction={() => router.push('/riwayat')} />
+      <Card>
+        {lastEntries.length === 0 ? (
+          <Text style={styles.body}>Belum ada catatan.</Text>
+        ) : (
+          lastEntries.map((entry, index) => (
+            <View key={entry.id}>
+              {index > 0 ? <View style={styles.divider} /> : null}
+              <HistoryRow flat entry={entry} byId={entriesById} memberName={entry.memberId ? (names.get(entry.memberId) ?? '') : ''} />
+            </View>
+          ))
+        )}
+      </Card>
+
       <View style={styles.links}>
         <ListRow title="Anggota" tone="alt" onPress={() => router.push('/members')} right={<RowText>{memberCount} anggota</RowText>} />
         <ListRow title="Kas" tone="alt" onPress={() => router.push('/kas')} />
@@ -225,9 +275,16 @@ export default function HomeScreen() {
   );
 }
 
+const NO_PERIOD_REASON = 'Buat periode dulu.';
+
 const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.lg },
   cardLabel: { ...type.label, color: colors.textMuted },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  total: { flex: 1, gap: spacing.xs },
+  sideActions: { width: 128, gap: spacing.sm },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  divider: { height: 1, backgroundColor: colors.divider },
   posRow: { flexDirection: 'row', gap: spacing.lg },
   pos: { flex: 1, gap: spacing.xs },
   heading: { ...type.heading, color: colors.text },

@@ -42,11 +42,13 @@ interface HistoryRowProps {
   /** Every entry of the list, to find the original of a reversal. */
   byId: ReadonlyMap<string, LedgerListItem>;
   memberName: string;
+  /** No own border, background or radius: the row sits inside a card and the parent draws the dividers. */
+  flat?: boolean;
 }
 
 // One row of Riwayat: 40dp icon, title (16sp), second line with member and pos (14sp), amount (18sp). The icon is
 // decoration; the title always says the type in words. Tapping opens the entry detail.
-export function HistoryRow({ entry: e, byId, memberName }: HistoryRowProps) {
+export function HistoryRow({ entry: e, byId, memberName, flat = false }: HistoryRowProps) {
   const title = e.type === 'reversal' ? reversalTitle(e, byId) : entryTitle(e);
   const corrected = Boolean(e.reversedById);
   const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(' - ');
@@ -56,7 +58,12 @@ export function HistoryRow({ entry: e, byId, memberName }: HistoryRowProps) {
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } })}
-      style={({ pressed }) => [styles.row, corrected && styles.rowCorrected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        flat && styles.rowFlat,
+        corrected && (flat ? styles.rowCorrectedFlat : styles.rowCorrected),
+        pressed && styles.pressed,
+      ]}
     >
       <View style={[styles.icon, { backgroundColor: DIRECTION_ICON[direction].circle }]}>
         <Ionicons name={TYPE_ICONS[e.type]} size={24} color={DIRECTION_ICON[direction].icon} />
@@ -85,6 +92,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
   },
+  rowFlat: { backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0, paddingHorizontal: 0 },
+  rowCorrectedFlat: { backgroundColor: colors.errorTint },
   rowCorrected: { backgroundColor: colors.errorTint, borderColor: colors.error },
   pressed: { backgroundColor: colors.bgMute },
   icon: {

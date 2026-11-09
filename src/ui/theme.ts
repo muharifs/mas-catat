@@ -71,6 +71,8 @@ export const colors = {
 } as const;
 
 export const type = {
+  // Largest size, for the one number a screen is about (Total kas on Beranda). Added after design system v1 (owner-approved).
+  hero: { fontSize: 36, lineHeight: 44, fontWeight: '700' },
   display: { fontSize: 28, lineHeight: 36, fontWeight: '700' },
   titleL: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
   amountL: { fontSize: 20, lineHeight: 28, fontWeight: '700' },

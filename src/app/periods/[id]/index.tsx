@@ -10,7 +10,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
-import { toIndonesian } from '@/ui/errors';
+import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
 import { closeWeekMessage, toasts } from '@/ui/messages';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -126,9 +126,10 @@ export default function PeriodDetailScreen() {
               <Text style={w.status === 'open' ? styles.open : styles.closed}>
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
+              {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
             </View>
             <View style={styles.actions}>
-              {canPick ? (
+              {canPick && !(isPaid && w.hostMemberId) ? (
                 <Button
                   label={w.hostMemberId ? 'Ubah' : 'Tentukan'}
                   variant="secondary"

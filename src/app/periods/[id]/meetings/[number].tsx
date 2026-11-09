@@ -17,7 +17,7 @@ import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
-import { toIndonesian } from '@/ui/errors';
+import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
 import { describeDateProblem } from '@/ui/meetingDate';
 import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
@@ -38,7 +38,8 @@ export default function MeetingHostScreen() {
       repos.periods.getMembers(id),
       repos.members.list(),
     ]);
-    return { period, weeks, memberIds: periodMembers.map((m) => m.memberId), members };
+    const standingPayoutWeeks = await repos.weeks.standingPayoutWeeks(id);
+    return { period, weeks, memberIds: periodMembers.map((m) => m.memberId), members, standingPayoutWeeks };
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
@@ -50,7 +51,7 @@ export default function MeetingHostScreen() {
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  const { period, weeks, memberIds, members } = data;
+  const { period, weeks, memberIds, members, standingPayoutWeeks } = data;
   const found = weeks.find((w) => w.number === number);
   if (!period || !found) return <ErrorState message="Pertemuan tidak ditemukan." />;
 
@@ -58,12 +59,16 @@ export default function MeetingHostScreen() {
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const canEdit = period.status === 'active' && week.status === 'open' && selectableWeekNumbers(weeks).includes(number);
-  if (!canEdit) {
+  // A standing host payout locks the host (correct the payout first). The list comes from the repository.
+  const payoutStands = week.hostMemberId !== null && standingPayoutWeeks.includes(number);
+  if (!canEdit || payoutStands) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Pertemuan {number}</Text>
         <Text style={styles.body}>
-          Tuan rumah dan tanggal hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya yang belum ditutup.
+          {canEdit
+            ? HOST_PAYOUT_STANDS_TEXT
+            : 'Tuan rumah dan tanggal hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya yang belum ditutup.'}
         </Text>
         <Button label="Kembali" variant="secondary" onPress={() => router.back()} />
       </View>

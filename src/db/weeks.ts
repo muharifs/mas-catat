@@ -3,7 +3,7 @@
 // exactly once, so picking a member who already holds another open meeting exchanges the two hosts.
 import { allocatePayments } from '@/domain/allocation';
 import { periodWeekCount } from '@/domain/dues';
-import { planAssignment, type WeekChange } from '@/domain/schedule';
+import { assertNoStandingPayout, planAssignment, type WeekChange } from '@/domain/schedule';
 import type { WeekCredit, WeekStatus } from '@/domain/types';
 import type { Db, Queryable } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
@@ -72,6 +72,21 @@ async function applyChanges(tx: Queryable, periodId: string, changes: readonly W
       c.number,
     ]);
   }
+}
+
+/**
+ * Meetings whose host payout stands: a host_payout entry exists and has no reversal (a corrected payout counts as
+ * unpaid, the same rule as closing a period). Kept here, not imported from ledger.ts, to avoid a circular import.
+ */
+export async function loadStandingPayoutWeeks(db: Queryable, periodId: string): Promise<number[]> {
+  const rows = await db.getAll<{ week: number }>(
+    `SELECT DISTINCT e.week AS week FROM ledger_entries e
+      WHERE e.period_id = ? AND e.type = 'host_payout' AND e.week IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.reverses_entry_id = e.id)
+      ORDER BY e.week`,
+    [periodId],
+  );
+  return rows.map((r) => r.week);
 }
 
 async function assertHasHost(db: Queryable, periodId: string, number: number): Promise<void> {
@@ -180,6 +195,11 @@ export function createWeeksRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return rows.map(toWeek);
     },
 
+    /** Numbers of the meetings whose host payout stands (for the UI: no host change there). */
+    async standingPayoutWeeks(periodId: string): Promise<number[]> {
+      return loadStandingPayoutWeeks(db, periodId);
+    },
+
     /** Exchanges the hosts (dates stay) of two open weeks; rejected if either week is closed. */
     async swapHosts(periodId: string, numberA: number, numberB: number): Promise<void> {
       if (numberA === numberB) throw new RepositoryError('cannot swap a week with itself');
@@ -188,6 +208,11 @@ export function createWeeksRepo(db: Db, deps: RepoDeps = defaultDeps) {
         const b = await loadWeek(tx, periodId, numberB);
         assertOpen(a);
         assertOpen(b);
+        const standing = await loadStandingPayoutWeeks(tx, periodId);
+        assertNoStandingPayout(
+          [a, b].map((w) => ({ number: w.number, date: w.date, hostMemberId: w.hostMemberId, status: w.status, payoutStands: standing.includes(w.number) })),
+          [a.number, b.number],
+        );
         await applyChanges(tx, periodId, [
           { number: a.number, hostMemberId: b.hostMemberId, date: a.date },
           { number: b.number, hostMemberId: a.hostMemberId, date: b.date },
@@ -212,8 +237,15 @@ export function createWeeksRepo(db: Db, deps: RepoDeps = defaultDeps) {
           'SELECT member_id FROM period_members WHERE period_id = ? ORDER BY initial_order',
           [periodId],
         );
+        const standing = await loadStandingPayoutWeeks(tx, periodId);
         const changes = planAssignment({
-          weeks: rows.map((r) => ({ number: r.number, date: r.date, hostMemberId: r.host_member_id, status: r.status })),
+          weeks: rows.map((r) => ({
+            number: r.number,
+            date: r.date,
+            hostMemberId: r.host_member_id,
+            status: r.status,
+            payoutStands: standing.includes(r.number),
+          })),
           memberIds: members.map((m) => m.member_id),
           number,
           memberId,

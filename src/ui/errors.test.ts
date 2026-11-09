@@ -2,6 +2,7 @@ import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
+import { HostPayoutStandsError } from '@/domain/schedule';
 import { archiveBlockText, BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
@@ -11,6 +12,7 @@ describe('toIndonesian', () => {
     [new RepositoryError('another period is still active; end it before creating a new one'), 'Masih ada periode yang aktif. Akhiri dulu sebelum membuat periode baru.'],
     [new RepositoryError('period still has open weeks; close every week first'), 'Periode belum bisa diakhiri karena masih ada pertemuan yang belum ditutup.'],
     [new RepositoryError('week 3 is closed; its host cannot be changed'), 'Pertemuan yang sudah ditutup tidak bisa diubah tuan rumah atau tanggalnya.'],
+    [new HostPayoutStandsError(2), 'Koreksi pembayaran tuan rumah dulu untuk mengganti tuan rumah.'],
     [new RepositoryError('cannot swap a week with itself'), 'Pilih dua pertemuan yang berbeda.'],
     [new RepositoryError('memberIds must list each member exactly once'), 'Setiap anggota hanya boleh dipilih satu kali.'],
     [new RepositoryError('week 2 not found in period p'), 'Pertemuan tidak ditemukan.'],

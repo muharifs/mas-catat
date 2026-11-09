@@ -3,7 +3,9 @@ import {
   addDays,
   daysBetween,
   defaultMeetingDate,
+  assertNoStandingPayout,
   eligibleHostIds,
+  HostPayoutStandsError,
   isRealDate,
   MEETING_WEEKDAY,
   meetingDateProblem,
@@ -259,6 +261,49 @@ describe('planAssignment', () => {
     const copy = JSON.parse(JSON.stringify(weeks));
     plan(weeks, 1, 'a', '2026-01-09');
     expect(weeks).toEqual(copy);
+  });
+});
+
+describe('standing host payout locks the host (owner decision 2026-11-10)', () => {
+  const withPayout = (weeks: ScheduleWeek[], ...numbers: number[]) =>
+    weeks.map((w) => ({ ...w, payoutStands: numbers.includes(w.number) }));
+  const pick = (weeks: ScheduleWeek[], number: number, memberId: string) =>
+    planAssignment({ weeks, memberIds: MEMBERS, number, memberId, date: addDays('2026-01-06', 7 * (number - 1)) });
+
+  it('rejects a new host for a meeting whose payout stands', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']), 1);
+    expect(() => pick(weeks, 1, 'c')).toThrow(HostPayoutStandsError);
+    expect(() => pick(weeks, 1, 'c')).toThrow(DomainError);
+  });
+
+  it('allows the host again once the payout is reversed (flag false)', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']));
+    expect(pick(weeks, 1, 'c').find((c) => c.number === 1)?.hostMemberId).toBe('c');
+  });
+
+  it('rejects an exchange when the OTHER meeting has a standing payout', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']), 1);
+    const error = (() => {
+      try {
+        pick(weeks, 2, 'a'); // a holds meeting 1 (paid): meeting 2 would take a, meeting 1 would get b
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(error).toBeInstanceOf(HostPayoutStandsError);
+    expect((error as HostPayoutStandsError).weekNumber).toBe(1);
+  });
+
+  it('does not block an unpaid meeting or re-picking the same host (date only)', () => {
+    const weeks = withPayout(schedule(4, ['a', 'b']), 1);
+    expect(pick(weeks, 2, 'c').find((c) => c.number === 2)?.hostMemberId).toBe('c');
+    expect(() => planAssignment({ weeks, memberIds: MEMBERS, number: 1, memberId: 'a', date: '2026-01-06' })).not.toThrow();
+  });
+
+  it('assertNoStandingPayout checks only the given meetings', () => {
+    const weeks = withPayout(schedule(3, ['a', 'b', 'c']), 2);
+    expect(() => assertNoStandingPayout(weeks, [1, 3])).not.toThrow();
+    expect(() => assertNoStandingPayout(weeks, [1, 2])).toThrow(HostPayoutStandsError);
   });
 });
 

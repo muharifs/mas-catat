@@ -78,6 +78,25 @@ export interface ScheduleWeek {
   /** NULL = "Belum ditentukan". */
   hostMemberId: string | null;
   status: 'open' | 'closed';
+  /**
+   * True while a host payout of this meeting stands (recorded and not corrected; same meaning as the close rule).
+   * Optional: missing means no payout. The host of such a meeting cannot be changed (owner decision 2026-11-10).
+   */
+  payoutStands?: boolean;
+}
+
+/** Thrown when a host change touches a meeting whose host payout stands. The UI maps it to Indonesian text. */
+export class HostPayoutStandsError extends DomainError {
+  constructor(public readonly weekNumber: number) {
+    super(`week ${weekNumber} has a host payout in force; correct the payout first to change its host`);
+    this.name = 'HostPayoutStandsError';
+  }
+}
+
+/** Rejects a host change when any of the given meetings has a standing payout. Used by the swap path too. */
+export function assertNoStandingPayout(weeks: readonly ScheduleWeek[], numbers: readonly number[]): void {
+  const blocked = weeks.find((w) => numbers.includes(w.number) && w.payoutStands === true);
+  if (blocked) throw new HostPayoutStandsError(blocked.number);
 }
 
 /** Final host and date of one meeting after a change. */
@@ -229,6 +248,10 @@ export function planAssignment(input: AssignmentInput): WeekChange[] {
   const state = weeks.map((w) => ({ ...w }));
   const targetState = state.find((w) => w.number === number) as ScheduleWeek; // exists: found above
   const holder = state.find((w) => w.status === 'open' && w.number !== number && w.hostMemberId === memberId);
+  // A host change (also the exchange with the other meeting) is refused while a payout of either meeting stands.
+  // Re-picking the same host of the target only moves its date, which is not a host change.
+  if (target.hostMemberId !== memberId) assertNoStandingPayout(weeks, [number]);
+  if (holder) assertNoStandingPayout(weeks, [number, holder.number]);
   if (holder) holder.hostMemberId = targetState.hostMemberId;
   targetState.hostMemberId = memberId;
   targetState.date = date;

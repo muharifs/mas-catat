@@ -4,7 +4,11 @@ import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { MemberArchiveError, type ArchiveBlockCode } from '@/domain/members';
 import { DomainError } from '@/domain/money';
+import { HostPayoutStandsError } from '@/domain/schedule';
 import { formatRupiah } from './format';
+
+/** Shown when a host change is refused because the host payout of that meeting stands. */
+export const HOST_PAYOUT_STANDS_TEXT = 'Koreksi pembayaran tuan rumah dulu untuk mengganti tuan rumah.';
 
 export const GENERIC_ERROR = 'Terjadi kesalahan. Coba lagi.';
 
@@ -118,6 +122,7 @@ export function archiveBlockText(code: ArchiveBlockCode, amount: number): string
 export function toIndonesian(error: unknown): string {
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
+  if (error instanceof HostPayoutStandsError) return HOST_PAYOUT_STANDS_TEXT;
   if (error instanceof MigrationError) return 'Database gagal disiapkan. Tutup lalu buka lagi aplikasinya.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
     for (const rule of RULES) {

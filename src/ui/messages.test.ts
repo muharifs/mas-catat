@@ -26,19 +26,19 @@ describe('closeWeekMessage', () => {
 
 describe('overdueNotice', () => {
   it('says how many days the open meeting date is past', () => {
-    expect(overdueNotice('2026-01-04', '2026-01-16')).toBe(
-      'Tanggal 4 Jan sudah lewat 12 hari. Jika libur, biarkan terbuka dan ubah tanggalnya saat pertemuan jadi.',
+    expect(overdueNotice(3, '2026-01-04', '2026-01-16')).toBe(
+      'Pertemuan 3 (4 Jan) sudah lewat 12 hari. Jika libur, biarkan terbuka dan ubah tanggalnya saat pertemuan jadi dilaksanakan.',
     );
-    expect(overdueNotice('2026-01-04', '2026-01-05')).toMatch(/sudah lewat 1 hari/);
+    expect(overdueNotice(1, '2026-01-04', '2026-01-05')).toMatch(/sudah lewat 1 hari/);
   });
 
   it('is silent today and for a future date', () => {
-    expect(overdueNotice('2026-01-04', '2026-01-04')).toBeNull();
-    expect(overdueNotice('2026-01-11', '2026-01-04')).toBeNull();
+    expect(overdueNotice(1, '2026-01-04', '2026-01-04')).toBeNull();
+    expect(overdueNotice(1, '2026-01-11', '2026-01-04')).toBeNull();
   });
 
   it('has no "libur" button text, only advice', () => {
-    expect(overdueNotice('2026-01-04', '2026-02-04')).not.toMatch(/tombol/i);
+    expect(overdueNotice(1, '2026-01-04', '2026-02-04')).not.toMatch(/tombol/i);
   });
 });
 
@@ -59,7 +59,7 @@ describe('toasts', () => {
   it('words each success message', () => {
     expect(toasts.payment(30_000, 'Budi')).toBe('Pembayaran Rp30.000 dari Budi tersimpan');
     expect(toasts.weekClosed(3)).toBe('Pertemuan 3 ditutup');
-    expect(toasts.host(3, 'Budi')).toBe('Tuan rumah pertemuan 3: Budi tersimpan');
+    expect(toasts.host(3, 'Budi')).toBe('Tuan rumah pertemuan 3 disimpan: Budi');
     expect(toasts.payout(100_000, 'Budi')).toBe('Pembayaran tuan rumah Rp100.000 untuk Budi tersimpan');
     expect(toasts.kas('Saldo awal', 500_000)).toBe('Saldo awal Rp500.000 tersimpan');
     expect(toasts.periodSaved('Periode 2')).toBe('Periode "Periode 2" tersimpan');

@@ -90,7 +90,7 @@ export default function PeriodPaymentsScreen() {
                 Sudah bayar hari ini: {paidTodayCount} dari {balances.length}
               </Text>
               <Text style={styles.muted}>
-                Geser baris ke kanan untuk mencatat {formatRupiah(SWIPE_PAYMENT_AMOUNT)} (Tunai, hari ini) bagi anggota yang menunggak dan belum bayar hari ini. Pembayaran kedua di hari yang sama lewat form lengkap (ketuk baris).
+                Geser baris ke kanan untuk mencatat {formatRupiah(SWIPE_PAYMENT_AMOUNT)} (Tunai, hari ini) bagi anggota yang menunggak dan belum bayar hari ini. Pembayaran kedua di hari yang sama lewat halaman pembayaran (ketuk baris).
               </Text>
             </>
           ) : null}

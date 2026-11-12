@@ -37,10 +37,10 @@ export function closeWeekMessage(number: number, date: string, arrears: ArrearsL
  * Notice on Home when the date of the running (still open) meeting is already past, or null otherwise.
  * There is no "libur" button: during a break the owner just leaves the meeting open and moves its date later.
  */
-export function overdueNotice(meetingDate: string, today: string): string | null {
+export function overdueNotice(meetingNumber: number, meetingDate: string, today: string): string | null {
   const days = daysBetween(meetingDate, today);
   if (days < 1) return null;
-  return `Tanggal ${formatDayMonth(meetingDate)} sudah lewat ${days} hari. Jika libur, biarkan terbuka dan ubah tanggalnya saat pertemuan jadi.`;
+  return `Pertemuan ${meetingNumber} (${formatDayMonth(meetingDate)}) sudah lewat ${days} hari. Jika libur, biarkan terbuka dan ubah tanggalnya saat pertemuan jadi dilaksanakan.`;
 }
 
 /** Label of a quick-amount chip. The amount comes from the domain's paymentChoices. */
@@ -96,7 +96,7 @@ export const toasts = {
   payout: (amount: number, hostName: string) => `Pembayaran tuan rumah ${formatRupiah(amount)} untuk ${hostName} tersimpan`,
   kas: (kindLabel: string, amount: number) => `${kindLabel} ${formatRupiah(amount)} tersimpan`,
   weekClosed: (number: number) => `Pertemuan ${number} ditutup`,
-  host: (number: number, hostName: string) => `Tuan rumah pertemuan ${number}: ${hostName} tersimpan`,
+  host: (number: number, hostName: string) => `Tuan rumah pertemuan ${number} disimpan: ${hostName}`,
   periodSaved: (name: string) => `Periode "${name}" tersimpan`,
   periodClosed: (name: string) => `Periode "${name}" berakhir`,
   refund: (amount: number, memberName: string) => `Titipan ${formatRupiah(amount)} dikembalikan ke ${memberName}`,

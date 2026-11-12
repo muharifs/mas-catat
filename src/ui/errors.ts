@@ -27,7 +27,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /period name must not be empty/, text: 'Nama periode tidak boleh kosong.' },
   { pattern: /memberIds must list each member exactly once/, text: 'Setiap anggota hanya boleh dipilih satu kali.' },
   { pattern: /another period is still active/, text: 'Masih ada periode yang aktif. Akhiri dulu sebelum membuat periode baru.' },
-  { pattern: /period still has open weeks/, text: 'Periode belum bisa diakhiri karena masih ada pertemuan yang belum ditutup.' },
+  { pattern: /period still has open weeks/, text: 'Periode belum bisa diakhiri karena masih ada pertemuan yang belum ditutup. Tutup dulu semua pertemuan.' },
   { pattern: /is already closed/, text: 'Periode ini sudah berakhir.' },
   { pattern: /end date is before the start date/, text: 'Tanggal berakhir tidak boleh sebelum tanggal mulai periode.' },
   { pattern: /week \d+ is closed; its host cannot be changed/, text: 'Pertemuan yang sudah ditutup tidak bisa diubah tuan rumah atau tanggalnya.' },
@@ -46,7 +46,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /must be an ISO date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /memberCount must be a positive integer/, text: 'Pilih minimal satu anggota.' },
   { pattern: /has ended; payments are not accepted/, text: 'Periode sudah berakhir. Pembayaran tidak bisa dicatat.' },
-  { pattern: /payment date is in the future/, text: 'Tanggal pembayaran tidak boleh di masa depan.' },
+  { pattern: /payment date is in the future/, text: 'Tanggal pembayaran tidak boleh di masa depan. Pilih hari ini atau sebelumnya.' },
   { pattern: /payment date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /receiving account must be/, text: 'Pilih tempat uang masuk: Tunai atau Debit.' },
   { pattern: /no open week left to close/, text: 'Semua pertemuan sudah ditutup.' },
@@ -58,17 +58,17 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /has ended; a correction is not allowed/, text: 'Koreksi hanya bisa dilakukan pada periode yang masih aktif.' },
   { pattern: /has ended; a host payout is not allowed/, text: 'Periode sudah berakhir. Tuan rumah tidak bisa dibayar lagi.' },
   { pattern: /payout account must be/, text: 'Pilih sumber uang: Tunai atau Debit.' },
-  { pattern: /entry date is in the future/, text: 'Tanggal tidak boleh di masa depan.' },
+  { pattern: /entry date is in the future/, text: 'Tanggal tidak boleh di masa depan. Pilih hari ini atau sebelumnya.' },
   { pattern: /entry date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /cannot be paid out yet/, text: 'Tuan rumah hanya bisa dibayar untuk pertemuan saat ini atau pertemuan yang sudah ditutup.' },
   { pattern: /already has a host payout/, text: 'Pertemuan ini sudah dibayarkan ke tuan rumah. Koreksi dulu jika salah.' },
   { pattern: /no host payout to correct/, text: 'Pertemuan ini belum punya pembayaran tuan rumah yang bisa dikoreksi.' },
   { pattern: /payment .* not found/, text: 'Pembayaran tidak ditemukan.' },
   { pattern: /ledger entry .* not found/, text: 'Catatan kas tidak ditemukan.' },
-  { pattern: /has no ledger entry to reverse/, text: 'Pembayaran lama ini tidak punya catatan kas, jadi tidak bisa dikoreksi otomatis.' },
+  { pattern: /has no ledger entry to reverse/, text: 'Pembayaran lama ini tidak punya catatan kas, jadi tidak bisa dikoreksi otomatis. Catat ulang pembayarannya bila perlu.' },
   { pattern: /no period exists yet/, text: 'Belum ada periode. Buat periode dulu.' },
-  { pattern: /no active period/, text: 'Tidak ada periode aktif. Buat atau mulai periode dulu.' },
-  { pattern: /end date is in the future/, text: 'Tanggal berakhir tidak boleh di masa depan.' },
+  { pattern: /no active period/, text: 'Tidak ada periode aktif. Buat periode dulu.' },
+  { pattern: /end date is in the future/, text: 'Tanggal berakhir tidak boleh di masa depan. Pilih hari ini atau sebelumnya.' },
   { pattern: /have no host payout in force/, text: 'Periode belum bisa diakhiri karena masih ada tuan rumah yang belum dibayar. Bayar dulu semua tuan rumah.' },
   { pattern: /nothing to refund/, text: 'Anggota ini tidak punya titipan yang bisa dikembalikan.' },
   { pattern: /has not ended; its credit cannot be refunded/, text: 'Titipan periode yang masih aktif belum bisa dikembalikan. Akhiri periodenya dulu.' },
@@ -86,7 +86,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
     text: (m) => `Pinjaman ini sudah dibayar ${formatRupiah(Number(m[1]))}. Koreksi pelunasannya dulu, baru koreksi pinjamannya.`,
   },
   { pattern: /has history and cannot be deleted/, text: 'Anggota ini punya riwayat, jadi tidak bisa dihapus. Arsipkan saja.' },
-  { pattern: /archived and cannot join a period|archived member cannot join/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.' },
+  { pattern: /archived and cannot join a period|archived member cannot join/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu di halaman Anggota.' },
   { pattern: /cannot be archived/, text: 'Belum bisa diarsipkan: masih ikut periode aktif. Arsipkan setelah periodenya berakhir.' },
   { pattern: /amount must be a positive integer/, text: 'Jumlah harus lebih dari nol.' },
 ];
@@ -116,7 +116,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
 // unreachable (the domain and repository check first), but when one fires the driver throws a plain Error.
 const TRIGGER_RULES: readonly { pattern: RegExp; text: string }[] = [
   { pattern: /member of the active period cannot be archived/, text: 'Anggota masih ikut periode aktif, jadi belum bisa diarsipkan.' },
-  { pattern: /archived member cannot join a period/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.' },
+  { pattern: /archived member cannot join a period/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu di halaman Anggota.' },
 ];
 
 /** Why a member cannot be archived, in plain words. */

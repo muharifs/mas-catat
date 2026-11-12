@@ -57,7 +57,7 @@ export function historyFlowText(e: FlowFields): string {
   if (e.type === 'debt_writeoff') return 'Tidak mengubah saldo kas';
   if (e.account === null) return 'Belum ada tempat uang';
   if (e.toAccount) return `${ACCOUNT_LABELS[e.account]} ke ${ACCOUNT_LABELS[e.toAccount]}`;
-  if (e.account === 'piutang') return 'Piutang';
+  if (e.account === 'piutang') return 'Tercatat di Piutang';
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;
 }
 

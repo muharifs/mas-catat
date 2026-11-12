@@ -23,7 +23,7 @@ import { useLoad } from '@/ui/useLoad';
 const END_DATE_MESSAGE: Record<EndDateProblem, string> = {
   invalid: 'Tanggal tidak valid. Pilih tanggal dari kalender.',
   before_start: 'Tanggal berakhir tidak boleh sebelum tanggal mulai periode.',
-  future: 'Tanggal berakhir tidak boleh di masa depan.',
+  future: 'Tanggal berakhir tidak boleh di masa depan. Pilih hari ini atau sebelumnya.',
 };
 
 // Pre-close screen: shows exactly what ending the period will do (every number comes from the repository, which
@@ -100,7 +100,7 @@ export default function ClosePeriodScreen() {
           text: 'Lanjut',
           onPress: () =>
             Alert.alert(
-              'Yakin akhiri periode?',
+              'Yakin ingin mengakhiri periode?',
               'Ini tidak bisa dibatalkan. Setelah periode berakhir, pembayaran, pertemuan dan pembayaran tuan rumah periode ini tidak bisa diubah lagi.',
               [
                 { text: 'Batal', style: 'cancel' },

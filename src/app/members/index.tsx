@@ -183,7 +183,7 @@ export default function MembersScreen() {
           />
           <Button label="Tambah" onPress={add} />
           <SectionHeader title={`${members.length} anggota`} />
-          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubahnya, menghapus, atau mengarsipkannya.</Text> : null}
+          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubah nama, menghapus, atau mengarsipkan anggota.</Text> : null}
         </View>
       }
       ListEmptyComponent={<EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." />}

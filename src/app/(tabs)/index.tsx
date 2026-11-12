@@ -128,7 +128,7 @@ export default function HomeScreen() {
     paidTodayIds.map((id) => ({ id, name: names.get(id) ?? '-' })),
     period?.memberCount ?? 0,
   );
-  const overdue = week ? overdueNotice(week.date, today) : null;
+  const overdue = week ? overdueNotice(week.number, week.date, today) : null;
 
   function confirmCloseWeek() {
     if (!period || !week) return;
@@ -428,7 +428,7 @@ export default function HomeScreen() {
         <View style={styles.gridRow}>
           <QuickAction label="Iuran" icon="cash-outline" disabledReason={reasons.iuran} onPress={() => period && goPayments(period.id)} />
           <QuickAction
-            label="Tuan rumah"
+            label="Bayar tuan rumah"
             icon="home-outline"
             disabledReason={reasons.tuanRumah}
             onPress={() => period && week && goPayout(period.id, week.number)}

@@ -26,7 +26,7 @@ export default function PeriodsScreen() {
       ListEmptyComponent={
         <EmptyState
           title="Belum ada periode"
-          message="Buat periode pertama dari menu Buat Periode."
+          message="Buat periode pertama dengan tombol di bawah."
           actionLabel="Buat periode"
           onAction={() => router.push('/periods/new')}
         />

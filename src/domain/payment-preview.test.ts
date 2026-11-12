@@ -1,5 +1,5 @@
 import { allocatePayments } from './allocation';
-import { assertPaymentDate, parseRupiahInput, paymentChoices, previewPayment, weekState } from './payment-preview';
+import { AMOUNT_FORMAT_HINT, assertPaymentDate, parseRupiahInput, paymentChoices, previewPayment, weekState } from './payment-preview';
 import { DomainError } from './money';
 import type { Payment, WeekStatus } from './types';
 
@@ -199,5 +199,11 @@ describe('paymentChoices', () => {
   it('rejects a negative or fractional arrears', () => {
     expect(() => paymentChoices(-1)).toThrow(DomainError);
     expect(() => paymentChoices(1.5)).toThrow(DomainError);
+  });
+});
+
+describe('AMOUNT_FORMAT_HINT', () => {
+  it('points to the on-screen keypad instead of asking to type', () => {
+    expect(AMOUNT_FORMAT_HINT).toBe('Isi jumlah dengan angka di bawah.');
   });
 });

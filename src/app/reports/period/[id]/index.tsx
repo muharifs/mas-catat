@@ -49,7 +49,7 @@ export default function PeriodReportScreen() {
 
       <SectionHeader title="Ringkasan periode" />
       <Card>
-        <ReportLine label="Total iuran periode" amount={summary.totalDues} hint="15.000 x anggota x pertemuan" />
+        <ReportLine label="Total iuran periode" amount={summary.totalDues} hint="Rp15.000 x anggota x pertemuan" />
         <ReportLine label="Terkumpul dari anggota" amount={summary.collected} />
         <ReportLine label="Pembayaran tuan rumah" amount={summary.payouts} />
         <ReportLine label="Dipotong dari bayaran tuan rumah" amount={summary.offsets} />

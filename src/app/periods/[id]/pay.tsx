@@ -94,7 +94,7 @@ export default function PayScreen() {
     setError(null);
     const amount = parseRupiahInput(amountText);
     if (amount === null) {
-      setError(amountText.trim().length === 0 ? 'Isi jumlah pembayaran, misalnya 15000.' : AMOUNT_FORMAT_HINT);
+      setError(AMOUNT_FORMAT_HINT);
       return;
     }
     setBusy(true);

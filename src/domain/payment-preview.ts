@@ -83,8 +83,8 @@ export function weekState(s: WeekStatus): WeekState {
   return 'unpaid';
 }
 
-/** Message shown when the amount text is not plain digits or correctly grouped thousands. */
-export const AMOUNT_FORMAT_HINT = 'Tulis jumlah tanpa koma, misalnya 45000 atau 45.000.';
+/** Message shown when the amount text is empty or not clean digits. The amount is entered with the on-screen keypad. */
+export const AMOUNT_FORMAT_HINT = 'Isi jumlah dengan angka di bawah.';
 
 const PLAIN_DIGITS = /^\d+$/;
 const DOT_GROUPED = /^\d{1,3}(\.\d{3})+$/;

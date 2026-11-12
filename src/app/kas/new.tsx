@@ -106,12 +106,12 @@ export default function NewKasEntryScreen() {
     };
   }, []);
 
-  if (!isKind(kindParam)) return <ErrorState message="Jenis catatan tidak dikenal." />;
+  if (!isKind(kindParam)) return <ErrorState message="Jenis catatan tidak dikenal. Kembali lalu pilih dari Catat kas." />;
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const kind: KasKind = kindParam;
   if (!data.hasPeriod) {
-    return <ErrorState message="Belum ada periode. Catatan kas dilekatkan ke sebuah periode, jadi buat periode dulu." />;
+    return <ErrorState message="Belum ada periode. Catatan kas selalu terhubung ke sebuah periode, jadi buat periode dulu." />;
   }
   if (kind === 'loan' && !data.active) {
     return <ErrorState message="Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif." />;
@@ -183,7 +183,7 @@ export default function NewKasEntryScreen() {
     setError(null);
     const amount = parseRupiahInput(amountText);
     if (amount === null) {
-      setError(amountText.trim().length === 0 ? 'Isi jumlah, misalnya 50000.' : AMOUNT_FORMAT_HINT);
+      setError(AMOUNT_FORMAT_HINT);
       return;
     }
     setBusy(true);
@@ -209,7 +209,7 @@ export default function NewKasEntryScreen() {
         lines.push(`Peringatan: saldo ${preview.negativeAccounts.map((a) => ACCOUNT_LABELS[a]).join(' dan ')} akan menjadi minus. Tetap bisa disimpan.`);
       }
       lines.push('Jika salah, catatan ini bisa dikoreksi di tab Riwayat (dengan alasan).');
-      Alert.alert(`Simpan ${KIND_LABELS[kind].toLowerCase()} ${formatRupiah(e.amount)}`, lines.join('\n\n'), [
+      Alert.alert(`Simpan ${kind === 'transfer' ? 'pindah saldo' : KIND_LABELS[kind].toLowerCase()} ${formatRupiah(e.amount)}?`, lines.join('\n\n'), [
         { text: 'Batal', style: 'cancel' },
         { text: 'Simpan', onPress: () => void save(input) },
       ]);

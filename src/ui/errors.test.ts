@@ -10,7 +10,7 @@ describe('toIndonesian', () => {
     [new RepositoryError('member name must not be empty'), 'Nama anggota tidak boleh kosong.'],
     [new RepositoryError('member name already exists: Budi'), 'Nama ini sudah dipakai (mungkin oleh anggota yang diarsipkan). Gunakan nama lain.'],
     [new RepositoryError('another period is still active; end it before creating a new one'), 'Masih ada periode yang aktif. Akhiri dulu sebelum membuat periode baru.'],
-    [new RepositoryError('period still has open weeks; close every week first'), 'Periode belum bisa diakhiri karena masih ada pertemuan yang belum ditutup.'],
+    [new RepositoryError('period still has open weeks; close every week first'), 'Periode belum bisa diakhiri karena masih ada pertemuan yang belum ditutup. Tutup dulu semua pertemuan.'],
     [new RepositoryError('week 3 is closed; its host cannot be changed'), 'Pertemuan yang sudah ditutup tidak bisa diubah tuan rumah atau tanggalnya.'],
     [new HostPayoutStandsError(2), 'Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah.'],
     [new RepositoryError('cannot swap a week with itself'), 'Pilih dua pertemuan yang berbeda.'],
@@ -28,7 +28,7 @@ describe('toIndonesian', () => {
     [new DomainError('memberCount must be a positive integer, got 0'), 'Pilih minimal satu anggota.'],
     [new DomainError('payment amount must be a positive multiple of 15000 rupiah (the weekly due), got 20000'), 'Jumlah pembayaran harus kelipatan Rp15.000.'],
     [new RepositoryError('period abc has ended; payments are not accepted'), 'Periode sudah berakhir. Pembayaran tidak bisa dicatat.'],
-    [new DomainError('payment date is in the future: 2027-01-01'), 'Tanggal pembayaran tidak boleh di masa depan.'],
+    [new DomainError('payment date is in the future: 2027-01-01'), 'Tanggal pembayaran tidak boleh di masa depan. Pilih hari ini atau sebelumnya.'],
     [new DomainError('payment date is not a real calendar date: 2026-02-31'), 'Tanggal tidak valid. Pilih tanggal dari kalender.'],
     [new RepositoryError('receiving account must be tunai or debit'), 'Pilih tempat uang masuk: Tunai atau Debit.'],
     [new RepositoryError('no open week left to close'), 'Semua pertemuan sudah ditutup.'],
@@ -41,15 +41,15 @@ describe('toIndonesian', () => {
     [new RepositoryError('period p1 has ended; a correction is not allowed'), 'Koreksi hanya bisa dilakukan pada periode yang masih aktif.'],
     [new RepositoryError('period p1 has ended; a host payout is not allowed'), 'Periode sudah berakhir. Tuan rumah tidak bisa dibayar lagi.'],
     [new RepositoryError('payout account must be tunai or debit'), 'Pilih sumber uang: Tunai atau Debit.'],
-    [new DomainError('entry date is in the future: 2027-01-01'), 'Tanggal tidak boleh di masa depan.'],
+    [new DomainError('entry date is in the future: 2027-01-01'), 'Tanggal tidak boleh di masa depan. Pilih hari ini atau sebelumnya.'],
     [new DomainError('entry date is not a real calendar date: 2026-02-31'), 'Tanggal tidak valid. Pilih tanggal dari kalender.'],
     [new RepositoryError('week 4 cannot be paid out yet; only the current or a closed week can be'), 'Tuan rumah hanya bisa dibayar untuk pertemuan saat ini atau pertemuan yang sudah ditutup.'],
     [new RepositoryError('week 1 already has a host payout'), 'Pertemuan ini sudah dibayarkan ke tuan rumah. Koreksi dulu jika salah.'],
     [new RepositoryError('week 1 is not paid out; there is no host payout to correct'), 'Pertemuan ini belum punya pembayaran tuan rumah yang bisa dikoreksi.'],
     [new RepositoryError('payment ghost not found'), 'Pembayaran tidak ditemukan.'],
     [new RepositoryError('ledger entry ghost not found'), 'Catatan kas tidak ditemukan.'],
-    [new RepositoryError('payment p1 has no ledger entry to reverse'), 'Pembayaran lama ini tidak punya catatan kas, jadi tidak bisa dikoreksi otomatis.'],
-    [new RepositoryError('no active period; kas entries are attached to the active period'), 'Tidak ada periode aktif. Buat atau mulai periode dulu.'],
+    [new RepositoryError('payment p1 has no ledger entry to reverse'), 'Pembayaran lama ini tidak punya catatan kas, jadi tidak bisa dikoreksi otomatis. Catat ulang pembayarannya bila perlu.'],
+    [new RepositoryError('no active period; kas entries are attached to the active period'), 'Tidak ada periode aktif. Buat periode dulu.'],
     [new DomainError('transfer must go between tunai and debit'), 'Pindah saldo hanya antara Tunai dan Debit, dan keduanya harus berbeda.'],
     [new RepositoryError('a move entry needs two different pos'), 'Pindah saldo hanya antara Tunai dan Debit, dan keduanya harus berbeda.'],
     [new DomainError('a loan must be paid from tunai or debit'), 'Pilih sumber uang: Tunai atau Debit.'],
@@ -58,8 +58,8 @@ describe('toIndonesian', () => {
     [new DomainError('opening balance needs a pos'), 'Pilih Tunai, Debit, atau Piutang.'],
     [new DomainError('amount must be a positive integer, got 0'), 'Jumlah harus lebih dari nol.'],
     [new RepositoryError('no period exists yet; create a period first'), 'Belum ada periode. Buat periode dulu.'],
-    [new RepositoryError('no active period; a new loan is only for members of the active period'), 'Tidak ada periode aktif. Buat atau mulai periode dulu.'],
-    [new DomainError('end date is in the future: 2027-01-01'), 'Tanggal berakhir tidak boleh di masa depan.'],
+    [new RepositoryError('no active period; a new loan is only for members of the active period'), 'Tidak ada periode aktif. Buat periode dulu.'],
+    [new DomainError('end date is in the future: 2027-01-01'), 'Tanggal berakhir tidak boleh di masa depan. Pilih hari ini atau sebelumnya.'],
     [new RepositoryError('weeks 1, 2 have no host payout in force; pay the hosts before closing the period'), 'Periode belum bisa diakhiri karena masih ada tuan rumah yang belum dibayar. Bayar dulu semua tuan rumah.'],
     [new DomainError('nothing to refund: the member holds no credit'), 'Anggota ini tidak punya titipan yang bisa dikembalikan.'],
     [new RepositoryError('period p1 has not ended; its credit cannot be refunded yet'), 'Titipan periode yang masih aktif belum bisa dikembalikan. Akhiri periodenya dulu.'],
@@ -99,7 +99,7 @@ describe('toIndonesian', () => {
 describe('toIndonesian: migration 0005 triggers and archive texts', () => {
   it('maps the raw trigger messages (plain driver errors) to Indonesian', () => {
     expect(toIndonesian(new Error('a member of the active period cannot be archived'))).toBe('Anggota masih ikut periode aktif, jadi belum bisa diarsipkan.');
-    expect(toIndonesian(new Error('Error code 19: an archived member cannot join a period'))).toBe('Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.');
+    expect(toIndonesian(new Error('Error code 19: an archived member cannot join a period'))).toBe('Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu di halaman Anggota.');
   });
 
   it('gives a next step for every archive block', () => {

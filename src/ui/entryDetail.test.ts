@@ -3,7 +3,7 @@ import { createdDate, entryStatus, loanMemberOf, paidMeetingRows } from './entry
 
 describe('entryStatus', () => {
   it('names the three states in words', () => {
-    expect(entryStatus({ type: 'member_payment', reversedById: null })).toEqual({ label: 'Tercatat', tone: 'neutral' });
+    expect(entryStatus({ type: 'member_payment', reversedById: null })).toEqual({ label: 'Berlaku', tone: 'neutral' });
     expect(entryStatus({ type: 'loan', reversedById: 'r1' })).toEqual({ label: 'Dikoreksi', tone: 'error' });
     expect(entryStatus({ type: 'reversal', reversedById: null })).toEqual({ label: 'Koreksi', tone: 'warn' });
   });

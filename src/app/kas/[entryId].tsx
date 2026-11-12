@@ -78,7 +78,7 @@ export default function KasEntryScreen() {
       <SectionHeader title="Rincian" />
       <Card>
         <DetailRow label="Tanggal" value={formatDate(entry.date)} />
-        <DetailRow label="Dicatat" value={formatDate(createdDate(entry.createdAt))} />
+        <DetailRow label="Dicatat pada" value={formatDate(createdDate(entry.createdAt))} />
         <DetailRow label="Tempat uang" value={posText(entry)} />
         {member ? <DetailRow label="Anggota" value={member.name} /> : null}
         {entry.week !== null ? <DetailRow label="Pertemuan" value={String(entry.week)} /> : null}

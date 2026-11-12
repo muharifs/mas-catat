@@ -6,15 +6,15 @@ import { todayIso } from './dates';
 import type { BadgeTone } from './components/Badge';
 
 export interface EntryStatus {
-  label: 'Tercatat' | 'Dikoreksi' | 'Koreksi';
+  label: 'Berlaku' | 'Dikoreksi' | 'Koreksi';
   tone: BadgeTone;
 }
 
-/** Tercatat = in force; Dikoreksi = an original that was cancelled; Koreksi = the reversal entry itself. */
+/** Berlaku = in force; Dikoreksi = an original that was cancelled; Koreksi = the reversal entry itself. */
 export function entryStatus(e: { type: LedgerEntryType; reversedById: string | null }): EntryStatus {
   if (e.type === 'reversal') return { label: 'Koreksi', tone: 'warn' };
   if (e.reversedById) return { label: 'Dikoreksi', tone: 'error' };
-  return { label: 'Tercatat', tone: 'neutral' };
+  return { label: 'Berlaku', tone: 'neutral' };
 }
 
 interface LoanProbe {

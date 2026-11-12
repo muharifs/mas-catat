@@ -4,7 +4,7 @@ import { colors, radius, spacing, type } from '../theme';
 export type BadgeTone = 'neutral' | 'ok' | 'error' | 'warn' | 'brand';
 
 interface BadgeProps {
-  /** Always a word (Tercatat, Dikoreksi, Lunas, Belum lunas): the colour only supports it. */
+  /** Always a word (Berlaku, Dikoreksi, Lunas, Belum lunas): the colour only supports it. */
   label: string;
   tone?: BadgeTone;
 }

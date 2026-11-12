@@ -8,7 +8,7 @@ import { formatRupiah } from './format';
 
 export const EVENT_LABELS: Record<HistoryEventKind, string> = {
   payment: 'Pembayaran iuran',
-  host_payout: 'Menerima pembayaran tuan rumah',
+  host_payout: 'Menerima bayaran tuan rumah',
   host_offset: 'Dipotong dari bayaran tuan rumah',
   titipan_carry_in: 'Titipan dibawa dari periode sebelumnya',
   titipan_carry_out: 'Titipan dibawa ke periode berikutnya',

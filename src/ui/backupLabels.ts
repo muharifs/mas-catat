@@ -33,7 +33,7 @@ export function lastSharedText(lastSharedAt: string | null, reminder: BackupRemi
 /** Text of the reminder on Home. */
 export function reminderText(reminder: BackupReminder): string {
   if (reminder.daysSince === null) return 'Data belum pernah dicadangkan. Jika HP hilang atau rusak, semua catatan ikut hilang.';
-  return `Cadangan terakhir ${reminder.daysSince} hari lalu. Buat cadangan baru supaya catatan terbaru ikut aman.`;
+  return 'Buat cadangan baru supaya catatan terbaru ikut aman.';
 }
 
 /** What the restore will do to the data, in words. Counts are records (kas entries and payments). */
@@ -63,7 +63,7 @@ export interface SummaryRow {
 /** The numbers the owner compares before a restore. Total kas is Tunai + Debit. */
 export function summaryRows(s: DbSummary): SummaryRow[] {
   return [
-    { label: 'Catatan kas terakhir', value: s.lastEntryDate ? formatDate(s.lastEntryDate) : '-' },
+    { label: 'Tanggal catatan kas terakhir', value: s.lastEntryDate ? formatDate(s.lastEntryDate) : '-' },
     { label: 'Jumlah catatan kas', value: String(s.ledgerCount) },
     { label: 'Anggota', value: String(s.memberCount) },
     { label: 'Periode', value: String(s.periodCount) },
@@ -86,7 +86,7 @@ export const restoreTexts = {
   firstDialogTitle: 'Ganti semua data?',
   firstDialogBody:
     'Semua data di HP ini akan diganti dengan isi cadangan. Pemulihan tidak menggabungkan data. Salinan pengaman dari data sekarang dibuat otomatis lebih dulu.',
-  secondDialogTitle: 'Yakin?',
+  secondDialogTitle: 'Yakin ingin mengganti semua data?',
   secondDialogBody: 'Setelah ini data di HP ini sama persis dengan cadangan.',
   secondDialogOk: 'Ya, ganti semua data',
   resetWarning:

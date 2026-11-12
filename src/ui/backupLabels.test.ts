@@ -29,7 +29,7 @@ describe('backup labels', () => {
 
   it('summary rows show the five numbers the owner compares', () => {
     expect(summaryRows(summary)).toEqual([
-      { label: 'Catatan kas terakhir', value: '9 Jan 2026' },
+      { label: 'Tanggal catatan kas terakhir', value: '9 Jan 2026' },
       { label: 'Jumlah catatan kas', value: '12' },
       { label: 'Anggota', value: '19' },
       { label: 'Periode', value: '2' },
@@ -66,7 +66,7 @@ describe('backup labels', () => {
     expect(lastSharedText(last, reminder)).toMatch(/^Terakhir mencoba membagikan: .* \(3 hari lalu\)\. Pastikan berkasnya benar-benar terkirim\.$/);
     expect(lastSharedText(null, backupReminder(null, now, true))).toBe('Belum pernah dibagikan');
     expect(reminderText(backupReminder(null, now, true))).toContain('belum pernah');
-    expect(reminderText(backupReminder('2026-11-01T12:00:00.000Z', now, true))).toContain('9 hari lalu');
+    expect(reminderText(backupReminder('2026-11-01T12:00:00.000Z', now, true))).toBe('Buat cadangan baru supaya catatan terbaru ikut aman.');
   });
 
   it('names a safety copy by date and time without a file name', () => {

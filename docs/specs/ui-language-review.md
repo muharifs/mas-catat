@@ -50,6 +50,142 @@ Tambahan dan penegasan (sambungan dari keputusan 19):
 
 Judul layar: huruf kapital hanya di awal (sentence case), seperti isi layar (keputusan D7).
 
+### 2.1 Glosarium lengkap untuk pengguna non-teknis (ditambahkan 2026-11-12, atas permintaan pemilik)
+
+Permintaan pemilik: istilah glosarium yang sudah ada dieja dan dijelaskan agar dipahami pengguna non-teknis. Tabel ini memuat semua istilah yang tampil di layar. Semua keputusan D1-D12 dihormati dan tidak dibalik. Hal di luar keputusan itu bertanda **USULAN BARU (butuh pemilik)**. Kode (nama variabel, `pos`, `credit`, `offset`, `writeoff`) tetap bahasa Inggris dan tidak pernah tampil di layar.
+
+Aturan ejaan umum (KBBI dan PUEBI) untuk semua teks layar:
+- Uang: `Rp15.000` (R kapital, p kecil, tanpa spasi, titik ribuan, tanpa desimal). Pernah sebagian tempat menulis `15.000` tanpa Rp (lihat R4).
+- Tanggal: `4 Jan 2026` di daftar dan baris (singkat, ruang sempit); nama bulan penuh `4 Januari 2026` di kalimat dan dialog. Bulan dan hari ditulis dengan huruf kapital hanya di awal kalimat atau nama bulan (`Selasa`, `Januari`).
+- Huruf kapital: hanya awal kalimat, nama orang, nama bulan dan hari, dan nama tombol atau halaman yang dirujuk dalam kalimat (`Catat kas`, `Pindah saldo`, `Riwayat`, `Beranda`, `Menu`). Kata `periode`, `pertemuan`, `anggota`, `kas` dalam kalimat biasa memakai huruf kecil.
+- Bentuk baku (jangan diganti bentuk tidak baku): `utang` (bukan `hutang`), `tunggakan`, `lunas`, `berkas`, `ekspor`, `arsip`, `periode`, `aktif`, `ubah`, `izin`. Satuan: `pertemuan`, tanpa `ke-`.
+- Kata serapan yang sudah baku dalam KBBI dan boleh dipakai: `kas`, `saldo`, `debit`, `tunai`, `piutang`, `periode`, `ekspor`, `arsip`, `cadangan`, `tur`.
+- Tidak tampil di layar: `pos`, `offset`, `write-off`, `payout`, `ledger`, `entry`, `entri`, `database`, `transfer` (kecuali kolom CSV keputusan D10), `file`, `form`.
+
+Kolom "Tindakan": **Tetap** (sudah sesuai), **Ganti** (keputusan yang sudah disetujui, belum semua diterapkan di kode), **USULAN BARU** (butuh pemilik).
+Kolom "Penjelasan di": **Bantuan** = kartu atau teks bantuan permanen di halaman itu, **Dialog** = muncul saat konfirmasi, **Kosong** = teks keadaan kosong, **Label** = cukup lewat nama dan teks kedua, tanpa penjelasan.
+
+#### A. Uang dan tempatnya
+
+| Istilah di layar | Padanan sederhana | Penjelasan satu kalimat untuk orang awam | Penjelasan di | Tindakan |
+|---|---|---|---|---|
+| **Kas** | uang kelompok | Uang milik bersama yang dikelola pengurus, di luar bayaran tuan rumah. | Bantuan (Beranda, ikon info kartu Total kas) | Tetap |
+| **Total kas** | uang kas yang sedang dipegang | Jumlah uang kas yang benar-benar ada sekarang, yaitu Tunai ditambah Debit. | Bantuan (Beranda dan Laporan). Satu nama di semua layar (D4) | Ganti: `Kas nyata` dan `Kas akhir` menjadi `Total kas` |
+| **Tunai** | uang di tangan | Uang kertas atau koin yang dipegang pengurus. | Label. Penjelasan satu kali di Bantuan | Tetap |
+| **Debit** | rekening atau dompet digital | Uang kas di rekening bank atau aplikasi dompet digital. | Label. Bantuan: `Debit = rekening bank atau dompet digital.` | Tetap. Kata `e-wallet` jangan tampil, pakai `dompet digital` |
+| **tempat uang** (pengganti `pos`, D1) | tempat uang | Tempat uang kas disimpan: Tunai atau Debit. | Label | Ganti: `pos` menjadi `tempat uang` (T5) |
+| **Piutang** | uang yang dipinjam anggota | Uang kas yang sedang dipinjam anggota dan belum dikembalikan; belum ada di tangan. | Label sub: `Piutang (dipinjam anggota)` di semua layar (D9). Bantuan di Pinjaman | Tetap (D9). Tambahkan sub-label |
+| **Pindah saldo** | pindah uang antar tempat | Memindahkan uang antara Tunai dan Debit, ke dua arah; Total kas tidak berubah. | Bantuan di formulir (sudah ada di `kas/new.tsx:45`). Tampilkan `Tunai ke Debit`, bukan panah (S14) | Tetap. Hapus panah `->` |
+| **Saldo awal** | uang awal | Uang yang sudah ada sebelum aplikasi dipakai, dicatat sekali di awal. | Bantuan di formulir Catat kas. Pada Piutang: `Saldo awal: pinjaman lama` (sudah) | Tetap |
+| **Pengeluaran bersama** | uang keluar untuk keperluan bersama | Uang kas yang dipakai untuk tujuan bersama, misalnya tur. | Bantuan di formulir (sudah ada) | Tetap. Contoh `tur` boleh diganti `wisata` agar lebih akrab. USULAN BARU (kecil) |
+| **Titipan** (anggota) | uang lebih yang dititipkan | Kelebihan bayar anggota yang disimpan dan dipakai untuk iuran periode berikutnya. | Bantuan di halaman Titipan; dialog bayar (`pay.tsx`) sudah memberi peringatan; Kosong di Titipan | Tetap |
+| **Pengembalian titipan anggota** | uang titipan dikembalikan | Titipan dikembalikan ke anggota yang tidak ikut periode berikutnya. | Dialog (sudah ada, menyebut tidak bisa dikoreksi) | Tetap |
+| **Pinjaman** / **Pinjaman ke anggota** | pinjaman dari kas | Uang kas yang dipinjamkan ke anggota, tanpa bunga dan tanpa batas waktu. | Bantuan di Pinjaman (sebut tanpa bunga, tanpa batas waktu) | Tetap |
+| **Pelunasan pinjaman** | angsuran atau pengembalian pinjaman | Anggota mengembalikan sebagian atau seluruh pinjaman; masuk ke Tunai. | Bantuan di formulir (sudah ada) | Tetap |
+| **Sisa pinjaman** | pinjaman yang belum dikembalikan | Pinjaman dikurangi yang sudah dikembalikan, dari semua periode. | Label | Tetap |
+| **Kelebihan bayar** (di Pinjaman) | pembayaran lebih dari pinjaman | Catatan lama: pengembalian yang lebih besar dari pinjamannya; tidak bisa diubah dari sini. | Bantuan kecil di barisnya | Tetap |
+| **Saldo awal tanpa nama** (di Pinjaman) | piutang lama tanpa nama anggota | Piutang lama yang tidak tercatat atas nama anggota mana pun, jadi tidak bisa dilunasi. | Bantuan kecil di barisnya | Tetap |
+| **Kas seharusnya** | perkiraan kas bila semua iuran lunas | Uang kas yang akan ada bila semua tunggakan sudah dibayar dan titipan sudah dikembalikan. Rumus: `Total kas + tunggakan iuran - titipan anggota`. | Bantuan di Laporan (satu kalimat di bawah angka, di atas rumus) | Tetap (D4). USULAN BARU (kecil): tambahkan sub-judul `(bila semua iuran lunas)` agar maknanya terbaca tanpa bantuan |
+
+#### B. Iuran dan tuan rumah
+
+| Istilah di layar | Padanan sederhana | Penjelasan satu kalimat | Penjelasan di | Tindakan |
+|---|---|---|---|---|
+| **Iuran** | iuran mingguan | Uang Rp15.000 yang dibayar setiap anggota, termasuk tuan rumah, di setiap pertemuan. | Bantuan di Buat periode dan Catat pembayaran | Tetap |
+| **Tunggakan** | iuran yang belum dibayar | Iuran pertemuan yang belum dibayar anggota. | Label. Bantuan di dialog bayar tuan rumah | Tetap. Jangan pakai `utang` di layar (S8) |
+| **Kelipatan Rp15.000** | pembayaran harus pas | Pembayaran harus Rp15.000, Rp30.000, Rp45.000, dan seterusnya, tidak boleh sebagian. | Pesan galat dan teks bawah kolom jumlah (sudah baik) | Tetap |
+| **Pertemuan** | pertemuan mingguan | Satu kali kumpul di rumah tuan rumah; pengganti kata `minggu`. | Label | Tetap |
+| **Tuan rumah** | pemilik rumah giliran | Anggota yang rumahnya dipakai untuk pertemuan itu; menerima bayaran tuan rumah. | Label | Tetap |
+| **Bayaran tuan rumah** | uang untuk tuan rumah | Uang yang diterima tuan rumah, yaitu Rp10.000 dikali jumlah anggota. | Bantuan di halaman Bayar tuan rumah | Tetap (sudah). Jangan pakai `payout` (T3) |
+| **Pembayaran tuan rumah** | membayar tuan rumah | Pencatatan bahwa bayaran sudah diberikan ke tuan rumah. | Label | Tetap. Teks tombol: `Lihat pembayaran tuan rumah` (S12) |
+| **Potongan** (`offset` di kode) | iuran dipotong dari bayaran | Tunggakan iuran tuan rumah yang diambil dari bayarannya, sehingga ia menerima lebih sedikit. | Dialog bayar tuan rumah dan Bantuan | Tetap. Lengkapnya: `Dipotong dari bayaran tuan rumah` |
+| **Lunas lewat potongan** | lunas lewat potongan | Iuran yang lunas karena dipotong dari bayaran tuan rumah. | Label | Tetap (keputusan 19) |
+| **Lunas lewat titipan** | lunas lewat titipan | Iuran yang lunas karena memakai titipan anggota. | Label | Tetap |
+| **Baru sebagian** (ganti `Kurang`, S18) | baru sebagian | Iuran pertemuan itu baru dibayar sebagian (hanya terjadi lewat titipan atau potongan). | Label | Ganti: `Kurang` menjadi `Baru sebagian` |
+| **Tutup pertemuan** / **ditutup** | selesaikan pertemuan | Menandai pertemuan selesai; setelah itu catatannya hanya bisa dikoreksi. | Dialog (sudah ada) | Tetap |
+| **Ubah tanggal** | | Mengubah tanggal pertemuan; uang tidak berubah. | Helper di halaman (keputusan 19) | Tetap |
+
+#### C. Periode dan anggota
+
+| Istilah di layar | Padanan sederhana | Penjelasan satu kalimat | Penjelasan di | Tindakan |
+|---|---|---|---|---|
+| **Periode** | satu putaran arisan | Satu putaran lengkap: berlangsung sampai setiap anggota menjadi tuan rumah satu kali. | Bantuan di Buat periode dan Kosong di Periode | Tetap |
+| **Aktif** | sedang berjalan | Periode yang masih berjalan; hanya ada satu. | Label | Tetap |
+| **Berakhir** (D5; kode lama memakai `Selesai`, `diakhiri`) | berakhir | Periode yang sudah ditutup; catatannya tersimpan dan hanya bisa dilihat. | Label dan Bantuan di tombol `Akhiri periode` | Ganti: `Selesai` menjadi `Berakhir` |
+| **Akhiri periode** | tutup periode | Menutup periode; tunggakan yang tersisa dihapus dan ditanggung kas, dan tidak bisa dibatalkan. | Dialog dua langkah (sudah ada) | Tetap |
+| **Penghapusan tunggakan** (`debt_writeoff` di kode) | tunggakan ditanggung kas | Iuran yang tidak dibayar sampai periode berakhir dihapus dari catatan anggota dan ditanggung kas. | Dialog akhiri periode dan Bantuan Laporan. Kalimat tambahan: `Tidak mengubah saldo kas.` | Tetap (belum ada keputusan yang membalik). USULAN BARU: nama jenis menjadi `Tunggakan ditanggung kas` karena menyebut siapa yang menanggung; baris Riwayat dan CSV ikut. Butuh pemilik |
+| **Anggota** | | Orang yang ikut kumpul dan membayar iuran. | Label | Tetap |
+| **Arsipkan anggota** / **Diarsipkan** | sembunyikan anggota | Anggota disembunyikan dari daftar dan pilihan baru, tetapi riwayatnya tetap ada; bisa diaktifkan lagi. | Dialog arsip (sudah ada) dan Kosong di Anggota yang diarsipkan | Tetap. `arsip`, `mengarsipkan` baku |
+| **Hapus anggota** | hapus permanen | Menghapus anggota yang belum punya catatan apa pun; tidak bisa dibatalkan. | Dialog (sudah ada) | Tetap |
+
+#### D. Riwayat, koreksi, dan cadangan
+
+| Istilah di layar | Padanan sederhana | Penjelasan satu kalimat | Penjelasan di | Tindakan |
+|---|---|---|---|---|
+| **Catat kas** | catat uang kas | Halaman untuk mencatat saldo awal, pindah saldo, pinjaman, pelunasan, dan pengeluaran bersama. | Label. Teks bawah di Menu: `Saldo awal, pindah saldo, pinjaman, pengeluaran` | Tetap. Jangan menulis `menu Kas` atau `layar Kas` (T6) |
+| **Riwayat** | daftar catatan | Daftar semua uang masuk dan keluar, dari yang terbaru. | Bantuan di atas ringkasan bulan (S10 sudah menyederhanakan) | Tetap |
+| **catatan** (bukan `entri`) | | Satu baris di Riwayat. | Label | Tetap |
+| **Koreksi** (D6) | batalkan dan catat ulang | Cara memperbaiki catatan yang salah: catatan lama ditandai `Dikoreksi` dan tidak dihitung, lalu dicatat yang benar; catatan lama tidak dihapus. | Bantuan satu kalimat di dialog Koreksi pertama dan di halaman Rincian catatan. Teks: `Koreksi membatalkan catatan ini; catatan lama tetap terlihat, ditandai Dikoreksi.` | Tetap. USULAN BARU (kecil): tambahkan kalimat itu |
+| **Dikoreksi** | sudah dibatalkan | Catatan lama yang sudah dibatalkan oleh koreksi. | Label (status) | Tetap |
+| **Tercatat** | berlaku | Catatan yang masih berlaku dan dihitung. | Label (status). CSV memakai `Berlaku`: samakan (R11) | Tetap. Samakan CSV |
+| **Cadangan** | salinan data | Salinan semua data Mas Catat yang disimpan terpisah agar aman bila HP hilang. | Bantuan di halaman Cadangan dan ekspor | Tetap |
+| **Salinan pengaman** | salinan sementara | Salinan otomatis sebelum data diganti, supaya bisa dikembalikan bila ada masalah. | Dialog Pulihkan dan Mulai dari nol | Tetap |
+| **Pulihkan** / **Pulihkan data** | kembalikan dari cadangan | Mengganti semua data di HP ini dengan isi berkas cadangan. | Dialog (sudah ada: `SEMUA` jadi tebal, D8; kata `PULIHKAN` tetap diketik) | Tetap |
+| **Mulai dari nol** | hapus semua data | Menghapus semua data dan memulai kosong; salinan pengaman tetap dibuat dulu. | Dialog (sudah ada; kata `HAPUS SEMUA` tetap diketik) | Tetap |
+| **Ekspor** / **Berkas CSV** | simpan ke Excel | Berkas tabel yang dibuka di Excel atau Google Sheets; bukan cadangan dan tidak bisa dipulihkan. | Bantuan di halaman Cadangan dan ekspor (sudah ada di `backupLabels.ts:19`) | Tetap. `berkas`, bukan `file` (D3) |
+| **Transfer** (hanya kolom CSV, D10) | | Perpindahan Tunai dan Debit; tidak dihitung sebagai uang masuk atau keluar. | Petunjuk CSV | Tetap (D10), tidak tampil di aplikasi |
+| **Bulan ini** | | Ringkasan uang masuk dan keluar (Tunai dan Debit) dalam bulan berjalan. | Bantuan di Beranda | Tetap |
+| **Pengingat** | | Daftar hal yang perlu dilakukan, misalnya pertemuan terlewat atau cadangan terlambat. | Kosong | Tetap |
+
+#### E. Ringkasan: yang sebaiknya diganti atau ditambah
+
+Sudah diputuskan pemilik (hanya menyamakan kode dengan keputusan; tidak ada keputusan yang dibalik):
+1. `pos` menjadi `tempat uang` (D1).
+2. `Kas nyata` dan `Kas akhir` menjadi `Total kas` (D4).
+3. `Selesai`, `diakhiri` menjadi `Berakhir` (D5).
+4. `Kurang` menjadi `Baru sebagian` (S18).
+5. `file` menjadi `berkas`; `Kalau` menjadi `Jika`; `Pakai` menjadi `Gunakan`; tanpa `Anda` (D2, D3).
+6. Panah `->` menjadi `ke` (S14).
+
+USULAN BARU (butuh pemilik, semuanya hanya teks, tidak mengubah aturan uang):
+- N1. Nama jenis `Penghapusan tunggakan` menjadi `Tunggakan ditanggung kas` (di `kasLabels.ts`, Riwayat, CSV, dialog). Alasan: `penghapusan` terdengar seperti anggota dibebaskan dari utang dan tidak menyebut siapa yang menanggung; pengguna awam paling mungkin bingung di sini. Bila ditolak, pertahankan nama lama dan jangan tampilkan `write-off`.
+- N2. Sub-judul `(bila semua iuran lunas)` di kartu `Kas seharusnya` (D4 menyimpan nama, sub-judul hanya menambah petunjuk).
+- N3. Satu kalimat penjelasan Koreksi di dialog Koreksi pertama dan di Rincian catatan (D6 sudah mengizinkan "tambah satu kalimat bila dirasa perlu").
+- N4. Contoh `tur` diganti `wisata` pada `Pengeluaran bersama`.
+- N5. Satu halaman "Istilah" ringan (daftar kata dengan penjelasan di atas) di Menu, supaya pengguna bisa membuka arti kata kapan saja. Biaya: satu layar statis baru, tanpa dependensi. Bila ditolak, penjelasan cukup di tempat yang bertanda Bantuan, Dialog, Kosong di tabel.
+
+### 2.2 Teks yang perlu disesuaikan di kode (hasil Grep 2026-11-12, belum diubah; src/ sedang dikerjakan developer)
+
+Daftar ini hanya yang bertentangan dengan tabel 2.1. Nomor baris bisa bergeser. Setiap perubahan teks juga mengubah tes yang mengunci teksnya (D12).
+
+| Berkas | Teks lama | Teks baru | Dasar |
+|---|---|---|---|
+| `src/ui/backupLabels.ts:65` | `Kas akhir (Tunai + Debit)` | `Total kas (Tunai + Debit)` | D4, S6 |
+| `src/ui/reportLabels.ts:32` | `Kurang` | `Baru sebagian` | S18 |
+| `src/app/periods/[id]/members/[memberId].tsx:21-25` | daftar status sendiri (`Kurang`) | pakai satu sumber `WEEK_STATE_LABELS` | S18 |
+| `src/app/periods/index.tsx:38` | `'Aktif' : 'Selesai'` | `'Aktif' : 'Berakhir'` | D5, S19 |
+| `src/app/periods/[id]/index.tsx:83` | `'Selesai'` | `'Berakhir'` | D5 |
+| `src/app/reports/period/[id]/index.tsx:46` | `'Selesai'` | `'Berakhir'` | D5 |
+| `src/app/(tabs)/laporan.tsx:80` | `'Selesai'` | `'Berakhir'` | D5 |
+| `src/ui/csvFiles.ts:122,139` | kolom dan nilai `Selesai` | `Berakhir` | D5 |
+| `src/ui/messages.ts:101` | `Periode "X" diakhiri` | `Periode "X" berakhir` | D5, S19 |
+| `src/ui/kasLabels.ts:62` | `${A} -> ${B}` (mis. `Tunai -> Debit`) | `${A} ke ${B}` | S14 |
+| `src/ui/history.ts:55` (komentar dan hasil `Dipindah: Tunai -> Piutang`), tes `src/ui/history.test.ts:71`, `src/ui/kasLabels.test.ts:8` | `Dipindah: Tunai -> Piutang`, `Piutang -> Tunai` | untuk pinjaman: `Dari Tunai ke Piutang`; untuk pelunasan: `Dari Piutang ke Tunai`. Tidak memakai kata `Dipindah`, karena jenisnya pinjaman, bukan Pindah saldo. Cek maknanya dengan pemilik | S14 (sebagian USULAN BARU) |
+| `src/ui/history.ts:60` | `Piutang` (baris kedua) | `Tercatat di Piutang` | R17 |
+| `src/app/periods/[id]/close.tsx:152`, `src/app/periods/new.tsx:209` | `lewat menu Titipan anggota` | `lewat Menu > Titipan anggota` (Titipan anggota memang ada di tab Menu) | T6, ejaan nama halaman |
+| `src/app/periods/[id]/members/[memberId].tsx:94` | `Piutang (pinjaman)` | `Piutang (dipinjam anggota)` | D9 |
+| `src/app/loans/index.tsx:16` (komentar) dan teks `loans/index.tsx:45,62` | masih menyebut `Kas`, `daftar kas` | sesuai T6 | T6 |
+| `src/ui/kasLabels.ts:60` dan `src/ui/history.ts:57` | `Tidak mengubah saldo kas` | tetap; bila N1 disetujui: `Ditanggung kas, tidak mengubah saldo` | N1 |
+| `src/app/kas/new.tsx:48` | `misalnya tur` | `misalnya wisata` | N4 |
+| `src/app/(tabs)/index.tsx:391` | `Tuan rumah sudah dibayar` (baris yang bisa diketuk) | `Lihat pembayaran tuan rumah` | S12 |
+| `src/app/periods/[id]/index.tsx:152,158` | tombol `Sudah dibayar` | `Lihat pembayaran tuan rumah`; teks status `Sudah dibayar` | S12 |
+| `src/app/periods/[id]/payout.tsx:135` | `Sudah dibayar` (status) | tetap | |
+| `src/app/loans/[memberId].tsx:49`, `src/app/kas/[entryId].tsx:97` | `Sudah dibayar` (jumlah pinjaman yang dikembalikan) | `Sudah dikembalikan`. Alasan: pada pinjaman, "dibayar" bertabrakan dengan "bayaran tuan rumah" dan `Sudah dibayar` pada iuran. USULAN BARU kecil, butuh pemilik | N6 |
+
+Sudah sesuai dan tidak perlu diubah (hasil Grep): `Pindah saldo`, `Pelunasan pinjaman`, `Koreksi`, `Dikoreksi`, `Dipotong dari bayaran tuan rumah`, `Lunas lewat potongan`, `Lunas lewat titipan`, `Titipan anggota`, `Total kas (Tunai + Debit)` di Kas dan Laporan, `Kas seharusnya = Total kas + tunggakan iuran - titipan anggota`, `Belum ada tempat uang`, pesan arsip anggota (S3), `Pilih Tunai, Debit, atau Piutang.`.
+
+USULAN BARU tambahan: N6 `Sudah dibayar` menjadi `Sudah dikembalikan` pada baris pinjaman (lihat tabel di atas).
+
 ## 3. Tabel temuan
 
 Penanda: [UANG] = usulan menyangkut kalimat soal uang; makna harus dipastikan pemilik sebelum diubah. Semua usulan hanya mengganti teks, bukan aturan.

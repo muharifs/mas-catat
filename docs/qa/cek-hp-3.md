@@ -6,7 +6,13 @@ Pakai Expo Go dan data contoh saja. Angka dihitung tangan dari aturan CLAUDE.md 
 1. Menu > Cadangan dan ekspor > "Mulai dari nol". Langkah ini menimpa SEMUA data (salinan pengaman dibuat otomatis), jadi pakai hanya untuk data contoh.
 2. Jangan catat pinjaman dan saldo awal. Peringatan "kas kurang" boleh muncul dan tidak menghalangi.
 3. Menu > Anggota: tambah Ani, Budi, Citra, Dedi, Eka.
-4. Buat periode "QA Satu" dengan kelima anggota. Semua tanggal pakai hari ini.
+4. Buat periode "QA Satu" dengan kelima anggota. Tanggal pembayaran dan tanggal lain pakai hari ini, KECUALI "Tanggal pertemuan 1": ubah ke hari Selasa yang sudah lewat (misalnya Selasa minggu lalu). Bawaannya adalah Selasa terdekat pada atau setelah hari ini, yang bisa jatuh di masa depan. Tanggal pertemuan 1 juga menjadi tanggal mulai periode, dan "Akhiri periode" (B17) menolak tanggal berakhir sebelum tanggal mulai atau setelah hari ini (pesan: "Tanggal berakhir tidak boleh sebelum tanggal mulai periode."). Kalau periode mulai di masa depan, tidak ada tanggal berakhir yang sah.
+   - Tanggal pertemuan 2 sampai 5 boleh dibiarkan bawaan (Selasa berikutnya, boleh di masa depan). Kolom tanggal pertemuan memang tidak terkunci untuk hari yang akan datang, jadi B12a ("Ubah tanggal") tidak terpengaruh.
+   - Pembayaran tetap bertanggal hari ini, jadi kalender tetap mengunci hari depan untuk kolom pembayaran dan tanggal berakhir.
+   - Catatan akhir bulan: kalau Selasa yang dipilih jatuh di bulan sebelumnya, tanggal pertemuan (dan pembayaran tuan rumah, bila memakai tanggal pertemuan) bisa masuk bulan lalu, sehingga angka "Bulan ini" di Beranda dan Riwayat terbagi dua bulan. Pembayaran anggota bertanggal hari ini tetap di bulan ini. Kalau angka "Bulan ini" tidak cocok, geser dengan panah bulan di Riwayat dan jumlahkan kedua bulan; totalnya harus tetap sama. Paling mudah: pilih Selasa yang masih di bulan yang sama dengan hari ini.
+
+### Catatan untuk putaran yang sedang berjalan (2026-11-12)
+Data "QA Satu" milik pemilik dibuat pada Rabu 2026-11-11 dengan tanggal mulai 2026-11-17, jadi B17 ditolak. Tidak perlu mengulang dari awal: lanjutkan B17 dan "Cek angka akhir" pada atau setelah tanggal mulai periode yang tertera di Menu > Periode ("mulai ..."). Pada hari itu tanggal berakhir hari ini sah. Semua angka B1-B16 sudah cocok dan tidak berubah.
 
 Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas naik 25.000 kalau semua lunas.
 

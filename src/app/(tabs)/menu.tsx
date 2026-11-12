@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
 import { useCallback } from 'react';
@@ -92,6 +93,13 @@ export default function MenuScreen() {
           onPress={() => router.push('/backup')}
         />
       </Group>
+      {__DEV__ ? (
+        // Developer-only trigger (docs/specs/component-gallery.md): long press (about 1 second) opens the component gallery.
+        // Not rendered in a release build, so a normal user never sees a version line that does something.
+        <Pressable accessibilityRole="button" accessibilityLabel="Versi aplikasi" delayLongPress={1000} onLongPress={() => router.push('/dev/components')}>
+          <Text style={styles.version}>Versi {Constants.expoConfig?.version ?? '-'}</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
@@ -112,4 +120,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   rowLabel: { ...type.body, color: colors.text },
   spacer: { flex: 1 },
+  version: { ...type.secondary, color: colors.textTertiary, textAlign: 'center', paddingVertical: spacing.md },
 });

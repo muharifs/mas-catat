@@ -44,11 +44,13 @@ interface HistoryRowProps {
   memberName: string;
   /** No own border, background or radius: the row sits inside a card and the parent draws the dividers. */
   flat?: boolean;
+  /** Replaces the default tap (open the entry detail). Only the developer gallery passes it, so a fake id never navigates. */
+  onPress?: () => void;
 }
 
 // One row of Riwayat: 40dp icon, title (16sp), second line with member and pos (14sp), amount (18sp). The icon is
 // decoration; the title always says the type in words. Tapping opens the entry detail.
-export function HistoryRow({ entry: e, byId, memberName, flat = false }: HistoryRowProps) {
+export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }: HistoryRowProps) {
   const title = e.type === 'reversal' ? reversalTitle(e, byId) : entryTitle(e);
   const corrected = Boolean(e.reversedById);
   const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(' - ');
@@ -57,7 +59,7 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false }: History
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } })}
+      onPress={onPress ?? (() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } }))}
       style={({ pressed }) => [
         styles.row,
         flat && styles.rowFlat,

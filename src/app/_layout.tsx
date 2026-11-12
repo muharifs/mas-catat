@@ -48,6 +48,10 @@ function AppStack() {
       <Stack.Screen name="reports/period/[id]/members/[memberId]" options={{ title: 'Riwayat anggota' }} />
       <Stack.Screen name="backup/index" options={{ title: 'Cadangan dan ekspor' }} />
       <Stack.Screen name="backup/restore" options={{ title: 'Pulihkan data' }} />
+      {/* Developer-only component gallery: registered (reachable) only when __DEV__ is true. */}
+      <Stack.Protected guard={__DEV__}>
+        <Stack.Screen name="dev/components" options={{ title: 'Galeri komponen' }} />
+      </Stack.Protected>
     </Stack>
   );
 }

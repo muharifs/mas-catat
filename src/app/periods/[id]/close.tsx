@@ -149,7 +149,7 @@ export default function ClosePeriodScreen() {
         <Text style={styles.hint}>
           Titipan anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya dihapus, satu catatan
           per anggota. Penghapusan tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
-          lewat menu Titipan anggota.
+          lewat Menu {'>'} Titipan anggota.
         </Text>
       </Card>
 

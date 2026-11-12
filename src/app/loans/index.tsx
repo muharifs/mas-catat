@@ -13,7 +13,7 @@ import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 // Pinjaman anggota: who still owes the kas, A-Z. The Piutang total comes from the kas balances (the same number as
-// the Kas screen); every per-member number comes from computeLoanBalances via repos.ledger.listLoanBalances.
+// the Beranda kas card); every per-member number comes from computeLoanBalances via repos.ledger.listLoanBalances.
 // Two special rows: an old Piutang opening balance without a name (cannot be repaid) and a member who repaid more
 // than was borrowed (old data, shown as a warning, no repayment possible).
 export default function LoansScreen() {

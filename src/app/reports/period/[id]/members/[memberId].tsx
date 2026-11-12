@@ -91,7 +91,7 @@ export default function MemberHistoryScreen() {
         );
       })}
 
-      <SectionHeader title="Piutang (pinjaman)" />
+      <SectionHeader title="Piutang (dipinjam anggota)" />
       {history.loans.length === 0 ? <Text style={styles.hint}>Tidak ada pinjaman.</Text> : null}
       {history.loans.map((l, index) => {
         const correction = correctionText(l);

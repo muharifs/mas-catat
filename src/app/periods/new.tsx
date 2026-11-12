@@ -206,7 +206,7 @@ export default function NewPeriodScreen() {
         <Text style={styles.hint}>
           Anggota yang punya titipan tetapi tidak dipilih:{' '}
           {leftOut.map((r) => `${nameOf(r.memberId)} (${formatRupiah(r.amount)})`).join(', ')}. Titipannya tetap tersimpan
-          dan bisa dikembalikan lewat menu Titipan anggota.
+          dan bisa dikembalikan lewat Menu {'>'} Titipan anggota.
         </Text>
       ) : null}
 

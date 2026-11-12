@@ -43,7 +43,7 @@ export default function PeriodDetailScreen() {
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  if (!data.period) return <ErrorState message="Periode tidak ditemukan." />;
+  if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
   const { period, weeks, members, paidWeeks, arrears } = data;
   const nameOf = (memberId: string | null) =>
@@ -69,7 +69,7 @@ export default function PeriodDetailScreen() {
             toast(toasts.weekClosed(number));
             await reload();
           } catch (e) {
-            setActionError(toIndonesian(e));
+            setActionError(toIndonesian(e, 'close_week'));
           }
         },
       },

@@ -68,6 +68,7 @@ describe('QA: components never cut long text', () => {
   const cases: [string, ReactElement, string][] = [
     ['Button', <Button key="b" label={LONG} onPress={noop} />, LONG],
     ['ListRow', <ListRow key="l" title={LONG} right={<RowText>Sudah dibayar</RowText>} onPress={noop} />, LONG],
+    ['ErrorState with a title', <ErrorState key="et" title={LONG} message={LONG} />, LONG],
     ['Notice', <Notice key="n" title={LONG}>{LONG}</Notice>, LONG],
     ['ErrorState', <ErrorState key="e" message={LONG} onRetry={noop} />, LONG],
     ['EmptyState', <EmptyState key="m" title={LONG} message={LONG} actionLabel={LONG} onAction={noop} />, LONG],

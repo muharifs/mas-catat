@@ -14,11 +14,44 @@ export const HOST_PAYOUT_STANDS_TEXT = 'Tuan rumah sudah dibayar. Koreksi pembay
 export const GENERIC_LOAD_ERROR =
   'Terjadi kesalahan yang tidak dikenal. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi. Data tidak berubah.';
 
-/** Unknown error while saving or changing something. Says plainly that the change was not stored. */
-export const GENERIC_SAVE_ERROR = 'Catatan belum tersimpan. Coba lagi.';
+/** Where an error happened. Unknown errors get one message per context, so the text says what did NOT happen. */
+export type ErrorContext =
+  | 'load'
+  | 'save'
+  | 'preview'
+  | 'archive'
+  | 'unarchive'
+  | 'delete_member'
+  | 'close_week'
+  | 'close_period'
+  | 'correct'
+  | 'refund'
+  | 'share'
+  | 'share_safety'
+  | 'restore_check'
+  | 'restore';
 
-/** Where an error happened: reading data ('load') or saving/changing it ('save', the default). */
-export type ErrorContext = 'load' | 'save';
+/**
+ * Unknown-error text per context. All writes run in a database transaction, so a failure means nothing was written.
+ * 'restore' deliberately does NOT claim the data is unchanged: an unknown error cannot be proven to precede the swap.
+ */
+export const CONTEXT_ERROR_TEXT: Record<ErrorContext, string> = {
+  load: GENERIC_LOAD_ERROR,
+  save: 'Catatan belum tersimpan. Tidak ada data yang berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
+  preview: 'Rincian belum bisa dihitung. Belum ada yang tersimpan. Ubah isian atau buka ulang halaman ini, lalu coba lagi.',
+  archive: 'Anggota belum diarsipkan. Tidak ada data yang berubah. Coba lagi.',
+  unarchive: 'Anggota belum diaktifkan lagi. Tidak ada data yang berubah. Coba lagi.',
+  delete_member: 'Anggota belum dihapus. Tidak ada data yang berubah. Coba lagi.',
+  close_week: 'Pertemuan belum ditutup. Tidak ada data yang berubah. Coba lagi.',
+  close_period: 'Periode belum diakhiri. Tidak ada data yang berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
+  correct: 'Koreksi belum tersimpan. Catatan asli tidak berubah. Coba lagi.',
+  refund: 'Pengembalian belum tersimpan. Tidak ada uang yang dicatat keluar. Coba lagi.',
+  share: 'Berkas belum bisa dibagikan. Data di HP ini tidak berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
+  share_safety: 'Salinan pengaman belum bisa dibagikan, tetapi tetap tersimpan di HP ini.',
+  restore_check: 'Berkas belum bisa diperiksa. Data di HP ini tidak berubah. Coba lagi, atau pilih berkas cadangan yang lain.',
+  restore:
+    'Pemulihan tidak selesai karena kesalahan yang tidak dikenal. Data di HP ini kemungkinan belum berubah, tetapi belum bisa dipastikan. Periksa Beranda dan Laporan. Jika ada angka yang janggal, buka Pulihkan data dan pilih salinan pengaman terbaru.',
+};
 
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
 const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArray) => string) }[] = [
@@ -109,7 +142,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   busy: 'Proses lain masih berjalan. Tunggu sebentar, lalu coba lagi.',
   safety_failed: 'Salinan pengaman gagal dibuat, jadi data tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
   restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari halaman Pulihkan data.',
-  share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
+  share_unavailable: 'Fitur berbagi tidak tersedia di HP ini, jadi berkas tidak bisa dikirim.',
 };
 
 // Messages raised by the database triggers of migration 0005. They are the last line of defence and should be
@@ -128,7 +161,7 @@ export function archiveBlockText(code: ArchiveBlockCode, amount: number): string
 
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
 export function toIndonesian(error: unknown, context: ErrorContext = 'save'): string {
-  const generic = context === 'load' ? GENERIC_LOAD_ERROR : GENERIC_SAVE_ERROR;
+  const generic = CONTEXT_ERROR_TEXT[context];
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
   if (error instanceof HostPayoutStandsError) return HOST_PAYOUT_STANDS_TEXT;

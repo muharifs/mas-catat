@@ -50,7 +50,7 @@ export default function MemberInPeriodScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { period, member, weeks, statuses, payments, allocations, balance } = data;
-  if (!period || !member) return <ErrorState message="Data tidak ditemukan." />;
+  if (!period || !member) return <ErrorState title="Data tidak ditemukan" message="Anggota atau periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -61,7 +61,7 @@ export default function MemberInPeriodScreen() {
         <Card>
           <Text style={styles.label}>Tunggakan sampai pertemuan {balance.throughWeek}</Text>
           <Money amount={balance.arrears} size="display" tone={balance.arrears > 0 ? 'negative' : 'neutral'} />
-          <Text style={styles.body}>Bayar di muka: {formatRupiah(balance.prepaid)}</Text>
+          <Text style={styles.body}>Dibayar di muka: {formatRupiah(balance.prepaid)}</Text>
           <Text style={styles.body}>Titipan: {formatRupiah(balance.credit)}</Text>
         </Card>
       ) : null}

@@ -50,7 +50,7 @@ export default function PeriodPaymentsScreen() {
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  if (!data.period) return <ErrorState message="Periode tidak ditemukan." />;
+  if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
   const { balances, members, period, paidToday } = data;
   const paidTodayCount = balances.filter((b) => paidToday.has(b.memberId)).length;
@@ -120,7 +120,7 @@ export default function PeriodPaymentsScreen() {
                   <Text style={styles.name}>{name}</Text>
                   <Text style={inArrears ? styles.flag : styles.ok}>{inArrears ? 'Menunggak' : 'Lancar'}</Text>
                   {paidNow ? <Text style={styles.paidToday}>Sudah bayar hari ini</Text> : null}
-                  {item.prepaid > 0 ? <Text style={styles.muted}>Bayar di muka: {formatRupiah(item.prepaid)}</Text> : null}
+                  {item.prepaid > 0 ? <Text style={styles.muted}>Dibayar di muka: {formatRupiah(item.prepaid)}</Text> : null}
                   {item.credit > 0 ? <Text style={styles.muted}>Titipan: {formatRupiah(item.credit)}</Text> : null}
                 </View>
                 <Money amount={item.arrears} size="heading" tone={inArrears ? 'negative' : 'neutral'} style={styles.amount} />

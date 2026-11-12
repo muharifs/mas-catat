@@ -72,7 +72,7 @@ export default function PayScreen() {
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  if (!data.member) return <ErrorState message="Anggota tidak ditemukan." />;
+  if (!data.member) return <ErrorState title="Data tidak ditemukan" message="Anggota tidak ditemukan. Kembali lalu pilih lagi." />;
   const memberName = data.member.name;
   const { choices, arrearsRemainder } = paymentChoices(data.arrears);
   const typedAmount = parseRupiahInput(amountText);
@@ -110,7 +110,7 @@ export default function PayScreen() {
         ],
       );
     } catch (e) {
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'preview'));
       setBusy(false);
     }
   }

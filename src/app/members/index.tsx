@@ -103,7 +103,7 @@ export default function MembersScreen() {
                 stopEdit();
                 void reload();
               },
-              (e: unknown) => setEditError(toIndonesian(e)),
+              (e: unknown) => setEditError(toIndonesian(e, 'delete_member')),
             );
           },
         },
@@ -120,7 +120,7 @@ export default function MembersScreen() {
         return;
       }
     } catch (e) {
-      setEditError(toIndonesian(e));
+      setEditError(toIndonesian(e, 'archive'));
       return;
     }
     Alert.alert(
@@ -137,7 +137,7 @@ export default function MembersScreen() {
                 stopEdit();
                 void reload();
               },
-              (e: unknown) => setEditError(toIndonesian(e)),
+              (e: unknown) => setEditError(toIndonesian(e, 'archive')),
             );
           },
         },
@@ -151,7 +151,7 @@ export default function MembersScreen() {
       await repos.members.unarchive(id);
       await reload();
     } catch (e) {
-      setUnarchiveError({ id, message: toIndonesian(e) });
+      setUnarchiveError({ id, message: toIndonesian(e, 'unarchive') });
     }
   }
 

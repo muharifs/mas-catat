@@ -53,7 +53,7 @@ export default function MeetingHostScreen() {
   if (!data) return <Loading />;
   const { period, weeks, memberIds, members, standingPayoutWeeks } = data;
   const found = weeks.find((w) => w.number === number);
-  if (!period || !found) return <ErrorState message="Pertemuan tidak ditemukan." />;
+  if (!period || !found) return <ErrorState title="Data tidak ditemukan" message="Pertemuan tidak ditemukan. Kembali lalu pilih lagi." />;
 
   const week = found; // const copy: TypeScript keeps the narrowing (not undefined) inside the functions below
   const nameOf = (memberId: string | null) =>

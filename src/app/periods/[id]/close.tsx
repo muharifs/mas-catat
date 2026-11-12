@@ -51,7 +51,7 @@ export default function ClosePeriodScreen() {
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { period, members, weeks, preview } = data;
-  if (!period) return <ErrorState message="Periode tidak ditemukan." />;
+  if (!period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
   if (period.status === 'closed') {
     return (
       <View style={styles.container}>
@@ -82,7 +82,7 @@ export default function ClosePeriodScreen() {
       // replace (not push): Back must not return to this screen, because the period has ended.
       router.replace({ pathname: '/periods/[id]', params: { id: periodId } });
     } catch (e) {
-      setActionError(toIndonesian(e));
+      setActionError(toIndonesian(e, 'close_period'));
       setBusy(false);
       await reload();
     }

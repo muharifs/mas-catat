@@ -61,13 +61,13 @@ export default function CreditsScreen() {
       if (preview.negativeAccounts.length > 0) {
         lines.push(`Peringatan: saldo ${ACCOUNT_LABELS[account]} akan menjadi minus. Tetap bisa disimpan.`);
       }
-      lines.push('Pengembalian ini TIDAK bisa dikoreksi atau dibatalkan. Periksa tempat uang dan tanggalnya.');
+      lines.push('Pengembalian ini final: tidak bisa dikoreksi atau dibatalkan. Periksa tempat uang dan tanggalnya.');
       Alert.alert(`Kembalikan uang ${formatRupiah(preview.entry.amount)}`, lines.join('\n\n'), [
         { text: 'Batal', style: 'cancel' },
         { text: 'Kembalikan uang', style: 'destructive', onPress: () => void save(item, preview.entry.amount) },
       ]);
     } catch (e) {
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'preview'));
       setBusy(false);
     }
   }
@@ -81,7 +81,7 @@ export default function CreditsScreen() {
       setBusy(false);
       await reload();
     } catch (e) {
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'refund'));
       setBusy(false);
     }
   }
@@ -118,6 +118,9 @@ export default function CreditsScreen() {
                     />
                   ))}
                 </View>
+                <Notice tone="warn" title="Tidak bisa dikoreksi">
+                  Pengembalian titipan bersifat final. Periksa tempat uang dan tanggalnya sebelum lanjut.
+                </Notice>
                 <Text style={styles.hint}>Jumlah otomatis seluruh sisa titipan, tidak bisa diketik.</Text>
                 {error ? <Notice tone="danger">{error}</Notice> : null}
                 <Button label="Lanjut" disabled={busy} onPress={() => void submit(item)} />

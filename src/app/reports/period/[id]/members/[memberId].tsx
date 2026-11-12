@@ -41,7 +41,7 @@ export default function MemberHistoryScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { period, member, history } = data;
-  if (!period || !member) return <ErrorState message="Data tidak ditemukan." />;
+  if (!period || !member) return <ErrorState title="Data tidak ditemukan" message="Anggota atau periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

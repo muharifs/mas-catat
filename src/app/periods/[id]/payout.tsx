@@ -79,7 +79,7 @@ export default function PayoutScreen() {
       (e: unknown) => {
         if (cancelled) return;
         setPreview(null);
-        setPreviewError(toIndonesian(e));
+        setPreviewError(toIndonesian(e, 'preview'));
       },
     );
     return () => {
@@ -90,7 +90,7 @@ export default function PayoutScreen() {
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { period, meeting, members, paid } = data;
-  if (!period || !meeting) return <ErrorState message="Pertemuan tidak ditemukan." />;
+  if (!period || !meeting) return <ErrorState title="Data tidak ditemukan" message="Pertemuan tidak ditemukan. Kembali lalu pilih lagi." />;
   const hostName = members.find((m) => m.id === meeting.hostMemberId)?.name ?? 'Belum ditentukan';
   const active = period.status === 'active';
 
@@ -110,11 +110,15 @@ export default function PayoutScreen() {
   function ask() {
     if (!preview) return;
     setError(null);
-    const warned = preview.kasShort || preview.accountShort;
+    // Name the reason in the dialog itself; the dialog hides the screen behind it.
+    const warning = preview.kasShort
+      ? '\n\nPeringatan: Total kas (Tunai + Debit) lebih kecil dari uang keluar bersih. Tetap bisa disimpan.'
+      : preview.accountShort
+        ? `\n\nPeringatan: saldo ${ACCOUNT_LABELS[preview.account]} lebih kecil dari uang keluar bersih, jadi akan menjadi minus. Tetap bisa disimpan.`
+        : '';
     Alert.alert(
       `Bayar tuan rumah ${formatRupiah(preview.payout)}`,
-      confirmMessage(hostName, week, date, preview) +
-        (warned ? '\n\nPeringatan: saldo kas kurang, lihat peringatan di layar. Tetap bisa disimpan.' : ''),
+      confirmMessage(hostName, week, date, preview) + warning,
       [
         { text: 'Batal', style: 'cancel' },
         { text: 'Bayar', onPress: () => void save() },
@@ -198,12 +202,12 @@ export default function PayoutScreen() {
                 <Money amount={preview.netCash} size="large" />
                 <Text style={styles.body}>Sisa tunggakan setelah potongan: {formatRupiah(preview.remainingDebt)}</Text>
                 <Text style={styles.muted}>
-                  Saldo sekarang: {ACCOUNT_LABELS[preview.account]} {formatRupiah(preview.accountBefore)}, Tunai + Debit {formatRupiah(preview.kasBefore)}
+                  {`Saldo sekarang: ${ACCOUNT_LABELS[preview.account]} ${formatRupiah(preview.accountBefore)}. Total kas (Tunai + Debit): ${formatRupiah(preview.kasBefore)}.`}
                 </Text>
 
                 {preview.kasShort ? (
                   <Notice tone="warn">
-                    {`Peringatan: Tunai + Debit (${formatRupiah(preview.kasBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}. Pembayaran penuh ke tuan rumah ${formatRupiah(preview.payout)}, dipotong dari bayaran tuan rumah ${formatRupiah(preview.offset)}. Tetap bisa disimpan.`}
+                    {`Peringatan: Total kas (Tunai + Debit) ${formatRupiah(preview.kasBefore)} lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}. Tetap bisa disimpan.`}
                   </Notice>
                 ) : null}
                 {preview.accountShort ? (

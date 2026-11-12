@@ -3,7 +3,7 @@ import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
 import { HostPayoutStandsError } from '@/domain/schedule';
-import { archiveBlockText, BACKUP_ERROR_TEXT, GENERIC_LOAD_ERROR, GENERIC_SAVE_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
+import { archiveBlockText, BACKUP_ERROR_TEXT, CONTEXT_ERROR_TEXT, GENERIC_LOAD_ERROR, restoreErrorNeedsReload, type ErrorContext, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
   it.each([
@@ -81,18 +81,46 @@ describe('toIndonesian', () => {
   });
 
   it('falls back to a generic message and never leaks English', () => {
-    expect(toIndonesian(new RepositoryError('something new'))).toBe(GENERIC_SAVE_ERROR);
-    expect(toIndonesian(new Error('raw'))).toBe(GENERIC_SAVE_ERROR);
-    expect(toIndonesian('text')).toBe(GENERIC_SAVE_ERROR);
+    expect(toIndonesian(new RepositoryError('something new'))).toBe(CONTEXT_ERROR_TEXT.save);
+    expect(toIndonesian(new Error('raw'))).toBe(CONTEXT_ERROR_TEXT.save);
+    expect(toIndonesian('text')).toBe(CONTEXT_ERROR_TEXT.save);
   });
 
   it('separates a read failure from a save failure and never says "Anda"', () => {
     expect(toIndonesian(new RepositoryError('something new'), 'load')).toBe(GENERIC_LOAD_ERROR);
     expect(toIndonesian(new Error('raw'), 'load')).toBe(GENERIC_LOAD_ERROR);
     expect(GENERIC_LOAD_ERROR).toContain('Data tidak berubah');
-    expect(GENERIC_SAVE_ERROR).toBe('Catatan belum tersimpan. Coba lagi.');
+    expect(CONTEXT_ERROR_TEXT.save).toBe(
+      'Catatan belum tersimpan. Tidak ada data yang berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
+    );
     expect(GENERIC_LOAD_ERROR).not.toContain('Anda');
     expect(BACKUP_ERROR_TEXT.safety_failed).not.toContain('Anda');
+  });
+});
+
+describe('toIndonesian: one unknown-error text per context', () => {
+  const contexts = Object.keys(CONTEXT_ERROR_TEXT) as ErrorContext[];
+
+  it.each(contexts)('context %s returns its own text for unknown errors', (context) => {
+    const text = CONTEXT_ERROR_TEXT[context];
+    expect(toIndonesian(new RepositoryError('something new'), context)).toBe(text);
+    expect(toIndonesian(new Error('raw'), context)).toBe(text);
+    expect(toIndonesian('text', context)).toBe(text);
+    expect(text).not.toMatch(/Anda|Kalau|file/);
+  });
+
+  it('keeps every context text different', () => {
+    expect(new Set(Object.values(CONTEXT_ERROR_TEXT)).size).toBe(contexts.length);
+    expect(CONTEXT_ERROR_TEXT.load).toBe(GENERIC_LOAD_ERROR);
+  });
+
+  it('does not claim the data is unchanged after an unknown restore error', () => {
+    expect(CONTEXT_ERROR_TEXT.restore).toContain('belum bisa dipastikan');
+    expect(CONTEXT_ERROR_TEXT.restore).not.toContain('Data tidak berubah');
+  });
+
+  it('keeps known errors mapped before the context text', () => {
+    expect(toIndonesian(new RepositoryError('member name must not be empty'), 'archive')).toBe('Nama anggota tidak boleh kosong.');
   });
 });
 
@@ -123,6 +151,11 @@ describe('toIndonesian: backup and restore (M7)', () => {
     expect(text).not.toMatch(/[\\/]/);
     expect(text).not.toMatch(/\.db\b/);
     expect(text.toLowerCase()).not.toContain('kredit');
+  });
+
+  it('names the share feature without the old "Menu bagikan" wording', () => {
+    expect(BACKUP_ERROR_TEXT.share_unavailable).not.toContain('Menu bagikan');
+    expect(BACKUP_ERROR_TEXT.share_unavailable).toContain('berkas');
   });
 
   it.each(['file_empty', 'file_too_small', 'file_too_large', 'not_sqlite', 'version_missing', 'tables_missing', 'schema_mismatch', 'integrity', 'foreign_keys', 'invariant'] as const)(

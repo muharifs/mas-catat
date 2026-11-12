@@ -38,7 +38,7 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
           try {
             await onSubmit(reason.trim());
           } catch (e) {
-            setError(toIndonesian(e));
+            setError(toIndonesian(e, 'correct'));
             setBusy(false);
           }
         },

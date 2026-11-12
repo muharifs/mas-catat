@@ -16,7 +16,11 @@ export const ONE_PHONE_HINT =
   'Gunakan satu HP saja. Untuk pindah HP: buat cadangan, pulihkan di HP baru, lalu berhenti memakai HP lama. Data dari dua HP tidak bisa digabung.';
 
 export const CSV_HINT =
-  'Berkas CSV hanya untuk dibaca di Excel atau Google Sheets. CSV bukan cadangan dan tidak bisa dipakai untuk memulihkan data. Isinya juga memuat nama dan uang anggota. Di Buku kas, Masuk dan Keluar hanya berisi uang yang benar-benar masuk atau keluar dari Tunai dan Debit. Pindah saldo Tunai dan Debit, penghapusan tunggakan, dan saldo awal Piutang ada di kolom Tanpa perubahan kas.';
+  'Berkas CSV hanya untuk dibaca di Excel atau Google Sheets. Bukan cadangan dan tidak bisa dipakai untuk memulihkan data. Isinya memuat nama dan uang anggota.';
+
+/** Shown under the Buku kas button only. Mirrors csvAmountColumns (src/domain/flow.ts). */
+export const CSV_LEDGER_HINT =
+  'Masuk dan Keluar mengikuti perubahan Tunai + Debit untuk semua jenis catatan: pinjaman di Keluar, pelunasan di Masuk, sedangkan pindah saldo, tunggakan ditanggung kas, dan saldo awal Piutang ada di Tanpa perubahan kas.';
 
 export const NO_ENCRYPTION_HINT = 'Cadangan tidak dikunci dengan kata sandi. Siapa pun yang memegang berkasnya bisa membacanya.';
 

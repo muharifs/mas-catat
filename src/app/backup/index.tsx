@@ -7,7 +7,7 @@ import { createBackupSnapshot } from '@/db/backup';
 import { useDatabaseControl, useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
-import { ListRow, RowText } from '@/ui/components/ListRow';
+import { ListRow } from '@/ui/components/ListRow';
 import { Notice } from '@/ui/components/Notice';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import {
@@ -51,7 +51,7 @@ export default function BackupScreen() {
     try {
       await job();
     } catch (e) {
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'share'));
     } finally {
       lock.current = false;
       setBusy(null);
@@ -72,7 +72,7 @@ export default function BackupScreen() {
     // The share sheet closed. We cannot know whether it was sent, so this is "last shared", not "last saved".
     writeLastShared(new Date().toISOString());
     setLastShared(readLastShared());
-    toast('Menu bagikan ditutup. Pastikan cadangan terkirim.');
+    toast('Pastikan cadangan benar-benar terkirim.');
   }
 
   async function shareCsv(kind: CsvKind) {
@@ -111,20 +111,21 @@ export default function BackupScreen() {
                 onPress={() => void run('Menyiapkan berkas...', () => shareCsv(spec.kind))}
               />
               <Text style={styles.caption}>{spec.hint}</Text>
+              {spec.detail ? <Text style={styles.caption}>{spec.detail}</Text> : null}
             </View>
           ))}
         </Card>
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Pulihkan atau mulai dari nol" />
+        <SectionHeader title="Pulihkan data" />
         <Card tone="alt">
           <Text style={styles.body}>{ONE_PHONE_HINT}</Text>
           <ListRow
-            title="Pulihkan data"
+            title="Pulihkan dari cadangan"
             onPress={busy === null ? () => router.push('/backup/restore') : undefined}
-            right={<RowText>Dari cadangan</RowText>}
           />
+          <Text style={styles.caption}>Mulai dari nol, untuk menghapus semua data, ada di halaman yang sama.</Text>
         </Card>
       </View>
     </ScrollView>

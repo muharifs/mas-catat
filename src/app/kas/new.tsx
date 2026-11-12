@@ -15,6 +15,7 @@ import { AmountKeypad } from '@/ui/components/AmountKeypad';
 import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { DateField } from '@/ui/components/DateField';
+import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { IconChoice } from '@/ui/components/IconChoice';
 import { Loading } from '@/ui/components/Loading';
@@ -106,15 +107,29 @@ export default function NewKasEntryScreen() {
     };
   }, []);
 
-  if (!isKind(kindParam)) return <ErrorState message="Jenis catatan tidak dikenal. Kembali lalu pilih dari Catat kas." />;
+  if (!isKind(kindParam)) return <ErrorState title="Jenis catatan tidak dikenal" message="Kembali ke Catat kas, lalu pilih jenis catatan dari daftar." />;
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const kind: KasKind = kindParam;
   if (!data.hasPeriod) {
-    return <ErrorState message="Belum ada periode. Catatan kas selalu terhubung ke sebuah periode, jadi buat periode dulu." />;
+    return (
+      <EmptyState
+        title="Belum ada periode"
+        message="Catatan kas selalu terhubung ke sebuah periode. Buat periode dulu."
+        actionLabel="Buat periode"
+        onAction={() => router.replace('/periods/new')}
+      />
+    );
   }
   if (kind === 'loan' && !data.active) {
-    return <ErrorState message="Pinjaman baru hanya untuk anggota periode aktif, dan sekarang tidak ada periode aktif." />;
+    return (
+      <EmptyState
+        title="Belum ada periode aktif"
+        message="Pinjaman baru hanya untuk anggota periode aktif. Buat periode dulu."
+        actionLabel="Buat periode"
+        onAction={() => router.replace('/periods/new')}
+      />
+    );
   }
   const oldLoan = kind === 'opening_balance' && openingPos === 'piutang';
   const needsMember = kind === 'loan' || kind === 'loan_repayment' || oldLoan;
@@ -166,17 +181,17 @@ export default function NewKasEntryScreen() {
       toast(toasts.kas(KIND_LABELS[kind], input.amount));
       router.back();
     } catch (e) {
-      setError(errorText(e));
+      setError(errorText(e, 'save'));
       setBusy(false);
     }
   }
 
   // The domain refuses an amount above the remaining loan; here it gets the member's name and the limit.
-  function errorText(e: unknown): string {
+  function errorText(e: unknown, context: 'save' | 'preview'): string {
     if (e instanceof LoanError && e.code === 'above_remaining') {
       return `Jumlah melebihi sisa pinjaman ${picked?.name ?? ''} (${formatRupiah(e.remaining)}). Kurangi jumlah, atau ketuk Bayar lunas.`;
     }
-    return toIndonesian(e);
+    return toIndonesian(e, context);
   }
 
   async function submit() {
@@ -214,7 +229,7 @@ export default function NewKasEntryScreen() {
         { text: 'Simpan', onPress: () => void save(input) },
       ]);
     } catch (e) {
-      setError(errorText(e));
+      setError(errorText(e, 'preview'));
       setBusy(false);
     }
   }

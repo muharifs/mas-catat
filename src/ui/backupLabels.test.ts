@@ -1,5 +1,5 @@
 import { backupReminder, type DbSummary } from '@/domain/backup';
-import { classificationText, classificationTitle, lastSharedText, phraseInstruction, reminderText, safetyCopyLabel, summaryRows, BACKUP_WARNING, CSV_HINT, ONE_PHONE_HINT, OFFSITE_HINT, restoreTexts, RESET_SAFETY_NOTE, ROLLED_BACK_TEXT } from './backupLabels';
+import { classificationText, classificationTitle, lastSharedText, phraseInstruction, reminderText, safetyCopyLabel, summaryRows, BACKUP_WARNING, CSV_HINT, CSV_LEDGER_HINT, ONE_PHONE_HINT, OFFSITE_HINT, restoreTexts, RESET_SAFETY_NOTE, ROLLED_BACK_TEXT } from './backupLabels';
 
 const summary: DbSummary = {
   userVersion: 4,
@@ -22,9 +22,10 @@ describe('backup labels', () => {
     expect(OFFSITE_HINT).toContain('di luar HP');
     expect(ONE_PHONE_HINT).toContain('satu HP');
     expect(ONE_PHONE_HINT).toContain('tidak bisa digabung');
-    expect(CSV_HINT).toContain('bukan cadangan');
-    expect(CSV_HINT).toContain('Pindah saldo Tunai dan Debit');
-    expect(CSV_HINT).toContain('Tanpa perubahan kas');
+    expect(CSV_HINT).toMatch(/bukan cadangan/i);
+    expect(CSV_LEDGER_HINT).toContain('Tanpa perubahan kas');
+    expect(CSV_LEDGER_HINT).toContain('pinjaman di Keluar');
+    expect(CSV_LEDGER_HINT).toContain('pelunasan di Masuk');
   });
 
   it('summary rows show the five numbers the owner compares', () => {
@@ -80,7 +81,7 @@ describe('backup labels', () => {
   });
 
   it('never uses the word kredit', () => {
-    const all = [BACKUP_WARNING, OFFSITE_HINT, ONE_PHONE_HINT, CSV_HINT, ROLLED_BACK_TEXT, ...Object.values(restoreTexts)].join(' ').toLowerCase();
+    const all = [BACKUP_WARNING, OFFSITE_HINT, ONE_PHONE_HINT, CSV_HINT, CSV_LEDGER_HINT, ROLLED_BACK_TEXT, ...Object.values(restoreTexts)].join(' ').toLowerCase();
     expect(all).not.toContain('kredit');
   });
 });

@@ -146,7 +146,7 @@ export default function HomeScreen() {
             toast(toasts.weekClosed(number));
             await reload();
           } catch (e) {
-            setActionError(toIndonesian(e));
+            setActionError(toIndonesian(e, 'close_week'));
           }
         },
       },

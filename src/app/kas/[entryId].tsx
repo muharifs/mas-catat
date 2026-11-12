@@ -48,7 +48,7 @@ export default function KasEntryScreen() {
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  if (!data.entry) return <ErrorState message="Catatan kas tidak ditemukan." />;
+  if (!data.entry) return <ErrorState title="Data tidak ditemukan" message="Catatan kas tidak ditemukan. Kembali lalu pilih lagi." />;
   const { entry, period, member, related, loan, paid } = data;
 
   const route = correctionRoute(entry, period?.status === 'active');

@@ -6,6 +6,7 @@ import { buildCsv, csvFileName, type CsvCell, type CsvKind } from '@/domain/csv'
 import { csvAmountColumns } from '@/domain/flow';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { Account } from '@/domain/types';
+import { CSV_LEDGER_HINT } from './backupLabels';
 import { TYPE_LABELS, showsNoPosWarning, visibleNote } from './kasLabels';
 
 const posText = (account: Account | null, type: LedgerExportRow['type']): string => {
@@ -158,10 +159,12 @@ export interface CsvFileSpec {
   label: string;
   /** One line under the button. */
   hint: string;
+  /** Optional longer explanation, shown as a second caption. */
+  detail?: string;
 }
 
 export const CSV_FILES: readonly CsvFileSpec[] = [
-  { kind: 'buku-kas', label: 'Buku kas', hint: 'Semua catatan kas, termasuk koreksi.' },
+  { kind: 'buku-kas', label: 'Buku kas', hint: 'Semua catatan kas, termasuk koreksi.', detail: CSV_LEDGER_HINT },
   { kind: 'pembayaran', label: 'Pembayaran', hint: 'Setiap pembayaran iuran anggota.' },
   { kind: 'iuran-per-pertemuan', label: 'Iuran per pertemuan', hint: 'Status iuran tiap anggota di tiap pertemuan.' },
   { kind: 'ringkasan-periode', label: 'Ringkasan periode', hint: 'Total tiap periode.' },

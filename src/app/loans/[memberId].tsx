@@ -39,7 +39,7 @@ export default function MemberLoanScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { member, balance, history, canLendAgain } = data;
-  if (!member) return <ErrorState message="Anggota tidak ditemukan." />;
+  if (!member) return <ErrorState title="Data tidak ditemukan" message="Anggota tidak ditemukan. Kembali lalu pilih lagi." />;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

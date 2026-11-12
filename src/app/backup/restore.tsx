@@ -94,7 +94,7 @@ export default function RestoreScreen() {
       setPhase('review');
     } catch (e) {
       if (!mounted.current) return;
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'restore_check'));
       setPhase('idle');
     } finally {
       lock.current = false;
@@ -152,7 +152,7 @@ export default function RestoreScreen() {
         {
           text: 'Bagikan',
           onPress: () => {
-            shareSafetyCopy(outcome.safetyName).catch((e: unknown) => Alert.alert('Gagal membagikan', toIndonesian(e)));
+            shareSafetyCopy(outcome.safetyName).catch((e: unknown) => Alert.alert('Gagal membagikan', toIndonesian(e, 'share_safety')));
           },
         },
       ]);
@@ -162,7 +162,7 @@ export default function RestoreScreen() {
         // The live data may already have changed (for example restore_failed), so no screen may keep old numbers.
         // The screens are rebuilt, so the message goes into a dialog instead of this screen's state.
         reloadEverything();
-        Alert.alert('Pemulihan bermasalah', toIndonesian(e));
+        Alert.alert('Pemulihan bermasalah', toIndonesian(e, 'restore'));
       } else {
         setError(toIndonesian(e));
         setPhase('idle');

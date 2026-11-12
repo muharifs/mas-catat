@@ -7,6 +7,8 @@ import {
   eligibleHostIds,
   HostPayoutStandsError,
   isRealDate,
+  isStartDateFarAway,
+  startDateAfterMeetingChange,
   MEETING_WEEKDAY,
   meetingDateProblem,
   nearestMeetingDayOnOrAfter,
@@ -340,5 +342,33 @@ describe('daysBetween', () => {
 
   it('rejects text that is not an ISO date', () => {
     expect(() => daysBetween('4 Jan', '2026-01-04')).toThrow(DomainError);
+  });
+});
+
+describe('startDateAfterMeetingChange', () => {
+  const week = (number: number, status: 'open' | 'closed', date: string): ScheduleWeek => ({ number, date, hostMemberId: null, status });
+  const open = [week(1, 'open', '2026-02-03'), week(2, 'open', '2026-02-10')];
+
+  it('moves the start date with meeting 1 while all meetings are open', () => {
+    expect(startDateAfterMeetingChange(open, 1, '2026-02-04', '2026-02-03')).toBe('2026-02-04');
+  });
+  it('returns null when meeting 1 keeps its date', () => {
+    expect(startDateAfterMeetingChange(open, 1, '2026-02-03', '2026-02-03')).toBeNull();
+  });
+  it('returns null once any meeting is closed', () => {
+    const closed = [week(1, 'closed', '2026-02-03'), week(2, 'open', '2026-02-10')];
+    expect(startDateAfterMeetingChange(closed, 1, '2026-02-04', '2026-02-03')).toBeNull();
+  });
+  it('never moves it for meeting 2 or later', () => {
+    expect(startDateAfterMeetingChange(open, 2, '2026-02-11', '2026-02-03')).toBeNull();
+  });
+});
+
+describe('isStartDateFarAway', () => {
+  it('warns only when more than 14 days after today', () => {
+    expect(isStartDateFarAway('2026-11-26', '2026-11-12')).toBe(false); // exactly 14
+    expect(isStartDateFarAway('2026-11-27', '2026-11-12')).toBe(true); // 15
+    expect(isStartDateFarAway('2026-11-12', '2026-11-12')).toBe(false);
+    expect(isStartDateFarAway('2026-11-01', '2026-11-12')).toBe(false); // the past is not "far away"
   });
 });

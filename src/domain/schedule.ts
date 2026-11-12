@@ -265,3 +265,27 @@ export function planAssignment(input: AssignmentInput): WeekChange[] {
   }
   return diff(weeks, state);
 }
+
+/**
+ * The new start date of a period after meeting `number` was given `newDate`, or null when start_date must stay.
+ * The start date follows the date of meeting 1, but only while no meeting of the period is closed (afterwards it is
+ * history). Dates of meeting 2 and later never touch it. `weeks` is the state BEFORE the change.
+ */
+export function startDateAfterMeetingChange(
+  weeks: readonly ScheduleWeek[],
+  number: number,
+  newDate: IsoDate,
+  currentStartDate: IsoDate,
+): IsoDate | null {
+  if (number !== 1) return null;
+  if (weeks.some((w) => w.status === 'closed')) return null;
+  return newDate === currentStartDate ? null : newDate;
+}
+
+/** A first meeting further away than this many days from today gets a warning in the new-period form. */
+export const FAR_START_WARNING_DAYS = 14;
+
+/** True when `startDate` is more than 14 days after `today` (a likely typo, e.g. a wrong month). Not a block. */
+export function isStartDateFarAway(startDate: IsoDate, today: IsoDate): boolean {
+  return daysBetween(today, startDate) > FAR_START_WARNING_DAYS;
+}

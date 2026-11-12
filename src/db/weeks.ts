@@ -3,7 +3,7 @@
 // exactly once, so picking a member who already holds another open meeting exchanges the two hosts.
 import { allocatePayments } from '@/domain/allocation';
 import { periodWeekCount } from '@/domain/dues';
-import { assertNoStandingPayout, planAssignment, type WeekChange } from '@/domain/schedule';
+import { assertNoStandingPayout, planAssignment, startDateAfterMeetingChange, type WeekChange } from '@/domain/schedule';
 import type { WeekCredit, WeekStatus } from '@/domain/types';
 import type { Db, Queryable } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
@@ -252,6 +252,17 @@ export function createWeeksRepo(db: Db, deps: RepoDeps = defaultDeps) {
           date,
         });
         await applyChanges(tx, periodId, changes);
+        // Meeting 1 carries the start date of the period: keep them equal while nothing is closed (same transaction).
+        const period = await tx.getFirst<{ start_date: string }>('SELECT start_date FROM periods WHERE id = ?', [periodId]);
+        if (period) {
+          const newStart = startDateAfterMeetingChange(
+            rows.map((r) => ({ number: r.number, date: r.date, hostMemberId: r.host_member_id, status: r.status })),
+            number,
+            date,
+            period.start_date,
+          );
+          if (newStart) await tx.run('UPDATE periods SET start_date = ? WHERE id = ?', [newStart, periodId]);
+        }
       });
     },
 

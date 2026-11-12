@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isRealDate, nearestMeetingDayOnOrAfter, previewMeetingDates } from '@/domain/schedule';
+import { isRealDate, isStartDateFarAway, nearestMeetingDayOnOrAfter, previewMeetingDates } from '@/domain/schedule';
 import { sortByName } from '@/domain/sort';
 import type { MemberCarryOver } from '@/db/credits';
 import { useRepos } from '@/db/provider';
@@ -140,6 +140,11 @@ export default function NewPeriodScreen() {
 
       <TextField label="Nama periode" placeholder="Contoh: Periode 1" value={name} onChangeText={setNameInput} />
       <DateField label="Tanggal pertemuan 1" value={startDate} onChange={setStartDate} />
+      {dateOk && isStartDateFarAway(startDate, todayIso()) ? (
+        <Notice tone="warn">
+          Tanggal pertemuan 1 lebih dari 14 hari dari hari ini. Pastikan tanggalnya benar. Periode tetap bisa disimpan.
+        </Notice>
+      ) : null}
 
       <SectionHeader title="Pilih anggota ({selected.length} dipilih)" />
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>

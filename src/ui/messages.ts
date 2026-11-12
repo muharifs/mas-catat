@@ -98,6 +98,6 @@ export const toasts = {
   weekClosed: (number: number) => `Pertemuan ${number} ditutup`,
   host: (number: number, hostName: string) => `Tuan rumah pertemuan ${number}: ${hostName} tersimpan`,
   periodSaved: (name: string) => `Periode "${name}" tersimpan`,
-  periodClosed: (name: string) => `Periode "${name}" diakhiri`,
+  periodClosed: (name: string) => `Periode "${name}" berakhir`,
   refund: (amount: number, memberName: string) => `Titipan ${formatRupiah(amount)} dikembalikan ke ${memberName}`,
 };

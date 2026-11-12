@@ -28,11 +28,11 @@ function confirmMessage(hostName: string, week: number, date: string, p: PayoutP
     `${hostName} menerima ${formatRupiah(p.payout)} untuk pertemuan ${week} pada ${formatDate(date)}, dari ${ACCOUNT_LABELS[p.account]}.`,
   ];
   if (p.offset > 0) {
-    lines.push(`Tunggakan ${hostName} ${formatRupiah(p.offset)} dipotong dari bayarannya dan dicatat sebagai entri terpisah.`);
+    lines.push(`Tunggakan ${hostName} ${formatRupiah(p.offset)} dipotong dari bayarannya dan dicatat sebagai catatan terpisah.`);
     lines.push(`Uang yang benar-benar keluar dari ${ACCOUNT_LABELS[p.account]}: ${formatRupiah(p.netCash)}.`);
   }
-  if (p.remainingDebt > 0) lines.push(`Sisa tunggakan ${formatRupiah(p.remainingDebt)} tetap tercatat sebagai utang.`);
-  lines.push('Kalau salah, pembayaran ini bisa dikoreksi dari layar ini (dengan alasan).');
+  if (p.remainingDebt > 0) lines.push(`Sisa tunggakan ${formatRupiah(p.remainingDebt)} tetap tercatat sebagai tunggakan.`);
+  lines.push('Jika salah, pembayaran ini bisa dikoreksi dari halaman ini (dengan alasan).');
   return lines.join('\n\n');
 }
 
@@ -208,7 +208,7 @@ export default function PayoutScreen() {
                 ) : null}
                 {preview.accountShort ? (
                   <Notice tone="warn">
-                    {`Peringatan: saldo ${ACCOUNT_LABELS[preview.account]} (${formatRupiah(preview.accountBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}, jadi saldo ${ACCOUNT_LABELS[preview.account]} akan menjadi minus. Tetap bisa disimpan; pindahkan saldo dulu kalau perlu.`}
+                    {`Peringatan: saldo ${ACCOUNT_LABELS[preview.account]} (${formatRupiah(preview.accountBefore)}) lebih kecil dari uang keluar bersih ${formatRupiah(preview.netCash)}, jadi saldo ${ACCOUNT_LABELS[preview.account]} akan menjadi minus. Tetap bisa disimpan; pindahkan saldo dulu jika perlu.`}
                   </Notice>
                 ) : null}
               </View>

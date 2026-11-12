@@ -93,7 +93,7 @@ export default function CreditsScreen() {
         ikut otomatis dipakai untuk iuran pertemuan terlama. Kembalikan uang hanya untuk anggota yang tidak ikut periode
         berikutnya.
       </Text>
-      {items.length === 0 ? <Text style={styles.muted}>Tidak ada anggota yang memegang titipan dari periode yang sudah berakhir.</Text> : null}
+      {items.length === 0 ? <Text style={styles.muted}>Tidak ada anggota yang memegang titipan dari periode yang sudah berakhir. Titipan pada periode yang masih berjalan tidak ada di sini; dipakai untuk iuran periode itu.</Text> : null}
       {sortByName(items, (item) => nameOf(item.memberId)).map((item) => {
         const key = `${item.periodId}:${item.memberId}`;
         const isSelected = selected !== null && `${selected.periodId}:${selected.memberId}` === key;

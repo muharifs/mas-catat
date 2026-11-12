@@ -11,7 +11,7 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { HistoryRow } from '@/ui/components/HistoryRow';
 import { InitialsRow } from '@/ui/components/InitialsRow';
-import { ListRow } from '@/ui/components/ListRow';
+import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
@@ -257,7 +257,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.pills}>
           <PillLink
-            label="Piutang"
+            label="Piutang (dipinjam anggota)"
             amount={balances.piutang}
             hidden={balanceHidden}
             hint="Buka daftar pinjaman"
@@ -388,8 +388,9 @@ export default function HomeScreen() {
                 <>
                   <Button label="Catat pembayaran" onPress={() => goPayments(period.id)} />
                   <ListRow
-                    title={hostPaid ? 'Tuan rumah sudah dibayar' : 'Bayar tuan rumah'}
+                    title={hostPaid ? 'Lihat pembayaran tuan rumah' : 'Bayar tuan rumah'}
                     tone="alt"
+                    right={hostPaid ? <RowText tone="ok">Sudah dibayar</RowText> : undefined}
                     onPress={() => goPayout(period.id, week.number)}
                   />
                   <ListRow title={hostPaid ? 'Ubah tanggal' : 'Ubah tuan rumah / tanggal'} tone="alt" onPress={() => goMeeting(period.id, week.number)} />

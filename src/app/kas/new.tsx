@@ -199,7 +199,7 @@ export default function NewKasEntryScreen() {
           : [];
       const lines = [
         `${KIND_LABELS[kind]} ${formatRupiah(e.amount)} pada ${formatDate(e.date)}.`,
-        e.toAccount && e.account ? `${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}` : e.account ? `Tempat uang: ${ACCOUNT_LABELS[e.account]}` : '',
+        e.toAccount && e.account ? `${ACCOUNT_LABELS[e.account]} ke ${ACCOUNT_LABELS[e.toAccount]}` : e.account ? `Tempat uang: ${ACCOUNT_LABELS[e.account]}` : '',
         memberName ? `Anggota: ${memberName}` : '',
         e.note ? `Catatan: ${e.note}` : '',
         ...loanLines,

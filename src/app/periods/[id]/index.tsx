@@ -80,8 +80,8 @@ export default function PeriodDetailScreen() {
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{period.name}</Text>
       <Text style={styles.body}>
-        {isActive ? 'Aktif' : 'Selesai'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
-        {period.endDate ? ` - berakhir ${formatDate(period.endDate)}` : ''}
+        {isActive ? 'Aktif' : 'Berakhir'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
+        {period.endDate ? ` - sampai ${formatDate(period.endDate)}` : ''}
       </Text>
 
       <Button
@@ -126,6 +126,7 @@ export default function PeriodDetailScreen() {
               <Text style={w.status === 'open' ? styles.open : styles.closed}>
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
+              {isPaid ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
               {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
             </View>
             <View style={styles.actions}>
@@ -149,13 +150,12 @@ export default function PeriodDetailScreen() {
               ) : null}
               {isPaid && isActive ? (
                 <Button
-                  label="Sudah dibayar"
+                  label="Lihat pembayaran tuan rumah"
                   variant="secondary"
                   compact
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
-              {isPaid && !isActive ? <Text style={styles.open}>Sudah dibayar</Text> : null}
             </View>
           </View>
         );
@@ -166,7 +166,7 @@ export default function PeriodDetailScreen() {
           <Text style={styles.cardTitle}>Akhiri periode</Text>
           <Text style={styles.hint}>
             Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
-            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum periode
+            masih terbuka). Halaman berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum periode
             benar-benar diakhiri.
           </Text>
           <Button

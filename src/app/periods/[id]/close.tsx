@@ -21,7 +21,7 @@ import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
 const END_DATE_MESSAGE: Record<EndDateProblem, string> = {
-  invalid: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.',
+  invalid: 'Tanggal tidak valid. Pilih tanggal dari kalender.',
   before_start: 'Tanggal berakhir tidak boleh sebelum tanggal mulai periode.',
   future: 'Tanggal berakhir tidak boleh di masa depan.',
 };

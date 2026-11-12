@@ -70,7 +70,7 @@ export function shareBackupFile(name: string, bytes: Uint8Array): Promise<void> 
 
 /** Shares a CSV text (BOM already included by the CSV builder). */
 export function shareCsvFile(name: string, content: string): Promise<void> {
-  return shareThroughCache(name, content, CSV_MIME, 'Bagikan file CSV');
+  return shareThroughCache(name, content, CSV_MIME, 'Bagikan berkas CSV');
 }
 
 // ---------------------------------------------------------------------------------------------------------------

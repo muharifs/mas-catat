@@ -207,7 +207,7 @@ describe('ringkasan-periode', () => {
     expect(table[0]).toEqual([...PERIOD_HEADER]);
     expect(table.length - 1).toBe(2);
     expect(table[1]?.[0]).toBe('Periode lama');
-    expect(table[1]?.[1]).toBe('Selesai');
+    expect(table[1]?.[1]).toBe('Berakhir');
     expect(table[2]?.[1]).toBe('Aktif');
     expect(table[2]?.[3]).toBe('');
     for (const r of table.slice(1)) for (const v of r.slice(4)) expect(v).toMatch(/^-?\d+$/);

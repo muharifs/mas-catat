@@ -200,8 +200,8 @@ export default function KasEntryScreen() {
 }
 
 function posText(entry: Parameters<typeof flowText>[0]): string {
-  const base = flowText(entry);
-  return entry.account && !entry.toAccount ? `${base} (${ACCOUNT_LABELS[entry.account]})` : base;
+  // Only the name of the place: the direction (in or out) is already in the card above.
+  return entry.account && !entry.toAccount ? ACCOUNT_LABELS[entry.account] : flowText(entry);
 }
 
 // Label at the left, value at the right. The value wraps when long (a note), the label never shrinks.

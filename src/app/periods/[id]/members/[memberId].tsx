@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { weekState, type WeekState } from '@/domain/payment-preview';
+import { weekState } from '@/domain/payment-preview';
 import type { WeekStatus } from '@/domain/types';
 import { useRepos } from '@/db/provider';
 import { Button } from '@/ui/components/Button';
@@ -14,17 +14,8 @@ import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
+import { WEEK_STATE_LABELS } from '@/ui/reportLabels';
 import { useLoad } from '@/ui/useLoad';
-
-const STATE_LABEL: Record<WeekState, string> = {
-  paid: 'Lunas',
-  offset: 'Lunas lewat potongan',
-  credited: 'Lunas lewat titipan',
-  partial_offset: 'Sebagian lewat potongan',
-  partial_credited: 'Sebagian lewat titipan',
-  partial: 'Kurang',
-  unpaid: 'Belum bayar',
-};
 
 function weekDetail(s: WeekStatus): string {
   const parts: string[] = [];
@@ -95,7 +86,7 @@ export default function MemberInPeriodScreen() {
                 Pertemuan {s.week}
                 {week ? ` - ${formatDate(week.date)}` : ''}
               </Text>
-              <Text style={state === 'paid' || state === 'offset' || state === 'credited' ? styles.ok : styles.bad}>{STATE_LABEL[state]}</Text>
+              <Text style={state === 'paid' || state === 'offset' || state === 'credited' ? styles.ok : styles.bad}>{WEEK_STATE_LABELS[state]}</Text>
             </View>
             {weekDetail(s) ? <Text style={styles.muted}>{weekDetail(s)}</Text> : null}
           </View>

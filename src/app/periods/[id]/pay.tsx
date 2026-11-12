@@ -28,7 +28,7 @@ const RECEIVING_ACCOUNT = 'tunai';
 /** Confirmation text. Every number comes from the preview; nothing is calculated here. */
 function confirmMessage(name: string, date: string, preview: PaymentPreview): string {
   const lines = [`${name} membayar ${formatRupiah(preview.amount)} pada ${formatDate(date)}, masuk ke Tunai.`];
-  if (preview.weekCount > 0) lines.push(`Menyentuh ${preview.weekCount} pertemuan.`);
+  if (preview.weekCount > 0) lines.push(`Mencakup ${preview.weekCount} pertemuan.`);
   if (preview.settledWeeks.length > 0) lines.push(`Akan melunasi ${describeWeeks(preview.settledWeeks)}.`);
   if (preview.partialWeek !== null) lines.push(`Pertemuan ${preview.partialWeek} baru terbayar sebagian.`);
   if (preview.creditAmount > 0) {
@@ -38,7 +38,7 @@ function confirmMessage(name: string, date: string, preview: PaymentPreview): st
         : `${formatRupiah(preview.creditAmount)} dari pembayaran ini menjadi titipan anggota.`,
     );
   }
-  lines.push('Kalau salah, pembayaran bisa dikoreksi dari halaman anggota (dengan alasan).');
+  lines.push('Jika salah, pembayaran bisa dikoreksi dari halaman anggota (dengan alasan).');
   return lines.join('\n\n');
 }
 

@@ -156,7 +156,7 @@ describe('archive', () => {
     await finishPeriod(f);
     expect(await archiveCode(f, a)).toBe('has_loan');
     expect(await f.repos.members.archiveBlocker(a)).toEqual({ code: 'has_loan', amount: 100_000 });
-    expect(archiveBlockText('has_loan', 100_000)).toBe('Masih punya sisa pinjaman Rp100.000.');
+    expect(archiveBlockText('has_loan', 100_000)).toBe('Belum bisa diarsipkan: masih punya sisa pinjaman Rp100.000. Lunasi dulu di Pinjaman anggota.');
     await f.repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-12-30', amount: 40_000, memberId: a });
     expect(await f.repos.members.archiveBlocker(a)).toEqual({ code: 'has_loan', amount: 60_000 });
     await f.repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-12-30', amount: 60_000, memberId: a });
@@ -171,7 +171,7 @@ describe('archive', () => {
     await finishPeriod(f);
     expect(await archiveCode(f, a)).toBe('has_credit');
     expect(await f.repos.members.archiveBlocker(a)).toEqual({ code: 'has_credit', amount: 30_000 });
-    expect(archiveBlockText('has_credit', 30_000)).toBe('Masih punya titipan Rp30.000 - kembalikan dulu.');
+    expect(archiveBlockText('has_credit', 30_000)).toBe('Belum bisa diarsipkan: masih punya titipan Rp30.000. Kembalikan dulu di Titipan anggota.');
     await f.repos.credits.refund(f.periodId, a, '2026-12-30', 'tunai');
     expect(await archiveCode(f, a)).toBe('ok');
   });

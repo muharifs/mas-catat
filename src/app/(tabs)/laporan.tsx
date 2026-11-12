@@ -65,7 +65,7 @@ export default function ReportsScreen() {
         <Text style={styles.hint}>{EXPECTED_FORMULA}</Text>
       </Card>
 
-      <SectionHeader title="Info (di luar rumus)" />
+      <SectionHeader title="Catatan tambahan (tidak masuk hitungan)" />
       <Card tone="alt">
         <ReportLine label={EXPECTED_LABELS.prepaid} amount={expected.prepaidDues} hint="Iuran pertemuan setelah pertemuan berjalan yang sudah dibayar." />
         <ReportLine label={EXPECTED_LABELS.unpaidPayout} amount={expected.unpaidPayoutAmount} hint={unpaidPayoutText(expected.unpaidPayoutCount)} />
@@ -77,8 +77,8 @@ export default function ReportsScreen() {
       {periods.map((p) => (
         <ListRow key={p.id} title={p.name} tone="alt" onPress={() => goPeriod(p.id)}>
           <RowText tone={p.status === 'active' ? 'ok' : 'muted'}>
-            {p.status === 'active' ? 'Aktif' : 'Selesai'} - mulai {formatDate(p.startDate)}
-            {p.endDate ? ` - berakhir ${formatDate(p.endDate)}` : ''}
+            {p.status === 'active' ? 'Aktif' : 'Berakhir'} - mulai {formatDate(p.startDate)}
+            {p.endDate ? ` - sampai ${formatDate(p.endDate)}` : ''}
           </RowText>
         </ListRow>
       ))}

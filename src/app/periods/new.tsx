@@ -180,7 +180,7 @@ export default function NewPeriodScreen() {
         <>
           <SectionHeader title="Titipan yang dibawa dari periode sebelumnya" />
           <Text style={styles.hint}>
-            Titipan dipakai untuk iuran pertemuan terlama lebih dulu. Pertemuan terakhir yang tersentuh bisa terlunasi
+            Titipan dipakai untuk iuran pertemuan terlama lebih dulu. Pertemuan terakhir yang terisi bisa lunas
             sebagian. Tidak ada uang yang bergerak: uangnya sudah masuk kas saat dibayar.
           </Text>
           {shownCarry.map((c) => (

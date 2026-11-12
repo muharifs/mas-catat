@@ -4,8 +4,8 @@ describe('flowText', () => {
   it('describes plain entries, moves and entries without a pos', () => {
     expect(flowText({ direction: 'in', account: 'tunai', toAccount: null })).toBe('Masuk ke Tunai');
     expect(flowText({ direction: 'out', account: 'debit', toAccount: null })).toBe('Keluar dari Debit');
-    expect(flowText({ direction: 'out', account: 'tunai', toAccount: 'debit' })).toBe('Tunai -> Debit');
-    expect(flowText({ direction: 'out', account: 'piutang', toAccount: 'tunai' })).toBe('Piutang -> Tunai');
+    expect(flowText({ direction: 'out', account: 'tunai', toAccount: 'debit' })).toBe('Tunai ke Debit');
+    expect(flowText({ direction: 'out', account: 'piutang', toAccount: 'tunai' })).toBe('Piutang ke Tunai');
     expect(flowText({ direction: 'out', account: null, toAccount: null })).toBe('Belum ada tempat uang');
   });
 });

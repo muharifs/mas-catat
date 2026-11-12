@@ -155,7 +155,7 @@ export default function MeetingHostScreen() {
         error={problem ? describeDateProblem(problem) : null}
       />
       <Text style={styles.hint}>
-        Pertemuan berikutnya yang belum ditentukan diperkirakan tiap 7 hari setelah tanggal terakhir yang dipilih.
+        Pertemuan berikutnya yang belum ditentukan diperkirakan jatuh pada hari Selasa terdekat, sekitar 7 hari setelah tanggal terakhir yang dipilih.
       </Text>
 
       {error ? <Notice tone="danger">{error}</Notice> : null}

@@ -63,7 +63,7 @@ describe('toasts', () => {
     expect(toasts.payout(100_000, 'Budi')).toBe('Pembayaran tuan rumah Rp100.000 untuk Budi tersimpan');
     expect(toasts.kas('Saldo awal', 500_000)).toBe('Saldo awal Rp500.000 tersimpan');
     expect(toasts.periodSaved('Periode 2')).toBe('Periode "Periode 2" tersimpan');
-    expect(toasts.periodClosed('Periode 1')).toBe('Periode "Periode 1" diakhiri');
+    expect(toasts.periodClosed('Periode 1')).toBe('Periode "Periode 1" berakhir');
     expect(toasts.refund(5_000, 'Budi')).toBe('Titipan Rp5.000 dikembalikan ke Budi');
   });
 });

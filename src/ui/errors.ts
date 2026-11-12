@@ -23,7 +23,7 @@ export type ErrorContext = 'load' | 'save';
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
 const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArray) => string) }[] = [
   { pattern: /member name must not be empty/, text: 'Nama anggota tidak boleh kosong.' },
-  { pattern: /member name already exists/, text: 'Nama anggota sudah ada. Pakai nama lain.' },
+  { pattern: /member name already exists/, text: 'Nama ini sudah dipakai (mungkin oleh anggota yang diarsipkan). Gunakan nama lain.' },
   { pattern: /period name must not be empty/, text: 'Nama periode tidak boleh kosong.' },
   { pattern: /memberIds must list each member exactly once/, text: 'Setiap anggota hanya boleh dipilih satu kali.' },
   { pattern: /another period is still active/, text: 'Masih ada periode yang aktif. Akhiri dulu sebelum membuat periode baru.' },
@@ -34,7 +34,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /outside the selectable window/, text: 'Tuan rumah hanya bisa diatur untuk pertemuan saat ini dan pertemuan berikutnya.' },
   { pattern: /already hosted a closed week/, text: 'Anggota ini sudah pernah jadi tuan rumah pada pertemuan yang ditutup.' },
   { pattern: /week \d+ has no host/, text: 'Pertemuan ini belum punya tuan rumah. Tentukan dulu tuan rumahnya.' },
-  { pattern: /meeting date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
+  { pattern: /meeting date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /meeting date must be later than the previous/, text: 'Tanggal harus setelah tanggal pertemuan sebelumnya.' },
   { pattern: /meeting date must be earlier than the next/, text: 'Tanggal harus sebelum tanggal pertemuan berikutnya. Ubah dulu tanggal pertemuan berikutnya.' },
   { pattern: /meeting dates must stay in order/, text: 'Tanggal pertemuan harus berurutan, makin lama makin akhir.' },
@@ -42,12 +42,12 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /week \d+ not found/, text: 'Pertemuan tidak ditemukan.' },
   { pattern: /member .* not found/, text: 'Anggota tidak ditemukan.' },
   { pattern: /period .* not found/, text: 'Periode tidak ditemukan.' },
-  { pattern: /(start|end)Date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
-  { pattern: /must be an ISO date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
+  { pattern: /(start|end)Date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
+  { pattern: /must be an ISO date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /memberCount must be a positive integer/, text: 'Pilih minimal satu anggota.' },
   { pattern: /has ended; payments are not accepted/, text: 'Periode sudah berakhir. Pembayaran tidak bisa dicatat.' },
   { pattern: /payment date is in the future/, text: 'Tanggal pembayaran tidak boleh di masa depan.' },
-  { pattern: /payment date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
+  { pattern: /payment date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /receiving account must be/, text: 'Pilih tempat uang masuk: Tunai atau Debit.' },
   { pattern: /no open week left to close/, text: 'Semua pertemuan sudah ditutup.' },
   { pattern: /must be a positive multiple of/, text: 'Jumlah pembayaran harus kelipatan Rp15.000.' },
@@ -59,7 +59,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /has ended; a host payout is not allowed/, text: 'Periode sudah berakhir. Tuan rumah tidak bisa dibayar lagi.' },
   { pattern: /payout account must be/, text: 'Pilih sumber uang: Tunai atau Debit.' },
   { pattern: /entry date is in the future/, text: 'Tanggal tidak boleh di masa depan.' },
-  { pattern: /entry date is not a real calendar date/, text: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.' },
+  { pattern: /entry date is not a real calendar date/, text: 'Tanggal tidak valid. Pilih tanggal dari kalender.' },
   { pattern: /cannot be paid out yet/, text: 'Tuan rumah hanya bisa dibayar untuk pertemuan saat ini atau pertemuan yang sudah ditutup.' },
   { pattern: /already has a host payout/, text: 'Pertemuan ini sudah dibayarkan ke tuan rumah. Koreksi dulu jika salah.' },
   { pattern: /no host payout to correct/, text: 'Pertemuan ini belum punya pembayaran tuan rumah yang bisa dikoreksi.' },
@@ -87,28 +87,28 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   },
   { pattern: /has history and cannot be deleted/, text: 'Anggota ini punya riwayat, jadi tidak bisa dihapus. Arsipkan saja.' },
   { pattern: /archived and cannot join a period|archived member cannot join/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu.' },
-  { pattern: /cannot be archived/, text: 'Masih ikut periode aktif.' },
+  { pattern: /cannot be archived/, text: 'Belum bisa diarsipkan: masih ikut periode aktif. Arsipkan setelah periodenya berakhir.' },
   { pattern: /amount must be a positive integer/, text: 'Jumlah harus lebih dari nol.' },
 ];
 
 // Backup and restore problems (M7), by code. No file path or file name is ever put in these texts.
 export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   file_empty: 'Berkas kosong. Pilih berkas cadangan yang benar.',
-  file_too_small: 'Berkas terlalu kecil untuk menjadi cadangan Mas Catat.',
-  file_too_large: 'Berkas terlalu besar (lebih dari 50 MB), jadi bukan cadangan Mas Catat.',
-  not_sqlite: 'Berkas ini bukan cadangan Mas Catat.',
+  file_too_small: 'Berkas terlalu kecil untuk menjadi cadangan Mas Catat. Pilih berkas cadangan yang lain.',
+  file_too_large: 'Berkas terlalu besar (lebih dari 50 MB), jadi bukan cadangan Mas Catat. Pilih berkas cadangan yang lain.',
+  not_sqlite: 'Berkas ini bukan cadangan Mas Catat. Pilih berkas cadangan yang lain.',
   size_mismatch: 'Berkas cadangan rusak atau terpotong. Ambil lagi salinan cadangan yang utuh.',
-  version_missing: 'Berkas ini bukan cadangan Mas Catat (versinya tidak dikenal).',
+  version_missing: 'Berkas ini bukan cadangan Mas Catat (versinya tidak dikenal). Pilih berkas cadangan yang lain.',
   version_newer: 'Cadangan ini dibuat oleh aplikasi yang lebih baru. Perbarui aplikasi dulu.',
-  tables_missing: 'Isi berkas tidak lengkap, jadi tidak bisa dipakai.',
-  schema_mismatch: 'Susunan data berkas ini tidak cocok dengan Mas Catat, jadi ditolak demi keamanan.',
-  integrity: 'Berkas cadangan rusak: pemeriksaan keutuhan gagal.',
-  foreign_keys: 'Data dalam berkas tidak konsisten: ada catatan yang merujuk ke data yang tidak ada.',
-  invariant: 'Angka dalam berkas tidak cocok dengan aturan iuran, jadi ditolak.',
+  tables_missing: 'Isi berkas tidak lengkap, jadi tidak bisa dipakai. Pilih berkas cadangan yang lain.',
+  schema_mismatch: 'Susunan data berkas ini tidak cocok dengan Mas Catat, jadi ditolak demi keamanan. Pilih berkas cadangan yang lain.',
+  integrity: 'Berkas cadangan rusak: pemeriksaan keutuhan gagal. Pilih berkas cadangan yang lain.',
+  foreign_keys: 'Data di dalam berkas saling tidak cocok (ada catatan yang tidak punya induknya). Pilih berkas cadangan yang lain.',
+  invariant: 'Angka di dalam berkas tidak cocok dengan hitungan iuran, jadi tidak dipakai. Pilih berkas cadangan yang lain.',
   unreadable: 'Berkas tidak bisa dibaca. Pastikan itu berkas cadangan Mas Catat yang utuh.',
-  busy: 'Proses lain masih berjalan. Tunggu sebentar.',
+  busy: 'Proses lain masih berjalan. Tunggu sebentar, lalu coba lagi.',
   safety_failed: 'Salinan pengaman gagal dibuat, jadi data tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
-  restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari layar Pulihkan Data.',
+  restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari halaman Pulihkan data.',
   share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
 };
 
@@ -121,9 +121,9 @@ const TRIGGER_RULES: readonly { pattern: RegExp; text: string }[] = [
 
 /** Why a member cannot be archived, in plain words. */
 export function archiveBlockText(code: ArchiveBlockCode, amount: number): string {
-  if (code === 'in_active_period') return 'Masih ikut periode aktif.';
-  if (code === 'has_loan') return `Masih punya sisa pinjaman ${formatRupiah(amount)}.`;
-  return `Masih punya titipan ${formatRupiah(amount)} - kembalikan dulu.`;
+  if (code === 'in_active_period') return 'Belum bisa diarsipkan: masih ikut periode aktif. Arsipkan setelah periodenya berakhir.';
+  if (code === 'has_loan') return `Belum bisa diarsipkan: masih punya sisa pinjaman ${formatRupiah(amount)}. Lunasi dulu di Pinjaman anggota.`;
+  return `Belum bisa diarsipkan: masih punya titipan ${formatRupiah(amount)}. Kembalikan dulu di Titipan anggota.`;
 }
 
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */

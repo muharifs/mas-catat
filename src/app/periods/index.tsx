@@ -35,7 +35,7 @@ export default function PeriodsScreen() {
         <ListRow
           title={item.name}
           onPress={() => router.push({ pathname: '/periods/[id]', params: { id: item.id } })}
-          right={<RowText tone={item.status === 'active' ? 'ok' : 'muted'}>{item.status === 'active' ? 'Aktif' : 'Selesai'}</RowText>}
+          right={<RowText tone={item.status === 'active' ? 'ok' : 'muted'}>{item.status === 'active' ? 'Aktif' : 'Berakhir'}</RowText>}
         >
           <RowText>
             {item.memberCount} anggota, mulai {formatDate(item.startDate)}

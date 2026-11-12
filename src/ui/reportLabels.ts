@@ -29,7 +29,7 @@ export const WEEK_STATE_LABELS: Record<WeekState, string> = {
   credited: 'Lunas lewat titipan',
   partial_offset: 'Sebagian lewat potongan',
   partial_credited: 'Sebagian lewat titipan',
-  partial: 'Kurang',
+  partial: 'Baru sebagian',
   unpaid: 'Belum bayar',
 };
 
@@ -91,13 +91,13 @@ export function correctionText(item: { reversed: boolean; reversalReason: string
 /** Short note for a corrected total: corrected items are listed but never counted. */
 export const CORRECTED_NOT_COUNTED = 'Item yang dikoreksi tetap ditampilkan tetapi tidak dihitung dalam total.';
 
-/** Names of the lines of the expected kas formula. */
+/** Names of the lines of the expected kas formula. The two "Rincian titipan" lines are a breakdown, not part of the sum. */
 export const EXPECTED_LABELS = {
   actual: 'Total kas (Tunai + Debit)',
   outstanding: 'Tunggakan iuran',
   titipan: 'Titipan anggota',
-  titipanAvailable: 'Titipan belum dipakai',
-  titipanCarried: 'Titipan dibawa ke pertemuan yang belum ditutup',
+  titipanAvailable: 'Rincian titipan: belum dipakai',
+  titipanCarried: 'Rincian titipan: sudah dialokasikan ke pertemuan yang belum ditutup',
   expected: 'Kas seharusnya',
   prepaid: 'Dibayar di muka',
   unpaidPayout: 'Bayaran tuan rumah belum dibayar',

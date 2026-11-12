@@ -108,7 +108,7 @@ export default function BackupScreen() {
                 label={spec.label}
                 variant="secondary"
                 disabled={busy !== null}
-                onPress={() => void run('Menyiapkan file...', () => shareCsv(spec.kind))}
+                onPress={() => void run('Menyiapkan berkas...', () => shareCsv(spec.kind))}
               />
               <Text style={styles.caption}>{spec.hint}</Text>
             </View>

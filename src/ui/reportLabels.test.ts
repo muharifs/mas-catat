@@ -45,6 +45,12 @@ describe('report labels', () => {
     expect(EXPECTED_LABELS.titipan).toBe('Titipan anggota');
   });
 
+  it('marks the two titipan breakdown lines as a breakdown and names a partial week plainly', () => {
+    expect(EXPECTED_LABELS.titipanAvailable).toBe('Rincian titipan: belum dipakai');
+    expect(EXPECTED_LABELS.titipanCarried).toMatch(/^Rincian titipan: /);
+    expect(WEEK_STATE_LABELS.partial).toBe('Baru sebagian');
+  });
+
   it('has a label for every event kind', () => {
     const kinds: HistoryEventKind[] = ['payment', 'host_payout', 'host_offset', 'titipan_carry_in', 'titipan_carry_out', 'titipan_settle', 'writeoff', 'refund'];
     for (const k of kinds) expect(EVENT_LABELS[k].length).toBeGreaterThan(0);

@@ -96,8 +96,8 @@ export default function RiwayatScreen() {
           </View>
         </View>
         <Text style={styles.summaryNote}>
-          Tidak termasuk: pindah saldo, pinjaman, pelunasan pinjaman, saldo awal (barisnya tetap bertanda +), penghapusan
-          tunggakan, dan catatan yang dikoreksi beserta koreksinya.
+          Ringkasan ini menghitung uang yang masuk dan keluar dari Tunai dan Debit. Tidak dihitung: pindah saldo, pinjaman
+          dan pelunasannya, saldo awal, penghapusan tunggakan, serta catatan yang sudah dikoreksi.
         </Text>
         {!isFilterEmpty(filter) ? (
           <Text style={styles.summaryNote}>Ringkasan memuat semua catatan bulan ini. Daftar di bawah sedang difilter.</Text>

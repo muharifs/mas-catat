@@ -6,6 +6,7 @@ import { commitRestore, discardRestore, prepareRestore, type PreparedRestore, ty
 import { useDatabaseControl } from '@/db/provider';
 import {
   classificationText,
+  classificationTitle,
   phraseInstruction,
   RESET_SAFETY_NOTE,
   restoreTexts,
@@ -217,7 +218,9 @@ export default function RestoreScreen() {
             {restoreTexts.resetWarning}
           </Notice>
         ) : (
-          <Notice tone={lossy ? 'danger' : 'info'}>{classificationText(prepared.classification)}</Notice>
+          <Notice tone={lossy ? 'danger' : 'info'} title={classificationTitle(prepared.classification)}>
+            {classificationText(prepared.classification)}
+          </Notice>
         )}
 
         {!isReset && prepared.originalVersion < prepared.candidate.userVersion ? (
@@ -266,7 +269,9 @@ export default function RestoreScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {error ? <Notice tone="danger">{error}</Notice> : null}
-      <Notice tone="warn">Memulihkan mengganti SEMUA data di HP ini dengan isi cadangan. Data tidak digabung.</Notice>
+      <Notice tone="warn" title="Semua data akan diganti">
+        Memulihkan mengganti data di HP ini dengan isi cadangan. Data tidak digabung.
+      </Notice>
       <Text style={styles.body}>{ONE_PHONE_HINT}</Text>
 
       <Button label="Pilih berkas cadangan" onPress={chooseFile} />
@@ -288,7 +293,7 @@ export default function RestoreScreen() {
         <SectionHeader title="Mulai dari nol" />
         <Card tone="danger">
           <Text style={styles.body}>
-            Mengganti semua data dengan database kosong. Cara bersih untuk membuang data percobaan. Salinan pengaman dibuat lebih dulu.{' '}
+            Mengganti semua data dengan data kosong. Cara bersih untuk membuang data percobaan. Salinan pengaman dibuat lebih dulu.{' '}
             {RESET_SAFETY_NOTE}
           </Text>
           <Button label="Mulai dari nol" variant="dangerOutline" onPress={chooseEmpty} />

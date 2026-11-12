@@ -119,7 +119,7 @@ export const PERIOD_HEADER = [
   'Periode',
   'Status',
   'Mulai',
-  'Selesai',
+  'Berakhir',
   'Jumlah anggota',
   'Iuran seharusnya (Rp)',
   'Iuran diterima (Rp)',
@@ -136,7 +136,7 @@ export function periodSummaryCsv(rows: readonly PeriodExportRow[]): string {
     PERIOD_HEADER,
     rows.map((r): CsvCell[] => [
       r.period.name,
-      r.period.status === 'active' ? 'Aktif' : 'Selesai',
+      r.period.status === 'active' ? 'Aktif' : 'Berakhir',
       r.period.startDate,
       r.period.endDate,
       r.period.memberCount,

@@ -68,7 +68,7 @@ describe('entryDirection', () => {
 
 describe('historyFlowText', () => {
   it('words moves, write-offs and plain flows', () => {
-    expect(historyFlowText(entry({ type: 'loan', direction: 'out', toAccount: 'piutang' }))).toBe('Dipindah: Tunai -> Piutang');
+    expect(historyFlowText(entry({ type: 'loan', direction: 'out', toAccount: 'piutang' }))).toBe('Tunai ke Piutang');
     expect(historyFlowText(entry({ type: 'debt_writeoff', account: null }))).toBe('Tidak mengubah saldo kas');
     expect(historyFlowText(entry({ direction: 'in' }))).toBe('Masuk ke Tunai');
     expect(historyFlowText(entry({ type: 'shared_goal', direction: 'out', account: 'debit' }))).toBe('Keluar dari Debit');

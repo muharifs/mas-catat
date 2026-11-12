@@ -52,11 +52,11 @@ export function entryDirection(e: FlowFields): EntryDirection {
   return sign === '+' ? 'in' : sign === '-' ? 'out' : 'neutral';
 }
 
-/** Second-line flow text. Moves read "Dipindah: Tunai -> Piutang"; a write-off "Tidak mengubah saldo kas". */
+/** Second-line flow text. Moves read "Tunai ke Debit" (no ASCII arrow: TalkBack would read it aloud); a write-off "Tidak mengubah saldo kas". */
 export function historyFlowText(e: FlowFields): string {
   if (e.type === 'debt_writeoff') return 'Tidak mengubah saldo kas';
   if (e.account === null) return 'Belum ada tempat uang';
-  if (e.toAccount) return `Dipindah: ${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}`;
+  if (e.toAccount) return `${ACCOUNT_LABELS[e.account]} ke ${ACCOUNT_LABELS[e.toAccount]}`;
   if (e.account === 'piutang') return 'Piutang';
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;
 }

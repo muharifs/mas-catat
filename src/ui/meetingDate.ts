@@ -5,7 +5,7 @@ import { formatDate } from './dates';
 export function describeDateProblem(problem: MeetingDateProblem): string {
   switch (problem.kind) {
     case 'not_real':
-      return 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, misalnya 2026-01-04.';
+      return 'Tanggal tidak valid. Pilih tanggal dari kalender.';
     case 'not_after_previous':
       return `Tanggal harus setelah pertemuan sebelumnya (${formatDate(problem.limit)}).`;
     case 'not_before_next':

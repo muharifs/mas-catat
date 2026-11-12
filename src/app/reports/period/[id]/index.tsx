@@ -43,8 +43,8 @@ export default function PeriodReportScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{period.name}</Text>
       <Text style={styles.hint}>
-        {period.status === 'active' ? 'Aktif' : 'Selesai'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
-        {period.endDate ? ` - berakhir ${formatDate(period.endDate)}` : ''}
+        {period.status === 'active' ? 'Aktif' : 'Berakhir'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
+        {period.endDate ? ` - sampai ${formatDate(period.endDate)}` : ''}
       </Text>
 
       <SectionHeader title="Ringkasan periode" />

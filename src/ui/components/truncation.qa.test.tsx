@@ -93,3 +93,43 @@ describe('QA: components never cut long text', () => {
     expect(truncating(tree)).toEqual(['numberOfLines=1']);
   });
 });
+
+// Batch E made several strings longer (close.tsx, Riwayat rows, CorrectionForm, backup captions, credits Notice,
+// "Sudah dikembalikan", the Istilah page). jest cannot measure Yoga layout, so this guards by source: only these
+// files may ask React Native to cut or shrink text. A new entry here is a decision, not an accident.
+describe('QA: only known files use numberOfLines or adjustsFontSizeToFit', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require('fs') as typeof import('fs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('path') as typeof import('path');
+  const srcRoot = path.resolve(__dirname, '..', '..');
+
+  function listTsx(dir: string): string[] {
+    const out: string[] = [];
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) out.push(...listTsx(full));
+      else if (name.endsWith('.tsx') && !name.includes('.test.') && !name.includes('.qa.')) out.push(full);
+    }
+    return out;
+  }
+
+  it('matches the allow-list (masked totals, tiles, multiline fields); long-text screens are free of it', () => {
+    const users = listTsx(srcRoot)
+      .filter((f) => !f.includes(`${path.sep}gallery${path.sep}`))
+      .filter((f) => /numberOfLines|adjustsFontSizeToFit/.test(fs.readFileSync(f, 'utf8')))
+      .map((f) => path.relative(srcRoot, f).split(path.sep).join('/'))
+      .sort();
+    expect(users).toEqual(
+      [
+        'app/(tabs)/index.tsx', // masked balance and month totals, one line by design
+        'app/istilah.tsx', // only a comment saying it is NOT used
+        'app/kas/new.tsx', // multiline note field
+        'ui/components/AmountDisplay.tsx',
+        'ui/components/CorrectionForm.tsx', // multiline reason field
+        'ui/components/IconChoice.tsx',
+        'ui/components/Money.tsx',
+      ].sort(),
+    );
+  });
+});

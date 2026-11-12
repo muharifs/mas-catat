@@ -77,15 +77,15 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 | B13 | Koreksi pembayaran tuan rumah pertemuan **4** (pertemuan 4 sudah tertutup) | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000** |
 | B14 | Coba "Akhiri periode" | **Ditolak**, karena tuan rumah pertemuan 4 belum dibayar |
 | B15 | Bayar tuan rumah pertemuan 4 lagi | Dipotong dari bayaran tuan rumah ini 50.000. Tunai tetap **45.000** |
-| B16 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, dihapus (write-off) **80.000**. Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |
-| B17 | Akhiri periode | 4 entri write-off. Saldo kas tidak berubah |
+| B16 | Buka pra-tutup "Akhiri periode" | Tunggakan 95.000, ditutup dari titipan 15.000, ditanggung kas **80.000** (jenis "Tunggakan ditanggung kas"). Rinciannya: Budi 30.000, Citra 30.000, Dedi 10.000, Eka 10.000 |
+| B17 | Akhiri periode | 4 catatan "Tunggakan ditanggung kas" di Riwayat. Saldo kas tidak berubah |
 
 ### Cek angka akhir
 | Layar | Angka yang diharapkan |
 |---|---|
 | Beranda "Bulan ini" dan Riwayat | Pemasukan **295.000**, Pengeluaran **250.000** |
 | Laporan > Saldo kas | Tunai **45.000**, kas seharusnya juga 45.000 |
-| Laporan periode | Terkumpul 165.000, Pembayaran tuan rumah 250.000, Potongan 130.000, Penghapusan 80.000, Perubahan kas bersih 45.000 |
+| Laporan periode | Terkumpul 165.000, Pembayaran tuan rumah 250.000, Potongan 130.000, Tunggakan ditanggung kas 80.000, Perubahan kas bersih 45.000 |
 | Menu > Titipan anggota | Kosong |
 
 ## Butir tampilan (H, K1, K2, M, E)
@@ -100,3 +100,26 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
   - nama anggota yang diarsipkan tidak bisa dipakai lagi.
 - **Cadangan lama:** pulihkan sekali cadangan yang dibuat sebelum versi ini (data contoh). Aplikasi harus terbuka normal.
 - **Huruf besar:** dengan ukuran huruf HP dibesarkan, tidak ada teks yang terpotong di semua layar.
+
+## Batch E: teks baru (cek di HP, dengan font normal lalu font besar)
+Status: teks sudah masuk (commit b3b293c dan a2bc0ae) dan lolos tes otomatis. Tampilan di layar BELUM pernah dilihat di HP. Perbaikan tampilan F1, F2, F3, F6, dan F7 juga masih menunggu tangkapan layar dari pemilik; jangan dianggap selesai.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| E1 | Menu > Titipan anggota, pilih satu anggota | Kotak kuning berjudul tebal "Tidak bisa dikoreksi" (bukan huruf besar). Tombol lanjut masih terlihat tanpa menggulir jauh. Pada dialog, kalimat terakhir "Pengembalian ini final: tidak bisa dikoreksi atau dibatalkan." |
+| E2 | Tautan Catat kas saat belum ada periode (pakai HP uji kosong) | Judul netral "Belum ada periode" (bukan judul merah "Data tidak bisa dibuka") dan tombol "Buat periode". Setelah dibuka, tombol Kembali tidak mengulang halaman prasyarat |
+| E3 | Bayar tuan rumah saat Total kas lebih kecil dari uang keluar bersih | Satu peringatan jelas yang menyebut "Total kas (Tunai + Debit)". Dialog menyebut alasannya sendiri, tidak menyuruh melihat layar |
+| E4 | Menu > Cadangan dan ekspor | Bagian "Pulihkan data", baris "Pulihkan dari cadangan", dan teks kecil "Mulai dari nol ... ada di halaman yang sama". Catatan QA: kalimat itu bisa terbaca seolah "Mulai dari nol" ada di halaman Cadangan ini, padahal ada di halaman berikutnya. Laporkan jika membingungkan |
+| E5 | Cadangan dan ekspor, tombol "Buku kas" | Teks kecil penjelasan kolom Masuk/Keluar (sekitar 4 baris) terbaca penuh, tidak terpotong |
+| E6 | Bagikan cadangan, lalu tutup jendela berbagi | Toast "Pastikan cadangan benar-benar terkirim." terbaca penuh |
+| E7 | Riwayat, setelah akhiri periode | Jenis "Tunggakan ditanggung kas" dan baris kedua "Tidak mengubah saldo kas" tidak terpotong, ikon dan tanggal tidak terdorong keluar |
+| E8 | Akhiri periode (layar pra-tutup) | Teks "Tunggakan ditanggung kas", rincian per anggota "Dipakai dari titipan ..., ditanggung kas ..., sisa titipan ..." membungkus ke baris berikutnya tanpa terpotong; dialog konfirmasi terbaca |
+| E9 | Buka satu catatan di Riwayat > tombol Koreksi (kotak koreksi) | Kalimat "Koreksi membatalkan catatan ini. Catatan lama tetap terlihat, ditandai Dikoreksi, dan tidak dihitung." terbaca di atas kolom alasan; kolom alasan dan tombol tidak tertutup keyboard |
+| E10 | Laporan, bagian Kas seharusnya | Subtitel "Perkiraan kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan." di bawah judul |
+| E11 | Rincian pinjaman (dari Riwayat) dan Menu > Pinjaman anggota > satu anggota | Baris "Sudah dikembalikan" (bukan "Sudah dibayar"). Pada font besar, jumlah uang tidak jatuh ke baris berikutnya secara aneh |
+| E12 | Menu > grup "Bantuan" > Istilah | Halaman terbuka, 4 kelompok, gulir sampai bawah. Tidak ada kata asing seperti "entri", "pos", "file". Di font besar tidak ada baris yang terlalu sempit |
+| E13 | Pinjaman atau Pengeluaran bersama di Catat kas | Contoh isian "DP wisata ke Bali" (bukan "tur") |
+| E14 | Periode > Pembayaran dan rincian anggota | Tulisan "Dibayar di muka: ..." (bukan "Bayar di muka") |
+| E15 | Pesan galat umum | Sulit dipicu di HP; sudah dites otomatis. Cukup pastikan galat yang sudah dikenal (pulihkan berkas bukan cadangan, arsipkan anggota periode aktif) tetap memakai pesan lama |
+
+Perbaikan tampilan yang masih menunggu tangkapan layar: F1, F2, F3, F6, F7. Kirim tangkapan layar layar yang bersangkutan sebelum dinyatakan selesai.

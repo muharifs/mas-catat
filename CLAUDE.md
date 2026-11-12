@@ -34,6 +34,7 @@ Expo/React Native rules live in AGENTS.md. Read it, and the matching Expo docs, 
 - App name: Mas Catat, icon: small book. Tested on the owner's phone via Expo Go (no APK yet).
 - Ledger: cash in / cash out entries, each with date, amount, type, member, week, note. The week is NULL on member_payment entries (one payment can span weeks; the detail lives in allocations).
 - Money is stored as integer rupiah. Never use floating point.
+- CSV ledger export (owner decision 2026-11-12, D10): an entry's amount goes in "Masuk" when it raises Tunai+Debit, in "Keluar" when it lowers Tunai+Debit, and in "Tanpa perubahan kas" when Tunai+Debit does not change (Tunai<->Debit transfer, debt write-off, Piutang opening balance). Exactly one amount column per row; sum Masuk - Keluar = actual kas (Tunai+Debit). Loans go to Keluar, loan repayments to Masuk. Rule lives in `csvAmountColumns` (`src/domain/flow.ts`).
 
 ## Technical decisions
 - Expo (managed) + TypeScript strict. Navigation: expo-router.

@@ -101,7 +101,9 @@ describe('buku-kas', () => {
     const byType = (label: string) => table.filter((r) => r[1] === label);
     expect(byType('Pinjaman ke anggota').map((r) => [r[7], r[8], r[9]])).toEqual([['', '25000', '']]);
     expect(byType('Pelunasan pinjaman').map((r) => [r[7], r[8], r[9]])).toEqual([['5000', '', '']]);
-    for (const r of byType('Penghapusan tunggakan')) expect([r[7], r[8]]).toEqual(['', '']);
+    const writeoffs = byType('Tunggakan ditanggung kas');
+    expect(writeoffs.length).toBeGreaterThan(0); // an empty list would make the loop below check nothing
+    for (const r of writeoffs) expect([r[7], r[8]]).toEqual(['', '']);
     expect(byType('Saldo awal').map((r) => [r[7], r[9]])).toEqual(expect.arrayContaining([['', '40000']]));
   });
 
@@ -205,6 +207,7 @@ describe('ringkasan-periode', () => {
     await seedClosedPeriodHistory(db);
     const table = parse(periodSummaryCsv(await createRepositories(db).exports.listPeriodSummaries()));
     expect(table[0]).toEqual([...PERIOD_HEADER]);
+    expect(PERIOD_HEADER).toContain('Tunggakan ditanggung kas (Rp)');
     expect(table.length - 1).toBe(2);
     expect(table[1]?.[0]).toBe('Periode lama');
     expect(table[1]?.[1]).toBe('Berakhir');

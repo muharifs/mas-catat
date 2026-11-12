@@ -126,7 +126,7 @@ export const PERIOD_HEADER = [
   'Iuran diterima (Rp)',
   'Pembayaran tuan rumah (Rp)',
   'Dipotong dari bayaran tuan rumah (Rp)',
-  'Penghapusan tunggakan (Rp)',
+  'Tunggakan ditanggung kas (Rp)',
   'Pengeluaran bersama (Rp)',
   'Pengembalian titipan (Rp)',
   'Perubahan kas bersih (Rp)',

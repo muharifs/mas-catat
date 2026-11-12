@@ -94,7 +94,7 @@ export default function KasEntryScreen() {
             <Text style={styles.flow}>{`Sisa pinjaman ${member?.name ?? 'anggota'} sekarang (semua periode)`}</Text>
             <Money amount={loan.remaining} size="large" tone={loan.remaining > 0 ? 'negative' : 'neutral'} />
             <DetailRow label="Dipinjam" value={formatRupiah(loan.lent)} />
-            <DetailRow label="Sudah dibayar" value={formatRupiah(loan.repaid)} />
+            <DetailRow label="Sudah dikembalikan" value={formatRupiah(loan.repaid)} />
             {loan.remaining < 0 ? <Text style={styles.flow}>{`Kelebihan bayar ${formatRupiah(loan.overpaid)} (data lama).`}</Text> : null}
             <Button
               label="Buka rincian pinjaman"
@@ -191,7 +191,7 @@ export default function KasEntryScreen() {
       ) : null}
       {route === 'period_ended' ? <Text style={styles.hint}>Periode sudah berakhir, jadi catatan ini tidak bisa dikoreksi.</Text> : null}
       {route === 'not_correctable' ? (
-        <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Penghapusan tunggakan dan pengembalian titipan bersifat final.</Text>
+        <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Tunggakan ditanggung kas dan pengembalian titipan bersifat final.</Text>
       ) : null}
       {route === 'is_reversal' ? <Text style={styles.hint}>Koreksi tidak bisa dikoreksi lagi. Untuk membetulkan, catat ulang transaksi yang benar.</Text> : null}
       {route === 'already_corrected' ? <Text style={styles.hint}>Untuk membetulkan, catat ulang transaksi yang benar lewat Catat kas.</Text> : null}

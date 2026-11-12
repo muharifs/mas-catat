@@ -27,6 +27,7 @@ function AppStack() {
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="members/index" options={{ title: 'Anggota' }} />
+      <Stack.Screen name="istilah" options={{ title: 'Istilah' }} />
       <Stack.Screen name="periods/index" options={{ title: 'Periode' }} />
       <Stack.Screen name="periods/new" options={{ title: 'Buat periode' }} />
       <Stack.Screen name="periods/[id]/index" options={{ title: 'Jadwal periode' }} />

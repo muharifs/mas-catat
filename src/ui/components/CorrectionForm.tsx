@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { toIndonesian } from '../errors';
-import { colors, radius, spacing } from '../theme';
+import { colors, radius, spacing, type } from '../theme';
 import { Button } from './Button';
 import { TextField } from './TextField';
 
@@ -48,6 +48,7 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
 
   return (
     <View style={styles.box}>
+      <Text style={styles.explain}>Koreksi membatalkan catatan ini. Catatan lama tetap terlihat, ditandai Dikoreksi, dan tidak dihitung.</Text>
       <TextField label="Alasan koreksi (wajib)" value={reason} onChangeText={setReason} multiline numberOfLines={3} placeholder="Contoh: salah memilih anggota" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label={submitLabel} variant="danger" disabled={busy} onPress={ask} />
@@ -58,5 +59,6 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
 
 const styles = StyleSheet.create({
   box: { gap: spacing.sm, padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.errorTint },
+  explain: { ...type.secondary, color: colors.textSecondary },
   error: { color: colors.error },
 });

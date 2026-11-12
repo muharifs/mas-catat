@@ -12,7 +12,7 @@ import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
-import { EXPECTED_FORMULA, EXPECTED_LABELS, unpaidPayoutText } from '@/ui/reportLabels';
+import { EXPECTED_FORMULA, EXPECTED_LABELS, EXPECTED_SUBTITLE, unpaidPayoutText } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -47,6 +47,7 @@ export default function ReportsScreen() {
       </Card>
 
       <SectionHeader title={EXPECTED_LABELS.expected} />
+      <Text style={styles.hint}>{EXPECTED_SUBTITLE}</Text>
       <Card>
         <ReportLine label={EXPECTED_LABELS.actual} amount={expected.actualKas} />
         <ReportLine

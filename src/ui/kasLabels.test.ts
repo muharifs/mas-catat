@@ -52,6 +52,10 @@ describe('UI wording of member credit', () => {
   it('calls the refund entry "titipan", not "kredit"', () => {
     expect(TYPE_LABELS.credit_refund).toBe('Pengembalian titipan anggota');
   });
+
+  it('names written-off arrears "Tunggakan ditanggung kas"', () => {
+    expect(TYPE_LABELS.debt_writeoff).toBe('Tunggakan ditanggung kas');
+  });
 });
 
 describe('entryTitle', () => {

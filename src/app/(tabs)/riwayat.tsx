@@ -97,7 +97,7 @@ export default function RiwayatScreen() {
         </View>
         <Text style={styles.summaryNote}>
           Ringkasan ini menghitung uang yang masuk dan keluar dari Tunai dan Debit. Tidak dihitung: pindah saldo, pinjaman
-          dan pelunasannya, saldo awal, penghapusan tunggakan, serta catatan yang sudah dikoreksi.
+          dan pelunasannya, saldo awal, tunggakan ditanggung kas, serta catatan yang sudah dikoreksi.
         </Text>
         {!isFilterEmpty(filter) ? (
           <Text style={styles.summaryNote}>Ringkasan memuat semua catatan bulan ini. Daftar di bawah sedang difilter.</Text>

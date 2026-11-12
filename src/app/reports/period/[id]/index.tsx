@@ -53,7 +53,7 @@ export default function PeriodReportScreen() {
         <ReportLine label="Terkumpul dari anggota" amount={summary.collected} />
         <ReportLine label="Pembayaran tuan rumah" amount={summary.payouts} />
         <ReportLine label="Dipotong dari bayaran tuan rumah" amount={summary.offsets} />
-        <ReportLine label="Penghapusan tunggakan" amount={summary.writeoffs} hint="Ditanggung kas, tidak mengubah saldo." />
+        <ReportLine label="Tunggakan ditanggung kas" amount={summary.writeoffs} hint="Dihapus saat periode berakhir. Tidak mengubah saldo kas." />
         <ReportLine label="Pengeluaran bersama" amount={summary.sharedGoal} />
         <ReportLine label="Pengembalian titipan" amount={summary.creditRefunds} />
         <ReportLine

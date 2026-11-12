@@ -46,7 +46,7 @@ const HELP: Record<KasKind, string> = {
   transfer: 'Memindahkan uang antara Tunai dan Debit, ke dua arah. Total kas tidak berubah.',
   loan: 'Uang kas dipinjamkan ke anggota periode aktif. Tanpa bunga dan tanpa batas waktu. Masuk ke Piutang.',
   loan_repayment: 'Anggota mengembalikan pinjaman. Hanya anggota yang masih punya sisa pinjaman yang muncul.',
-  shared_goal: 'Pengeluaran untuk tujuan bersama, misalnya tur. Catatan wajib diisi.',
+  shared_goal: 'Pengeluaran untuk tujuan bersama, misalnya wisata. Catatan wajib diisi.',
 };
 
 const HELP_OLD_LOAN =
@@ -332,7 +332,7 @@ export default function NewKasEntryScreen() {
           onChangeText={setNote}
           multiline
           numberOfLines={2}
-          placeholder={kind === 'shared_goal' ? 'Contoh: DP tur ke Bali' : ''}
+          placeholder={kind === 'shared_goal' ? 'Contoh: DP wisata ke Bali' : ''}
         />
       </ScrollView>
 

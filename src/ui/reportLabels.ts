@@ -13,7 +13,7 @@ export const EVENT_LABELS: Record<HistoryEventKind, string> = {
   titipan_carry_in: 'Titipan dibawa dari periode sebelumnya',
   titipan_carry_out: 'Titipan dibawa ke periode berikutnya',
   titipan_settle: 'Titipan dipakai melunasi tunggakan',
-  writeoff: 'Penghapusan tunggakan',
+  writeoff: 'Tunggakan ditanggung kas',
   refund: 'Pengembalian titipan',
 };
 
@@ -73,7 +73,7 @@ export function eventLines(e: HistoryEvent): string[] {
       if (e.settled.length > 0) lines.push(`Melunasi: ${settledText(e.settled)}`);
       break;
     case 'writeoff':
-      lines.push('Ditanggung kas saat periode berakhir. Tidak mengubah saldo kas.');
+      lines.push('Dihapus dari catatan anggota saat periode berakhir. Tidak mengubah saldo kas.');
       break;
     case 'refund':
       if (e.account) lines.push(`Uang keluar dari ${ACCOUNT_LABELS[e.account]}`);
@@ -104,6 +104,9 @@ export const EXPECTED_LABELS = {
 } as const;
 
 /** Reads "Kas seharusnya = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
+/** One line under the "Kas seharusnya" heading in Laporan. */
+export const EXPECTED_SUBTITLE = 'Perkiraan kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan.';
+
 export const EXPECTED_FORMULA = 'Kas seharusnya = Total kas + tunggakan iuran - titipan anggota';
 
 /** Info line text for "Bayaran tuan rumah belum dibayar": count of closed meetings. */

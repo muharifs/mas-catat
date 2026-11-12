@@ -4,6 +4,7 @@ import {
   correctionText,
   EVENT_LABELS,
   EXPECTED_FORMULA,
+  EXPECTED_SUBTITLE,
   EXPECTED_LABELS,
   eventLines,
   isSettledState,
@@ -34,11 +35,16 @@ describe('report labels', () => {
       ...Object.values(WEEK_STATE_LABELS),
       ...Object.values(EXPECTED_LABELS),
       EXPECTED_FORMULA,
+      EXPECTED_SUBTITLE,
       CORRECTED_NOT_COUNTED,
       unpaidPayoutText(0),
       unpaidPayoutText(2),
     ];
     for (const text of all) expect(text.toLowerCase()).not.toContain('kredit');
+  });
+
+  it('names written-off arrears "Tunggakan ditanggung kas"', () => {
+    expect(EVENT_LABELS.writeoff).toBe('Tunggakan ditanggung kas');
   });
 
   it('names the report line "Titipan anggota"', () => {

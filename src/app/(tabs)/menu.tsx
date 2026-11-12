@@ -93,6 +93,9 @@ export default function MenuScreen() {
           onPress={() => router.push('/backup')}
         />
       </Group>
+      <Group title="Bantuan">
+        <MenuRow label="Istilah" icon="book-outline" onPress={() => router.push('/istilah')} />
+      </Group>
       {__DEV__ ? (
         // Developer-only trigger (docs/specs/component-gallery.md): long press (about 1 second) opens the component gallery.
         // Not rendered in a release build, so a normal user never sees a version line that does something.

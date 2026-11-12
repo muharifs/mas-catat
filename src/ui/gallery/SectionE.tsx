@@ -81,7 +81,7 @@ export function SectionE() {
         states="placeholder, berisi, fokus (ketuk), helper T5, error T5/T6 (menggantikan helper), hanya-baca, multiline, label panjang, dua kolom bertumpuk."
       >
         <Demo caption="Normal dengan placeholder">
-          <FieldDemo label="Catatan" placeholder="Contoh: DP tur ke Bali" />
+          <FieldDemo label="Catatan" placeholder="Contoh: DP wisata ke Bali" />
         </Demo>
         <Demo caption="Berisi teks">
           <FieldDemo label="Catatan" initial="Setoran pertama" />

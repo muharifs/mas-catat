@@ -46,7 +46,7 @@ export default function MemberLoanScreen() {
       <Text style={styles.title}>{member.name}</Text>
       <Card>
         <ReportLine label="Dipinjam" amount={balance.lent} />
-        <ReportLine label="Sudah dibayar" amount={balance.repaid} />
+        <ReportLine label="Sudah dikembalikan" amount={balance.repaid} />
         <ReportLine label={balance.overpaid > 0 ? 'Selisih' : 'Sisa'} amount={balance.remaining} strong />
       </Card>
       {balance.overpaid > 0 ? (

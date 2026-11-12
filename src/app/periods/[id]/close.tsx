@@ -93,7 +93,7 @@ export default function ClosePeriodScreen() {
     setActionError(null);
     Alert.alert(
       'Akhiri periode',
-      `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan dihapus dan ditanggung kas. Sisa titipan anggota tetap tersimpan.`,
+      `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan ditanggung kas dan dihapus dari catatan anggota. Sisa titipan anggota tetap tersimpan.`,
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -140,15 +140,15 @@ export default function ClosePeriodScreen() {
         <Text style={styles.body}>Anggota menunggak: {preview.membersInArrears}</Text>
         <Text style={styles.body}>Total tunggakan sebelum titipan: {formatRupiah(preview.totalArrears)}</Text>
         <Text style={styles.body}>Dilunasi dari titipan anggota: {formatRupiah(preview.totalSettledByCredit)}</Text>
-        <Text style={styles.label}>Tunggakan dihapus (ditanggung kas)</Text>
+        <Text style={styles.label}>Tunggakan ditanggung kas</Text>
         <Money amount={preview.totalWriteoff} size="large" tone={preview.totalWriteoff > 0 ? 'negative' : 'neutral'} />
         <Text style={styles.body}>
           Anggota memegang titipan: {preview.membersWithCredit} ({formatRupiah(preview.totalCredit)})
         </Text>
         <Text style={styles.body}>Sisa titipan setelah dipakai: {formatRupiah(preview.totalCreditLeft)}</Text>
         <Text style={styles.hint}>
-          Titipan anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya dihapus, satu catatan
-          per anggota. Penghapusan tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
+          Titipan anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya ditanggung kas, satu catatan
+          per anggota. Ini tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
           lewat Menu {'>'} Titipan anggota.
         </Text>
       </Card>
@@ -162,7 +162,7 @@ export default function ClosePeriodScreen() {
             Tunggakan {formatRupiah(m.arrearsBefore)}, titipan {formatRupiah(m.credit)}
           </Text>
           <Text style={m.writeoff > 0 ? styles.bad : styles.muted}>
-            Dipakai dari titipan {formatRupiah(m.settledByCredit)}, dihapus {formatRupiah(m.writeoff)}, sisa titipan{' '}
+            Dipakai dari titipan {formatRupiah(m.settledByCredit)}, ditanggung kas {formatRupiah(m.writeoff)}, sisa titipan{' '}
             {formatRupiah(m.creditLeft)}
           </Text>
         </View>

@@ -13,7 +13,7 @@ export const TYPE_LABELS: Record<LedgerEntryType, string> = {
   loan: 'Pinjaman ke anggota',
   loan_repayment: 'Pelunasan pinjaman',
   shared_goal: 'Pengeluaran bersama',
-  debt_writeoff: 'Penghapusan tunggakan',
+  debt_writeoff: 'Tunggakan ditanggung kas',
   credit_refund: 'Pengembalian titipan anggota',
   reversal: 'Koreksi',
 };

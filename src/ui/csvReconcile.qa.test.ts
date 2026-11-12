@@ -76,7 +76,9 @@ describe('QA D10: Buku kas CSV reconciles with the real kas (own scenario)', () 
     const moves = table.filter((r) => r[1] === 'Pindah saldo' || (r[1] === 'Koreksi' && r[2] !== '' && r[3] !== ''));
     expect(moves.length).toBeGreaterThanOrEqual(3);
     for (const m of moves) expect([m[7], m[8]]).toEqual(['', '']);
-    for (const w of table.filter((r) => r[1] === 'Penghapusan tunggakan')) expect([w[7], w[8]]).toEqual(['', '']);
+    const writeoffs = table.filter((r) => r[1] === 'Tunggakan ditanggung kas');
+    expect(writeoffs.length).toBeGreaterThan(0); // an empty list would make the loop below check nothing
+    for (const w of writeoffs) expect([w[7], w[8]]).toEqual(['', '']);
     // Old named Piutang balance: no cash.
     expect(table.filter((r) => r[1] === 'Saldo awal: pinjaman lama' || (r[1] === 'Saldo awal' && r[2] === 'Piutang')).every((r) => r[7] === '' && r[8] === '')).toBe(true);
     // Every row has exactly one of the three amount columns filled.

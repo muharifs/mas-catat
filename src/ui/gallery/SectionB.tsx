@@ -162,7 +162,7 @@ export function SectionB() {
         title="HistoryRow"
         states="8 jenis, catatan T6, nama T8, dikoreksi, peringatan tanpa pos, 3 jumlah, flat di dalam Card. Ketuk baris: toast, tanpa navigasi."
       >
-        <Demo caption="Delapan jenis: pembayaran, bayaran tuan rumah, potongan, pindah saldo, pinjaman, penghapusan tunggakan, pengembalian titipan, koreksi">
+        <Demo caption="Delapan jenis: pembayaran, bayaran tuan rumah, potongan, pindah saldo, pinjaman, tunggakan ditanggung kas, pengembalian titipan, koreksi">
           {HISTORY_TYPES.map((e) => (
             <HistoryRow key={e.id} entry={e} byId={HISTORY_BY_ID} memberName={e.memberId ? 'Siti' : ''} onPress={pressedToast(`HistoryRow ${e.type}`)} />
           ))}

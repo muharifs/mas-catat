@@ -1,6 +1,7 @@
 // Cash-flow classification of ledger entries (Riwayat). Pure functions, integer rupiah only.
 // ONE sign rule (cashFlowSign) is used by the row sign in Riwayat / the entry detail AND by the monthly summary,
 // so a row shown with "+" or "-" and the summary can never disagree (except the documented opening balance case).
+import { entryEffects, type BalanceEntry } from './kas';
 import { assertRupiah, DomainError } from './money';
 import type { Account, IsoDate, LedgerEntryType, Rupiah } from './types';
 
@@ -67,4 +68,27 @@ export function summarizeMonth(entries: readonly FlowSummaryEntry[], month: stri
     else moneyOut += e.amount;
   }
   return { moneyIn, moneyOut };
+}
+
+export interface CsvAmountColumns {
+  /** Money that really entered Tunai or Debit. */
+  moneyIn: Rupiah | null;
+  /** Money that really left Tunai or Debit. */
+  moneyOut: Rupiah | null;
+  /** Amount of an entry that moves money without changing Tunai + Debit (Tunai <-> Debit, write-off, old Piutang). */
+  noKasChange: Rupiah | null;
+}
+
+/**
+ * Splits one ledger row into the three amount columns of the "Buku kas" CSV, so that the sum of "Masuk" minus the sum
+ * of "Keluar" over all rows equals the change of the actual kas (Tunai + Debit), the same number as computeKasBalances.
+ * The net effect on Tunai + Debit decides: a loan is money out, a repayment is money in, a Tunai <-> Debit move and
+ * a write-off or an old Piutang opening balance change no cash, so they never land in "Masuk" or "Keluar".
+ */
+export function csvAmountColumns(e: BalanceEntry & { amount: Rupiah }): CsvAmountColumns {
+  const effects = entryEffects(e);
+  const net = effects.tunai + effects.debit;
+  if (net > 0) return { moneyIn: net, moneyOut: null, noKasChange: null };
+  if (net < 0) return { moneyIn: null, moneyOut: -net, noKasChange: null };
+  return { moneyIn: null, moneyOut: null, noKasChange: e.amount };
 }

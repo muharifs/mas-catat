@@ -16,7 +16,7 @@ export const ONE_PHONE_HINT =
   'Pakai satu HP saja. Untuk pindah HP: buat cadangan, pulihkan di HP baru, lalu berhenti memakai HP lama. Data dari dua HP tidak bisa digabung.';
 
 export const CSV_HINT =
-  'File CSV hanya untuk dibaca di spreadsheet. CSV bukan cadangan dan tidak bisa dipakai untuk memulihkan data. Isinya juga memuat nama dan uang anggota.';
+  'Berkas CSV hanya untuk dibaca di spreadsheet. CSV bukan cadangan dan tidak bisa dipakai untuk memulihkan data. Isinya juga memuat nama dan uang anggota. Di Buku kas, Masuk dan Keluar hanya berisi uang yang benar-benar masuk atau keluar dari Tunai dan Debit. Pindah saldo Tunai dan Debit, penghapusan tunggakan, dan saldo awal Piutang ada di kolom Tanpa perubahan kas.';
 
 export const NO_ENCRYPTION_HINT = 'Cadangan tidak dienkripsi. Siapa pun yang memegang filenya bisa membacanya.';
 

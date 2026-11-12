@@ -114,7 +114,7 @@ export default function PayoutScreen() {
     Alert.alert(
       `Bayar tuan rumah ${formatRupiah(preview.payout)}`,
       confirmMessage(hostName, week, date, preview) +
-        (warned ? '\n\nPeringatan: saldo kas kurang, lihat pesan merah di layar. Tetap bisa disimpan.' : ''),
+        (warned ? '\n\nPeringatan: saldo kas kurang, lihat peringatan di layar. Tetap bisa disimpan.' : ''),
       [
         { text: 'Batal', style: 'cancel' },
         { text: 'Bayar', onPress: () => void save() },
@@ -134,7 +134,7 @@ export default function PayoutScreen() {
           <View style={styles.card}>
             <Text style={styles.ok}>Sudah dibayar</Text>
             <Text style={styles.body}>
-              Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tanpa pos'}
+              Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tempat uang tidak tercatat'}
             </Text>
             <Text style={styles.body}>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
             {paid.offset ? <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan dari bayaran ini.</Text>}

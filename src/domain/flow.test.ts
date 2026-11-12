@@ -1,5 +1,5 @@
 import { DomainError } from './money';
-import { cashFlowSign, monthOfDate, summarizeMonth, type FlowSummaryEntry } from './flow';
+import { cashFlowSign, csvAmountColumns, monthOfDate, summarizeMonth, type FlowSummaryEntry } from './flow';
 import type { LedgerEntryType } from './types';
 
 let seq = 0;
@@ -169,5 +169,30 @@ describe('summary class matches the row sign', () => {
     const e = entry({ type: 'opening_balance', account: 'tunai' });
     expect(cashFlowSign(e)).toBe('+');
     expect(summarizeMonth([e], NOV).moneyIn).toBe(0);
+  });
+});
+
+describe('csvAmountColumns', () => {
+  const cols = (over: Partial<FlowSummaryEntry>) => csvAmountColumns(entry(over));
+
+  it('puts real cash in Masuk and real cash out in Keluar', () => {
+    expect(cols({ direction: 'in', account: 'debit', amount: 15_000 })).toEqual({ moneyIn: 15_000, moneyOut: null, noKasChange: null });
+    expect(cols({ type: 'shared_goal', direction: 'out', account: 'tunai', amount: 20_000 })).toEqual({ moneyIn: null, moneyOut: 20_000, noKasChange: null });
+  });
+
+  it('keeps a Tunai <-> Debit move out of both Masuk and Keluar', () => {
+    expect(cols({ type: 'transfer', direction: 'out', account: 'tunai', toAccount: 'debit', amount: 50_000 })).toEqual({ moneyIn: null, moneyOut: null, noKasChange: 50_000 });
+    expect(cols({ type: 'transfer', direction: 'out', account: 'debit', toAccount: 'tunai', amount: 50_000 })).toEqual({ moneyIn: null, moneyOut: null, noKasChange: 50_000 });
+  });
+
+  it('counts a loan as cash out and a repayment as cash in (Tunai + Debit really change)', () => {
+    expect(cols({ type: 'loan', direction: 'out', account: 'tunai', toAccount: 'piutang', amount: 25_000 })).toEqual({ moneyIn: null, moneyOut: 25_000, noKasChange: null });
+    expect(cols({ type: 'loan_repayment', direction: 'out', account: 'piutang', toAccount: 'tunai', amount: 5_000 })).toEqual({ moneyIn: 5_000, moneyOut: null, noKasChange: null });
+  });
+
+  it('leaves a write-off, an old Piutang balance and an entry without a pos out of Masuk and Keluar', () => {
+    expect(cols({ type: 'debt_writeoff', direction: 'out', account: null, amount: 15_000 })).toEqual({ moneyIn: null, moneyOut: null, noKasChange: 15_000 });
+    expect(cols({ type: 'opening_balance', direction: 'in', account: 'piutang', amount: 40_000 })).toEqual({ moneyIn: null, moneyOut: null, noKasChange: 40_000 });
+    expect(cols({ direction: 'in', account: null, amount: 10_000 })).toEqual({ moneyIn: null, moneyOut: null, noKasChange: 10_000 });
   });
 });

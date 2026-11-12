@@ -5,6 +5,17 @@ import type { PaymentChoice, PaymentPreview } from '@/domain/payment-preview';
 import { formatDate, formatDayMonth } from './dates';
 import { formatRupiah } from './format';
 
+/**
+ * Title of the payment confirmation dialog. When nothing of the payment settles dues, the whole amount becomes
+ * titipan and the title must not say "Sebagian" (the dialog body already says the whole payment is titipan).
+ */
+export function paymentConfirmTitle(preview: Pick<PaymentPreview, 'amount' | 'allocatedAmount' | 'creditAmount'>): string {
+  const amount = formatRupiah(preview.amount);
+  if (preview.creditAmount > 0 && preview.allocatedAmount === 0) return `${amount} menjadi titipan`;
+  if (preview.creditAmount > 0) return `Sebagian menjadi titipan - ${amount}`;
+  return `Konfirmasi pembayaran ${amount}`;
+}
+
 interface ArrearsLike {
   membersInArrears: number;
   totalArrears: number;

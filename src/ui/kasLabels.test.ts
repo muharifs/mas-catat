@@ -6,7 +6,7 @@ describe('flowText', () => {
     expect(flowText({ direction: 'out', account: 'debit', toAccount: null })).toBe('Keluar dari Debit');
     expect(flowText({ direction: 'out', account: 'tunai', toAccount: 'debit' })).toBe('Tunai -> Debit');
     expect(flowText({ direction: 'out', account: 'piutang', toAccount: 'tunai' })).toBe('Piutang -> Tunai');
-    expect(flowText({ direction: 'out', account: null, toAccount: null })).toBe('Tanpa pos');
+    expect(flowText({ direction: 'out', account: null, toAccount: null })).toBe('Belum ada tempat uang');
   });
 });
 

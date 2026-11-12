@@ -1,5 +1,13 @@
 import type { PaymentPreview } from '@/domain/payment-preview';
-import { arrearsRemainderNote, closeWeekMessage, describeWeeks, overdueNotice, paymentChoiceLabel, swipePaymentToast, toasts } from './messages';
+import { arrearsRemainderNote, closeWeekMessage, describeWeeks, overdueNotice, paymentChoiceLabel, paymentConfirmTitle, swipePaymentToast, toasts } from './messages';
+
+describe('paymentConfirmTitle', () => {
+  it('says the whole payment is titipan when nothing settles dues, and "Sebagian" only for a part', () => {
+    expect(paymentConfirmTitle({ amount: 30_000, allocatedAmount: 0, creditAmount: 30_000 })).toBe('Rp30.000 menjadi titipan');
+    expect(paymentConfirmTitle({ amount: 30_000, allocatedAmount: 15_000, creditAmount: 15_000 })).toBe('Sebagian menjadi titipan - Rp30.000');
+    expect(paymentConfirmTitle({ amount: 30_000, allocatedAmount: 30_000, creditAmount: 0 })).toBe('Konfirmasi pembayaran Rp30.000');
+  });
+});
 
 describe('closeWeekMessage', () => {
   it('mentions the arrears of the meeting being closed, as a warning only', () => {

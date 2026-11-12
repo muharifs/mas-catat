@@ -73,7 +73,7 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false }: History
         <Text style={styles.sub}>{second}</Text>
         {note ? <Text style={styles.sub}>{note}</Text> : null}
         {corrected ? <Badge label="Dikoreksi" tone="error" /> : null}
-        {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>Peringatan: tanpa pos, tidak dihitung di saldo</Text> : null}
+        {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>Peringatan: belum ada Tunai atau Debit pada catatan ini, jadi tidak dihitung di saldo</Text> : null}
       </View>
       <Money amount={e.amount} size="heading" sign={SIGN[direction]} />
     </Pressable>

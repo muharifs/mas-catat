@@ -3,25 +3,27 @@
 // A CSV is for reading in a spreadsheet. It is NOT a backup and is never used to restore data.
 import type { ExportsRepo, LedgerExportRow, MeetingDueExportRow, PaymentExportRow, PeriodExportRow } from '@/db/exports';
 import { buildCsv, csvFileName, type CsvCell, type CsvKind } from '@/domain/csv';
+import { csvAmountColumns } from '@/domain/flow';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { Account } from '@/domain/types';
 import { TYPE_LABELS, showsNoPosWarning, visibleNote } from './kasLabels';
 
 const posText = (account: Account | null, type: LedgerExportRow['type']): string => {
   if (account) return ACCOUNT_LABELS[account];
-  return showsNoPosWarning({ type, account }) ? 'Tanpa pos' : '';
+  return showsNoPosWarning({ type, account }) ? 'Belum ada tempat uang' : '';
 };
 
 export const LEDGER_HEADER = [
   'Tanggal',
   'Jenis',
-  'Pos',
-  'Pos tujuan',
+  'Tempat uang',
+  'Tempat uang tujuan',
   'Anggota',
   'Periode',
   'Pertemuan',
   'Masuk (Rp)',
   'Keluar (Rp)',
+  'Tanpa perubahan kas (Rp)',
   'Catatan',
   'Status',
   'Alasan koreksi',
@@ -33,24 +35,32 @@ const LEDGER_STATUS: Record<LedgerExportRow['status'], string> = {
   reversal: 'Koreksi',
 };
 
-/** Buku kas: every ledger row, corrections and reversals included. A move between pos is listed under "Keluar". */
+/**
+ * Buku kas: every ledger row, corrections and reversals included. "Masuk" and "Keluar" hold only money that really
+ * entered or left Tunai + Debit (csvAmountColumns). A Tunai <-> Debit move, a write-off and an old Piutang opening
+ * balance go in "Tanpa perubahan kas", so summing Masuk minus Keluar gives the real change of the total kas.
+ */
 export function ledgerCsv(rows: readonly LedgerExportRow[]): string {
   return buildCsv(
     LEDGER_HEADER,
-    rows.map((r): CsvCell[] => [
-      r.date,
-      TYPE_LABELS[r.type],
-      posText(r.account, r.type),
-      r.toAccount ? ACCOUNT_LABELS[r.toAccount] : '',
-      r.memberName,
-      r.periodName,
-      r.week,
-      r.direction === 'in' ? r.amount : null,
-      r.direction === 'out' ? r.amount : null,
-      visibleNote(r),
-      LEDGER_STATUS[r.status],
-      r.correctionReason,
-    ]),
+    rows.map((r): CsvCell[] => {
+      const amounts = csvAmountColumns(r);
+      return [
+        r.date,
+        TYPE_LABELS[r.type],
+        posText(r.account, r.type),
+        r.toAccount ? ACCOUNT_LABELS[r.toAccount] : '',
+        r.memberName,
+        r.periodName,
+        r.week,
+        amounts.moneyIn,
+        amounts.moneyOut,
+        amounts.noKasChange,
+        visibleNote(r),
+        LEDGER_STATUS[r.status],
+        r.correctionReason,
+      ];
+    }),
   );
 }
 

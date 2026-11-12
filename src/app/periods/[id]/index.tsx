@@ -166,8 +166,8 @@ export default function PeriodDetailScreen() {
           <Text style={styles.cardTitle}>Akhiri periode</Text>
           <Text style={styles.hint}>
             Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
-            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum Anda
-            memastikan.
+            masih terbuka). Layar berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum periode
+            benar-benar diakhiri.
           </Text>
           <Button
             label="Akhiri periode"

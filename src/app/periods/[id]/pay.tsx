@@ -17,7 +17,7 @@ import { Notice } from '@/ui/components/Notice';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
-import { arrearsRemainderNote, describeWeeks, paymentChoiceLabel, toasts } from '@/ui/messages';
+import { arrearsRemainderNote, describeWeeks, paymentChoiceLabel, paymentConfirmTitle, toasts } from '@/ui/messages';
 import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
@@ -102,9 +102,7 @@ export default function PayScreen() {
       const preview = await repos.payments.preview({ periodId: id, memberId, date, amount });
       setBusy(false);
       Alert.alert(
-        preview.creditAmount > 0
-          ? `Sebagian menjadi titipan - ${formatRupiah(preview.amount)}`
-          : `Konfirmasi pembayaran ${formatRupiah(preview.amount)}`,
+        paymentConfirmTitle(preview),
         confirmMessage(memberName, date, preview),
         [
           { text: 'Batal', style: 'cancel' },
@@ -148,7 +146,7 @@ export default function PayScreen() {
         </ScrollView>
         {remainderNote ? <Text style={styles.hint}>{remainderNote}</Text> : null}
 
-        <Text style={styles.hint}>Uang masuk ke Tunai. Untuk memindahkannya ke Debit, gunakan transfer di menu Kas.</Text>
+        <Text style={styles.hint}>Uang masuk ke Tunai. Untuk memindahkannya ke Debit, gunakan Pindah saldo di Catat kas.</Text>
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>

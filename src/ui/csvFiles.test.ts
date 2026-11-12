@@ -46,31 +46,63 @@ describe('buku-kas', () => {
     const rows = await repos.exports.listLedger();
     const table = parse(ledgerCsv(rows));
     expect(table[0]).toEqual([...LEDGER_HEADER]);
+    expect(LEDGER_HEADER.slice(7, 10)).toEqual(['Masuk (Rp)', 'Keluar (Rp)', 'Tanpa perubahan kas (Rp)']);
+    expect(LEDGER_HEADER).not.toContain('Pos');
     expect(table.length - 1).toBe((await db.getFirst<{ n: number }>('SELECT COUNT(*) AS n FROM ledger_entries'))?.n);
-    const statuses = table.slice(1).map((r) => r[10]);
+    const statuses = table.slice(1).map((r) => r[11]);
     expect(statuses).toContain('Dikoreksi');
     expect(statuses).toContain('Koreksi');
     expect(statuses).toContain('Berlaku');
-    const reversal = table.slice(1).find((r) => r[10] === 'Koreksi');
+    const reversal = table.slice(1).find((r) => r[11] === 'Koreksi');
     expect(reversal?.[1]).toBe('Koreksi');
-    expect(reversal?.[11]).toBe('salah orang');
+    expect(reversal?.[12]).toBe('salah orang');
     // the corrected original carries the reason too
-    expect(table.slice(1).find((r) => r[10] === 'Dikoreksi')?.[11]).toBe('salah orang');
+    expect(table.slice(1).find((r) => r[11] === 'Dikoreksi')?.[12]).toBe('salah orang');
   });
 
-  it('sums of Masuk and Keluar equal the ledger sums (plain integers)', async () => {
-    const { db, repos } = await history();
+  it('Masuk minus Keluar equals the real change of the total kas; a Tunai-Debit move is not counted in either', async () => {
+    const { repos } = await history();
     const table = parse(ledgerCsv(await repos.exports.listLedger())).slice(1);
     const sum = (col: number) => table.reduce((t, r) => t + Number(r[col] || 0), 0);
-    const inSql = (await db.getFirst<{ s: number }>("SELECT SUM(amount) AS s FROM ledger_entries WHERE direction = 'in'"))?.s;
-    const outSql = (await db.getFirst<{ s: number }>("SELECT SUM(amount) AS s FROM ledger_entries WHERE direction = 'out'"))?.s;
-    expect(sum(7)).toBe(inSql);
-    expect(sum(8)).toBe(outSql);
+    const balances = await repos.ledger.getKasBalances();
+    expect(sum(7) - sum(8)).toBe(balances.actual);
     for (const r of table) {
       expect(r[7]).toMatch(/^\d*$/);
       expect(r[8]).toMatch(/^\d*$/);
+      expect(r[9]).toMatch(/^\d*$/);
       expect(r[0]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+    const transfers = table.filter((r) => r[1] === 'Pindah saldo');
+    expect(transfers.length).toBeGreaterThan(0);
+    for (const t of transfers) {
+      expect(t[7]).toBe('');
+      expect(t[8]).toBe('');
+      expect(t[9]).toBe('50000');
+    }
+  });
+
+  it('keeps the rule with loans, repayments, an old Piutang balance, a write-off and a correction', async () => {
+    const db = await createMigratedTestDb();
+    const { repos, memberIds } = await seedClosedPeriodHistory(db);
+    const [m1, , m3] = memberIds as [string, string, string];
+    await repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-11-06', amount: 100_000, account: 'tunai' });
+    await repos.ledger.recordKas({ kind: 'opening_balance', date: '2026-11-06', amount: 40_000, account: 'piutang', memberId: m3 });
+    await repos.ledger.recordKas({ kind: 'transfer', date: '2026-11-07', amount: 30_000, account: 'tunai', toAccount: 'debit' });
+    await repos.ledger.recordKas({ kind: 'transfer', date: '2026-11-07', amount: 10_000, account: 'debit', toAccount: 'tunai' });
+    await repos.ledger.recordKas({ kind: 'loan', date: '2026-11-08', amount: 25_000, account: 'tunai', memberId: m1 });
+    await repos.ledger.recordKas({ kind: 'loan_repayment', date: '2026-11-09', amount: 5_000, memberId: m1 });
+    const shared = await repos.ledger.recordKas({ kind: 'shared_goal', date: '2026-11-09', amount: 20_000, account: 'debit', note: 'tur' });
+    await repos.ledger.reverseEntry(shared.id, 'salah');
+    const rows = await repos.exports.listLedger();
+    expect(rows.some((r) => r.type === 'debt_writeoff')).toBe(true);
+    const table = parse(ledgerCsv(rows)).slice(1);
+    const sum = (col: number) => table.reduce((t, r) => t + Number(r[col] || 0), 0);
+    expect(sum(7) - sum(8)).toBe((await repos.ledger.getKasBalances()).actual);
+    const byType = (label: string) => table.filter((r) => r[1] === label);
+    expect(byType('Pinjaman ke anggota').map((r) => [r[7], r[8], r[9]])).toEqual([['', '25000', '']]);
+    expect(byType('Pelunasan pinjaman').map((r) => [r[7], r[8], r[9]])).toEqual([['5000', '', '']]);
+    for (const r of byType('Penghapusan tunggakan')) expect([r[7], r[8]]).toEqual(['', '']);
+    expect(byType('Saldo awal').map((r) => [r[7], r[9]])).toEqual(expect.arrayContaining([['', '40000']]));
   });
 
   it('puts the week empty on member payments and a transfer shows both pos', async () => {
@@ -89,8 +121,8 @@ describe('buku-kas', () => {
     const text = ledgerCsv(await repos.exports.listLedger());
     expect(text).toContain(`"'=HYPERLINK(""http://x"";""y"")"`);
     const table = parse(text).slice(1);
-    expect(table.find((r) => r[9]?.startsWith("'="))).toBeDefined();
-    expect(table.find((r) => r[9] === 'baris 1\nbaris 2; "kutip"')).toBeDefined(); // one record, not split
+    expect(table.find((r) => r[10]?.startsWith("'="))).toBeDefined();
+    expect(table.find((r) => r[10] === 'baris 1\nbaris 2; "kutip"')).toBeDefined(); // one record, not split
   });
 
   it('protects member and period names that start with a formula character', async () => {

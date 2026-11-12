@@ -84,7 +84,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   );
 
   if (state.status === 'loading') return <Loading />;
-  if (state.status === 'error') return <ErrorState message={toIndonesian(state.error)} onRetry={retry} />;
+  if (state.status === 'error') return <ErrorState message={toIndonesian(state.error, 'load')} onRetry={retry} />;
   return (
     <DatabaseControlContext.Provider value={control}>
       <RepositoriesContext.Provider value={state.opened.repos}>{children}</RepositoriesContext.Provider>

@@ -55,7 +55,7 @@ export function entryDirection(e: FlowFields): EntryDirection {
 /** Second-line flow text. Moves read "Dipindah: Tunai -> Piutang"; a write-off "Tidak mengubah saldo kas". */
 export function historyFlowText(e: FlowFields): string {
   if (e.type === 'debt_writeoff') return 'Tidak mengubah saldo kas';
-  if (e.account === null) return 'Tanpa pos';
+  if (e.account === null) return 'Belum ada tempat uang';
   if (e.toAccount) return `Dipindah: ${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}`;
   if (e.account === 'piutang') return 'Piutang';
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;

@@ -93,20 +93,20 @@ export const CORRECTED_NOT_COUNTED = 'Item yang dikoreksi tetap ditampilkan teta
 
 /** Names of the lines of the expected kas formula. */
 export const EXPECTED_LABELS = {
-  actual: 'Kas nyata (Tunai + Debit)',
+  actual: 'Total kas (Tunai + Debit)',
   outstanding: 'Tunggakan iuran',
   titipan: 'Titipan anggota',
   titipanAvailable: 'Titipan belum dipakai',
   titipanCarried: 'Titipan dibawa ke pertemuan yang belum ditutup',
   expected: 'Kas seharusnya',
   prepaid: 'Dibayar di muka',
-  unpaidPayout: 'Payout belum dibayar',
+  unpaidPayout: 'Bayaran tuan rumah belum dibayar',
 } as const;
 
-/** Reads "kas seharusnya = kas nyata + tunggakan - titipan anggota" for the formula caption. */
-export const EXPECTED_FORMULA = 'Kas seharusnya = kas nyata + tunggakan iuran - titipan anggota';
+/** Reads "Kas seharusnya = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
+export const EXPECTED_FORMULA = 'Kas seharusnya = Total kas + tunggakan iuran - titipan anggota';
 
-/** Info line text for "Payout belum dibayar": count of closed meetings. */
+/** Info line text for "Bayaran tuan rumah belum dibayar": count of closed meetings. */
 export function unpaidPayoutText(count: number): string {
   return count === 0 ? 'Semua pertemuan yang ditutup sudah dibayar.' : `${count} pertemuan yang sudah ditutup belum dibayar ke tuan rumah.`;
 }

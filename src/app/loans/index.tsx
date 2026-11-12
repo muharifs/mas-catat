@@ -42,7 +42,7 @@ export default function LoansScreen() {
       <Card>
         <Text style={styles.cardLabel}>Piutang (dipinjam anggota)</Text>
         <Money amount={piutang} size="display" />
-        <Text style={styles.hint}>Sama dengan Piutang di layar Kas. Ketuk nama untuk melihat rincian dan menerima pelunasan.</Text>
+        <Text style={styles.hint}>Sama dengan Piutang di Catat kas. Ketuk nama untuk melihat rincian dan menerima pelunasan.</Text>
       </Card>
       {nothing ? <Text style={styles.muted}>Tidak ada pinjaman.</Text> : null}
     </View>
@@ -59,7 +59,7 @@ export default function LoansScreen() {
       {unnamedOpening !== 0 ? (
         <ListRow title="Saldo awal tanpa nama" tone="alt" onPress={() => router.push('/riwayat')} right={<Money amount={unnamedOpening} size="heading" />}>
           <RowText tone="warn">Tidak bisa dilunasi karena tidak ada nama anggotanya.</RowText>
-          <RowText>Koreksi catatan saldo awal Piutang di daftar Kas, lalu catat ulang dengan nama anggota.</RowText>
+          <RowText>Koreksi catatan saldo awal Piutang di tab Riwayat, lalu catat ulang dengan nama anggota.</RowText>
         </ListRow>
       ) : null}
     </View>

@@ -17,7 +17,7 @@ export function useLoad<T>(load: () => Promise<T>): { data: T | null; error: str
       setData(await load());
       setError(null);
     } catch (e) {
-      setError(toIndonesian(e));
+      setError(toIndonesian(e, 'load'));
     }
   }, [load]);
 

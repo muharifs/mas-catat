@@ -50,7 +50,7 @@ export default function FilterRiwayatScreen() {
           ))}
         </View>
 
-        <Text style={styles.heading}>Pos</Text>
+        <Text style={styles.heading}>Tempat uang</Text>
         <View style={styles.wrap}>
           {ACCOUNTS.map((a) => (
             <Chip key={a} label={ACCOUNT_LABELS[a]} selected={draft.account === a} onPress={() => pick('account', a)} />

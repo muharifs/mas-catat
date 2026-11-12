@@ -10,7 +10,15 @@ import { formatRupiah } from './format';
 /** Shown when a host change is refused because the host payout of that meeting stands. */
 export const HOST_PAYOUT_STANDS_TEXT = 'Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah.';
 
-export const GENERIC_ERROR = 'Terjadi kesalahan. Coba lagi.';
+/** Unknown error while reading data (a screen could not load). Reading never changes data, so it says so. */
+export const GENERIC_LOAD_ERROR =
+  'Terjadi kesalahan yang tidak dikenal. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi. Data tidak berubah.';
+
+/** Unknown error while saving or changing something. Says plainly that the change was not stored. */
+export const GENERIC_SAVE_ERROR = 'Catatan belum tersimpan. Coba lagi.';
+
+/** Where an error happened: reading data ('load') or saving/changing it ('save', the default). */
+export type ErrorContext = 'load' | 'save';
 
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
 const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArray) => string) }[] = [
@@ -70,7 +78,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /an opening balance in piutang needs a member/, text: 'Pilih anggota yang punya pinjaman lama ini.' },
   { pattern: /needs a member/, text: 'Pilih anggota.' },
   { pattern: /shared goal needs a note/, text: 'Catatan wajib diisi untuk pengeluaran bersama.' },
-  { pattern: /opening balance needs a pos/, text: 'Pilih pos.' },
+  { pattern: /opening balance needs a pos/, text: 'Pilih Tunai, Debit, atau Piutang.' },
   { pattern: /the member has no outstanding loan/, text: 'Anggota ini tidak punya sisa pinjaman, jadi tidak ada yang bisa dilunasi.' },
   { pattern: /repayment \d+ is above the remaining loan (\d+)/, text: (m) => `Jumlah melebihi sisa pinjaman (${formatRupiah(Number(m[1]))}). Kurangi jumlah.` },
   {
@@ -99,7 +107,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   invariant: 'Angka dalam berkas tidak cocok dengan aturan iuran, jadi ditolak.',
   unreadable: 'Berkas tidak bisa dibaca. Pastikan itu berkas cadangan Mas Catat yang utuh.',
   busy: 'Proses lain masih berjalan. Tunggu sebentar.',
-  safety_failed: 'Salinan pengaman gagal dibuat, jadi data Anda tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
+  safety_failed: 'Salinan pengaman gagal dibuat, jadi data tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
   restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari layar Pulihkan Data.',
   share_unavailable: 'Menu bagikan tidak tersedia di HP ini.',
 };
@@ -119,23 +127,24 @@ export function archiveBlockText(code: ArchiveBlockCode, amount: number): string
 }
 
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
-export function toIndonesian(error: unknown): string {
+export function toIndonesian(error: unknown, context: ErrorContext = 'save'): string {
+  const generic = context === 'load' ? GENERIC_LOAD_ERROR : GENERIC_SAVE_ERROR;
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
   if (error instanceof HostPayoutStandsError) return HOST_PAYOUT_STANDS_TEXT;
-  if (error instanceof MigrationError) return 'Database gagal disiapkan. Tutup lalu buka lagi aplikasinya.';
+  if (error instanceof MigrationError) return 'Gagal memuat data. Tutup aplikasi sepenuhnya lalu buka lagi. Jika tetap gagal, jangan hapus aplikasi karena data bisa hilang.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
     for (const rule of RULES) {
       const match = error.message.match(rule.pattern);
       if (match) return typeof rule.text === 'function' ? rule.text(match) : rule.text;
     }
-    return GENERIC_ERROR;
+    return generic;
   }
   if (error instanceof Error) {
     const trigger = TRIGGER_RULES.find((rule) => rule.pattern.test(error.message));
     if (trigger) return trigger.text;
   }
-  return GENERIC_ERROR;
+  return generic;
 }
 
 /**

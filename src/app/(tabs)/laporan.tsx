@@ -43,7 +43,7 @@ export default function ReportsScreen() {
         <ReportLine label="Debit" amount={balances.debit} />
         <ReportLine label="Piutang (dipinjam anggota)" amount={balances.piutang} />
         <ReportLine label={EXPECTED_LABELS.actual} amount={balances.actual} strong />
-        <Text style={styles.hint}>Sama dengan layar Kas. Piutang belum ada di tangan, jadi tidak masuk kas nyata.</Text>
+        <Text style={styles.hint}>Sama dengan Total kas di Beranda. Piutang belum ada di tangan, jadi tidak dihitung dalam Total kas.</Text>
       </Card>
 
       <SectionHeader title={EXPECTED_LABELS.expected} />

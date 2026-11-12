@@ -41,7 +41,7 @@ const POS_ICONS: Record<Account, keyof typeof Ionicons.glyphMap> = {
 
 const HELP: Record<KasKind, string> = {
   opening_balance:
-    'Saldo yang sudah ada sebelum memakai aplikasi, per pos. Isi satu kali per pos; kalau salah, koreksi lalu catat ulang. Untuk Piutang, isi satu kali per anggota yang punya pinjaman lama.',
+    'Saldo yang sudah ada sebelum memakai aplikasi, per tempat uang (Tunai atau Debit). Isi satu kali per tempat uang; jika salah, koreksi lalu catat ulang. Untuk Piutang (dipinjam anggota), isi satu kali per anggota yang punya pinjaman lama.',
   transfer: 'Memindahkan uang antara Tunai dan Debit, ke dua arah. Total kas tidak berubah.',
   loan: 'Uang kas dipinjamkan ke anggota periode aktif. Tanpa bunga dan tanpa batas waktu. Masuk ke Piutang.',
   loan_repayment: 'Anggota mengembalikan pinjaman. Hanya anggota yang masih punya sisa pinjaman yang muncul.',
@@ -49,7 +49,7 @@ const HELP: Record<KasKind, string> = {
 };
 
 const HELP_OLD_LOAN =
-  'Pinjaman yang sudah ada sebelum memakai aplikasi. Pilih anggota yang meminjam; sisa pinjamannya nanti bisa dilunasi dari layar Kas. Kalau salah, koreksi lalu catat ulang.';
+  'Pinjaman yang sudah ada sebelum memakai aplikasi. Pilih anggota yang meminjam; sisa pinjamannya nanti bisa dilunasi di halaman Pinjaman anggota. Jika salah, koreksi lalu catat ulang.';
 
 function isKind(value: string | undefined): value is KasKind {
   return KAS_KINDS.includes(value as KasKind);
@@ -199,7 +199,7 @@ export default function NewKasEntryScreen() {
           : [];
       const lines = [
         `${KIND_LABELS[kind]} ${formatRupiah(e.amount)} pada ${formatDate(e.date)}.`,
-        e.toAccount && e.account ? `${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}` : e.account ? `Pos: ${ACCOUNT_LABELS[e.account]}` : '',
+        e.toAccount && e.account ? `${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}` : e.account ? `Tempat uang: ${ACCOUNT_LABELS[e.account]}` : '',
         memberName ? `Anggota: ${memberName}` : '',
         e.note ? `Catatan: ${e.note}` : '',
         ...loanLines,
@@ -208,7 +208,7 @@ export default function NewKasEntryScreen() {
       if (preview.negativeAccounts.length > 0) {
         lines.push(`Peringatan: saldo ${preview.negativeAccounts.map((a) => ACCOUNT_LABELS[a]).join(' dan ')} akan menjadi minus. Tetap bisa disimpan.`);
       }
-      lines.push('Kalau salah, catatan ini bisa dikoreksi dari daftar kas (dengan alasan).');
+      lines.push('Jika salah, catatan ini bisa dikoreksi di tab Riwayat (dengan alasan).');
       Alert.alert(`Simpan ${KIND_LABELS[kind].toLowerCase()} ${formatRupiah(e.amount)}`, lines.join('\n\n'), [
         { text: 'Batal', style: 'cancel' },
         { text: 'Simpan', onPress: () => void save(input) },
@@ -294,7 +294,7 @@ export default function NewKasEntryScreen() {
         ) : null}
 
         {kind === 'opening_balance' ? (
-          <PosChoice label="Pos" options={['tunai', 'debit', 'piutang']} value={openingPos} onChange={setOpeningPos} />
+          <PosChoice label="Saldo awal untuk" options={['tunai', 'debit', 'piutang']} value={openingPos} onChange={setOpeningPos} />
         ) : null}
 
         {kind === 'transfer' ? (

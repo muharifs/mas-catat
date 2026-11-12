@@ -76,7 +76,7 @@ export default function MembersScreen() {
         if (request === usageRequest.current) setEditCanDelete(canHardDelete(usage));
       },
       (e: unknown) => {
-        if (request === usageRequest.current) setEditError(toIndonesian(e));
+        if (request === usageRequest.current) setEditError(toIndonesian(e, 'load'));
       },
     );
   }

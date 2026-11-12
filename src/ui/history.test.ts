@@ -72,7 +72,7 @@ describe('historyFlowText', () => {
     expect(historyFlowText(entry({ type: 'debt_writeoff', account: null }))).toBe('Tidak mengubah saldo kas');
     expect(historyFlowText(entry({ direction: 'in' }))).toBe('Masuk ke Tunai');
     expect(historyFlowText(entry({ type: 'shared_goal', direction: 'out', account: 'debit' }))).toBe('Keluar dari Debit');
-    expect(historyFlowText(entry({ account: null }))).toBe('Tanpa pos');
+    expect(historyFlowText(entry({ account: null }))).toBe('Belum ada tempat uang');
   });
 });
 

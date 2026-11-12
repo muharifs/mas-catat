@@ -55,10 +55,10 @@ export function showsNoPosWarning(e: { type: LedgerEntryType; account: Account |
   return e.account === null && e.type !== 'debt_writeoff';
 }
 
-/** "Tunai -> Debit" for a move, "Masuk ke Tunai" / "Keluar dari Debit" otherwise, "Tanpa pos" without a pos. */
+/** "Tunai -> Debit" for a move, "Masuk ke Tunai" / "Keluar dari Debit" otherwise, "Belum ada tempat uang" without a pos. */
 export function flowText(e: FlowEntry): string {
   if (e.type === 'debt_writeoff') return 'Tidak mengubah saldo kas';
-  if (e.account === null) return 'Tanpa pos';
+  if (e.account === null) return 'Belum ada tempat uang';
   if (e.toAccount) return `${ACCOUNT_LABELS[e.account]} -> ${ACCOUNT_LABELS[e.toAccount]}`;
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;
 }

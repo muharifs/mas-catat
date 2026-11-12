@@ -23,6 +23,8 @@ describe('backup labels', () => {
     expect(ONE_PHONE_HINT).toContain('satu HP');
     expect(ONE_PHONE_HINT).toContain('tidak bisa digabung');
     expect(CSV_HINT).toContain('bukan cadangan');
+    expect(CSV_HINT).toContain('Pindah saldo Tunai dan Debit');
+    expect(CSV_HINT).toContain('Tanpa perubahan kas');
   });
 
   it('summary rows show the five numbers the owner compares', () => {

@@ -3,7 +3,7 @@ import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
 import { HostPayoutStandsError } from '@/domain/schedule';
-import { archiveBlockText, BACKUP_ERROR_TEXT, GENERIC_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
+import { archiveBlockText, BACKUP_ERROR_TEXT, GENERIC_LOAD_ERROR, GENERIC_SAVE_ERROR, restoreErrorNeedsReload, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
   it.each([
@@ -55,7 +55,7 @@ describe('toIndonesian', () => {
     [new DomainError('a loan must be paid from tunai or debit'), 'Pilih sumber uang: Tunai atau Debit.'],
     [new DomainError('a loan needs a member'), 'Pilih anggota.'],
     [new DomainError('shared goal needs a note'), 'Catatan wajib diisi untuk pengeluaran bersama.'],
-    [new DomainError('opening balance needs a pos'), 'Pilih pos.'],
+    [new DomainError('opening balance needs a pos'), 'Pilih Tunai, Debit, atau Piutang.'],
     [new DomainError('amount must be a positive integer, got 0'), 'Jumlah harus lebih dari nol.'],
     [new RepositoryError('no period exists yet; create a period first'), 'Belum ada periode. Buat periode dulu.'],
     [new RepositoryError('no active period; a new loan is only for members of the active period'), 'Tidak ada periode aktif. Buat atau mulai periode dulu.'],
@@ -76,13 +76,23 @@ describe('toIndonesian', () => {
   });
 
   it('maps migration failures', () => {
-    expect(toIndonesian(new MigrationError('boom'))).toMatch(/Database gagal/);
+    expect(toIndonesian(new MigrationError('boom'))).toMatch(/^Gagal memuat data\. Tutup aplikasi sepenuhnya/);
+    expect(toIndonesian(new MigrationError('boom'))).not.toMatch(/Database|Hubungi|Anda/);
   });
 
   it('falls back to a generic message and never leaks English', () => {
-    expect(toIndonesian(new RepositoryError('something new'))).toBe(GENERIC_ERROR);
-    expect(toIndonesian(new Error('raw'))).toBe(GENERIC_ERROR);
-    expect(toIndonesian('text')).toBe(GENERIC_ERROR);
+    expect(toIndonesian(new RepositoryError('something new'))).toBe(GENERIC_SAVE_ERROR);
+    expect(toIndonesian(new Error('raw'))).toBe(GENERIC_SAVE_ERROR);
+    expect(toIndonesian('text')).toBe(GENERIC_SAVE_ERROR);
+  });
+
+  it('separates a read failure from a save failure and never says "Anda"', () => {
+    expect(toIndonesian(new RepositoryError('something new'), 'load')).toBe(GENERIC_LOAD_ERROR);
+    expect(toIndonesian(new Error('raw'), 'load')).toBe(GENERIC_LOAD_ERROR);
+    expect(GENERIC_LOAD_ERROR).toContain('Data tidak berubah');
+    expect(GENERIC_SAVE_ERROR).toBe('Catatan belum tersimpan. Coba lagi.');
+    expect(GENERIC_LOAD_ERROR).not.toContain('Anda');
+    expect(BACKUP_ERROR_TEXT.safety_failed).not.toContain('Anda');
   });
 });
 

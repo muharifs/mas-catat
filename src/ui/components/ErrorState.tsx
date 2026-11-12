@@ -12,7 +12,7 @@ interface ErrorStateProps {
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Terjadi masalah</Text>
+      <Text style={styles.title}>Data tidak bisa dibuka</Text>
       <Text style={styles.message} accessibilityLiveRegion="polite">
         {message}
       </Text>

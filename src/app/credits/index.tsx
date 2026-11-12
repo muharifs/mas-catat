@@ -61,7 +61,7 @@ export default function CreditsScreen() {
       if (preview.negativeAccounts.length > 0) {
         lines.push(`Peringatan: saldo ${ACCOUNT_LABELS[account]} akan menjadi minus. Tetap bisa disimpan.`);
       }
-      lines.push('Pengembalian ini TIDAK bisa dikoreksi atau dibatalkan. Periksa pos dan tanggalnya.');
+      lines.push('Pengembalian ini TIDAK bisa dikoreksi atau dibatalkan. Periksa tempat uang dan tanggalnya.');
       Alert.alert(`Kembalikan uang ${formatRupiah(preview.entry.amount)}`, lines.join('\n\n'), [
         { text: 'Batal', style: 'cancel' },
         { text: 'Kembalikan uang', style: 'destructive', onPress: () => void save(item, preview.entry.amount) },

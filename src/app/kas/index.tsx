@@ -57,7 +57,7 @@ export default function KasScreen() {
           <Money amount={balances.piutang} size="heading" />
           <Text style={styles.link}>Lihat pinjaman per anggota</Text>
         </Pressable>
-        <Text style={styles.hint}>Saldo dihitung dari semua catatan di semua periode. Catatan tanpa pos tidak dihitung. Semua catatan ada di tab Riwayat.</Text>
+        <Text style={styles.hint}>Saldo dihitung dari semua catatan di semua periode. Catatan yang belum ada tempat uangnya tidak dihitung. Semua catatan ada di tab Riwayat.</Text>
       </Card>
 
       {hasPeriod ? (

@@ -71,7 +71,7 @@ export default function KasEntryScreen() {
 
       {showsNoPosWarning(entry) ? (
         <Notice tone="warn">
-          Catatan ini tanpa pos, jadi tidak dihitung di saldo. Catatan tidak diubah; kalau perlu, koreksi lalu catat ulang dengan pos yang benar.
+          Catatan ini belum ada tempat uangnya, jadi tidak dihitung di saldo. Catatan tidak diubah; jika perlu, koreksi lalu catat ulang dengan tempat uang yang benar.
         </Notice>
       ) : null}
 
@@ -79,7 +79,7 @@ export default function KasEntryScreen() {
       <Card>
         <DetailRow label="Tanggal" value={formatDate(entry.date)} />
         <DetailRow label="Dicatat" value={formatDate(createdDate(entry.createdAt))} />
-        <DetailRow label="Pos" value={posText(entry)} />
+        <DetailRow label="Tempat uang" value={posText(entry)} />
         {member ? <DetailRow label="Anggota" value={member.name} /> : null}
         {entry.week !== null ? <DetailRow label="Pertemuan" value={String(entry.week)} /> : null}
         {period ? <DetailRow label="Periode" value={period.name} /> : null}
@@ -155,7 +155,7 @@ export default function KasEntryScreen() {
       {route === 'direct' && correcting ? (
         <CorrectionForm
           title={`Koreksi ${TYPE_LABELS[entry.type].toLowerCase()} ${formatRupiah(entry.amount)}`}
-          message="Catatan asli tidak diubah. Aplikasi menambah catatan koreksi yang membatalkan efeknya pada saldo. Setelah itu catat ulang transaksi yang benar lewat menu Kas. Koreksi tidak bisa dibatalkan."
+          message="Catatan asli tidak diubah. Aplikasi menambah catatan koreksi yang membatalkan efeknya pada saldo. Setelah itu catat ulang transaksi yang benar lewat Catat kas. Koreksi tidak bisa dibatalkan."
           onCancel={() => setCorrecting(false)}
           onSubmit={async (reason) => {
             await repos.ledger.reverseEntry(entry.id, reason);
@@ -194,7 +194,7 @@ export default function KasEntryScreen() {
         <Text style={styles.hint}>Catatan ini tidak bisa dikoreksi. Penghapusan tunggakan dan pengembalian titipan bersifat final.</Text>
       ) : null}
       {route === 'is_reversal' ? <Text style={styles.hint}>Koreksi tidak bisa dikoreksi lagi. Untuk membetulkan, catat ulang transaksi yang benar.</Text> : null}
-      {route === 'already_corrected' ? <Text style={styles.hint}>Untuk membetulkan, catat ulang transaksi yang benar lewat menu Kas.</Text> : null}
+      {route === 'already_corrected' ? <Text style={styles.hint}>Untuk membetulkan, catat ulang transaksi yang benar lewat Catat kas.</Text> : null}
     </ScrollView>
   );
 }

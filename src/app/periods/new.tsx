@@ -73,7 +73,7 @@ export default function NewPeriodScreen() {
         setCarryError(null);
       },
       (e: unknown) => {
-        if (!cancelled) setCarryError(toIndonesian(e));
+        if (!cancelled) setCarryError(toIndonesian(e, 'load'));
       },
     );
     return () => {
@@ -146,7 +146,7 @@ export default function NewPeriodScreen() {
         </Notice>
       ) : null}
 
-      <SectionHeader title="Pilih anggota ({selected.length} dipilih)" />
+      <SectionHeader title={`Pilih anggota (${selected.length} dipilih)`} />
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>
       <View style={styles.bulk}>
         <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(data.members.map((m) => m.id))} />

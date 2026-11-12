@@ -148,7 +148,7 @@ export default function ClosePeriodScreen() {
         <Text style={styles.body}>Sisa titipan setelah dipakai: {formatRupiah(preview.totalCreditLeft)}</Text>
         <Text style={styles.hint}>
           Titipan anggota lebih dulu melunasi tunggakannya sendiri (pertemuan terlama dulu). Sisanya ditanggung kas, satu catatan
-          per anggota. Ini tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
+          per anggota. Penanggungan ini tidak mengubah saldo kas. Sisa titipan dibawa ke periode berikutnya, atau dikembalikan
           lewat Menu {'>'} Titipan anggota.
         </Text>
       </Card>

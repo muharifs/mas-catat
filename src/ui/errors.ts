@@ -50,7 +50,7 @@ export const CONTEXT_ERROR_TEXT: Record<ErrorContext, string> = {
   share_safety: 'Salinan pengaman belum bisa dibagikan, tetapi tetap tersimpan di HP ini.',
   restore_check: 'Berkas belum bisa diperiksa. Data di HP ini tidak berubah. Coba lagi, atau pilih berkas cadangan yang lain.',
   restore:
-    'Pemulihan tidak selesai karena kesalahan yang tidak dikenal. Data di HP ini kemungkinan belum berubah, tetapi belum bisa dipastikan. Periksa Beranda dan Laporan. Jika ada angka yang janggal, buka Pulihkan data dan pilih salinan pengaman terbaru.',
+    'Pemulihan tidak selesai karena kesalahan yang tidak dikenal. Data di HP ini kemungkinan belum berubah, tetapi belum bisa dipastikan. Periksa Beranda dan Laporan. Jika ada angka yang janggal, buka Cadangan, lalu Pulihkan dari cadangan, dan pilih salinan pengaman terbaru.',
 };
 
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
@@ -141,7 +141,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   unreadable: 'Berkas tidak bisa dibaca. Pastikan itu berkas cadangan Mas Catat yang utuh.',
   busy: 'Proses lain masih berjalan. Tunggu sebentar, lalu coba lagi.',
   safety_failed: 'Salinan pengaman gagal dibuat, jadi data tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
-  restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan dari halaman Pulihkan data.',
+  restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan lewat Cadangan, lalu Pulihkan dari cadangan.',
   share_unavailable: 'Fitur berbagi tidak tersedia di HP ini, jadi berkas tidak bisa dikirim.',
 };
 

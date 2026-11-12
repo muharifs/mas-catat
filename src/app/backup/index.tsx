@@ -125,7 +125,7 @@ export default function BackupScreen() {
             title="Pulihkan dari cadangan"
             onPress={busy === null ? () => router.push('/backup/restore') : undefined}
           />
-          <Text style={styles.caption}>Mulai dari nol, untuk menghapus semua data, ada di halaman yang sama.</Text>
+          <Text style={styles.caption}>Mulai dari nol, untuk menghapus semua data, ada di halaman Pulihkan data.</Text>
         </Card>
       </View>
     </ScrollView>

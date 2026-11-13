@@ -234,3 +234,16 @@ Hanya yang tidak bisa dibuktikan tes. BELUM dibangun, belum di-commit, belum per
 | E13 | Menu, tekan lama "Versi 1.0.0" (galeri) | Bagian baru "DialogHost" dan "ToastHost" ada, tiap demo membuka dialog atau toast yang benar (termasuk dua dialog beruntun, antrean, tiga tombol, dan teks sangat panjang) |
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.
+
+## Cek HP 7: koreksi pembayaran anggota yang jadi tuan rumah (font NORMAL saja)
+Hanya yang tidak bisa dibuktikan tes (keputusan 30, B3). Sudah dibangun, belum di-commit, belum pernah dilihat di HP. Perlu data: periode aktif, satu anggota yang sudah punya pembayaran dan sudah jadi tuan rumah dengan pembayaran tuan rumahnya tercatat, serta anggota lain yang punya pembayaran.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| F1 | Periode aktif > layar anggota tuan rumah tadi | Pada pembayaran anggota ini tombol "Koreksi" TIDAK ada; diganti teks alasan: "Pembayaran tuan rumah untuk anggota ini sudah dicatat. Koreksi pembayaran tuan rumah dulu." |
+| F2 | Layar anggota lain yang punya pembayaran | Tombol "Koreksi" pada pembayarannya masih tampil seperti biasa |
+| F3 | Koreksi pembayaran tuan rumah (payout) milik anggota tadi, lalu kembali ke layar anggotanya | Tombol "Koreksi" muncul lagi pada pembayaran anggota. Catat apakah perlu muat ulang layar (keluar-masuk) agar tombol muncul |
+| F4 | Koreksi pembayaran anggota itu, lalu bayar tuan rumah lagi | Koreksi berhasil; pembayaran tuan rumah bisa dicatat ulang; angka kas dan tunggakan masuk akal |
+| F5 | Saat F1 (terblokir), cek Riwayat, Beranda, dan saldo kas | Tidak ada data berubah: tidak ada catatan baru, saldo sama |
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.

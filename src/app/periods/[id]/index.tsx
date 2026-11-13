@@ -128,7 +128,9 @@ export default function PeriodDetailScreen() {
               <Text style={w.status === 'open' ? styles.open : styles.closed}>
                 {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
               </Text>
-              {isPaid ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
+              {/* With the "Lihat pembayaran tuan rumah" button (active period) the paid state is obvious;
+                  a finished period has no button, so the status line stays there. */}
+              {isPaid && !canViewPayout ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
               {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
             </View>
             {hasActions ? (
@@ -152,6 +154,7 @@ export default function PeriodDetailScreen() {
               {canViewPayout ? (
                 <Button
                   label="Lihat pembayaran tuan rumah"
+                  accessibilityLabel="Lihat pembayaran tuan rumah, sudah dibayar"
                   variant="secondary"
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />

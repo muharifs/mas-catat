@@ -69,7 +69,7 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 | B7 | Koreksi pembayaran Dedi yang 75.000 (alasan "salah catat") | Tunai **30.000**. Dedi menunggak 75.000 dan punya titipan 15.000 (titipan tidak otomatis menutup tunggakan, lihat R1) |
 | B8 | Ani bayar 15.000 | Tunai **45.000** |
 | B9 | Bayar tuan rumah Dedi, **jangan tutup pertemuan 5 dulu** | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
-| B10 | Buka Periode > Jadwal, lihat Pertemuan 5 (F1) | Tombol "Ubah" tidak ada, tetapi tombol "Ubah tanggal" ada. Tampil tulisan "Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah." Tombol "Sudah dibayar" ada |
+| B10 | Buka Periode > Jadwal, lihat Pertemuan 5 (F1) | Tombol "Ubah" tidak ada, tetapi tombol "Ubah tanggal" ada. Tampil tulisan "Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah." Tombol "Lihat pembayaran tuan rumah" ada (tidak ada baris terpisah "Pembayaran tuan rumah: sudah dibayar") |
 | B11 | Koreksi pembayaran tuan rumah pertemuan **5** (alasan "uji ganti tuan rumah"), lalu lihat Jadwal lagi (F1) | Payout dan potongan dibatalkan bersama. Tunai tetap **45.000**. Tombol "Ubah" muncul lagi di Pertemuan 5 dan layarnya terbuka normal (tekan Batal, jangan ganti tuan rumah) |
 | B12 | Bayar tuan rumah Dedi lagi, **jangan tutup pertemuan 5 dulu** | Dipotong dari bayaran tuan rumah ini **50.000**, sisa utang 25.000. Tunai tetap **45.000** |
 | B12a | Setelah tuan rumah dibayar, tekan "Ubah tanggal" (di Jadwal, lalu di layar Pertemuan 5), pilih tanggal lain dan simpan | Hanya tanggal yang berubah; angka tidak berubah. Tuan rumah terkunci (tetap Dedi), Tunai tetap **45.000**, payout 50.000 dan potongan 50.000 tetap ada di Riwayat. Teks bantu "Tuan rumah sudah dibayar, jadi tidak bisa diganti. Tanggal masih bisa diubah. Uang tidak berubah." terbaca penuh dan tidak terpotong di layar sempit |
@@ -130,7 +130,7 @@ Status: dibuat, belum dilihat di HP. Penyebab teks terpotong (Android mengukur t
 | # | Buka | Yang harus tampak |
 |---|---|---|
 | R1 | Menu > Komponen (gallery), bagian A dan B | Judul bagian "A. Tombol dan aksi" dan "B. Baris dan daftar" terbaca lengkap. Chip "Hari ini" dan "Bulan ini" lengkap. ReminderRow dengan label aksi panjang: teks memakai lebar penuh, tombol ada di bawah teks |
-| R2 | Periode > Jadwal | Tombol ada di bawah teks dan selebar baris. Cek baris dengan satu tombol, baris dengan dua tombol, dan pertemuan yang sudah dibayar. Teks tidak terpotong |
+| R2 | Periode > Jadwal | Tombol ada di bawah teks dan selebar baris. Cek baris dengan satu tombol, baris dengan dua tombol, dan pertemuan yang sudah dibayar. Teks tidak terpotong. Pertemuan yang sudah dibayar di periode aktif TIDAK punya baris "Pembayaran tuan rumah: sudah dibayar", hanya tombol "Lihat pembayaran tuan rumah". Periode yang sudah selesai masih menampilkan baris itu (tanpa tombol) |
 | R3 | Beranda | Label "Total kas" lengkap. "Akhiri periode" dan "Catat kas" masing-masing satu baris. Angka besar (hero) dan kisi uang tidak terpotong. Pengingat terbaca penuh |
 | R4 | Riwayat | Chip filter "Tuan rumah" dan "Pindah saldo" masing-masing satu baris. Ringkasan bulan terbaca penuh |
 | R5 | Menu > Cadangan dan ekspor | Teks bantu CSV "Tunai + Debit ..." membungkus ke baris berikutnya seperti biasa, tidak terpotong |
@@ -141,4 +141,4 @@ Status: dibuat, belum dilihat di HP. Penyebab teks terpotong (Android mengukur t
 
 Jika masih ada teks yang terpotong, kirim tangkapan layar dan catat layar serta ukuran hurufnya (normal atau terbesar).
 
-Keputusan terbuka untuk pemilik: baris berulang "Pembayaran tuan rumah: sudah dibayar" di atas tombol "Lihat pembayaran tuan rumah" pada Jadwal. Desainer menyarankan dihapus; sementara dipertahankan. Beri tahu jika mau dihapus.
+Keputusan pemilik (2026-11-13, "oke buang saja"): baris berulang "Pembayaran tuan rumah: sudah dibayar" sudah dihapus dari Jadwal periode aktif; statusnya ada pada tombol "Lihat pembayaran tuan rumah". Pertanyaan terbuka untuk pemilik: pada periode yang sudah selesai baris itu dipertahankan karena tidak ada tombolnya. Beri tahu jika mau dihapus juga.

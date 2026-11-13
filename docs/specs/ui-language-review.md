@@ -74,7 +74,7 @@ Kolom "Penjelasan di": **Bantuan** = kartu atau teks bantuan permanen di halaman
 | **Tunai** | uang di tangan | Uang kertas atau koin yang dipegang pengurus. | Label. Penjelasan satu kali di Bantuan | Tetap |
 | **Debit** | rekening atau dompet digital | Uang kas di rekening bank atau aplikasi dompet digital. | Label. Bantuan: `Debit = rekening bank atau dompet digital.` | Tetap. Kata `e-wallet` jangan tampil, pakai `dompet digital` |
 | **tempat uang** (pengganti `pos`, D1) | tempat uang | Tempat uang kas disimpan: Tunai atau Debit. | Label | Ganti: `pos` menjadi `tempat uang` (T5) |
-| **Piutang** | uang yang dipinjam anggota | Uang kas yang sedang dipinjam anggota dan belum dikembalikan; belum ada di tangan. | Label sub: `Piutang (dipinjam anggota)` di semua layar (D9). Bantuan di Pinjaman | Tetap (D9). Tambahkan sub-label |
+| **Piutang** | uang yang dipinjam anggota | Uang kas yang sedang dipinjam anggota dan belum dikembalikan; belum ada di tangan. | Label sub: `Piutang (dipinjam anggota)` di semua layar kecuali Beranda (D9). Bantuan di Pinjaman | Tetap (D9). Tambahkan sub-label. Beranda tidak lagi menampilkan pil Piutang (keputusan 2026-11-13, PROJECT.md keputusan 27); jumlahnya ada di Laporan dan Pinjaman |
 | **Pindah saldo** | pindah uang antar tempat | Memindahkan uang antara Tunai dan Debit, ke dua arah; Total kas tidak berubah. | Bantuan di formulir (sudah ada di `kas/new.tsx:45`). Tampilkan `Tunai ke Debit`, bukan panah (S14) | Tetap. Hapus panah `->` |
 | **Saldo awal** | uang awal | Uang yang sudah ada sebelum aplikasi dipakai, dicatat sekali di awal. | Bantuan di formulir Catat kas. Pada Piutang: `Saldo awal: pinjaman lama` (sudah) | Tetap |
 | **Pengeluaran bersama** | uang keluar untuk keperluan bersama | Uang kas yang dipakai untuk tujuan bersama, misalnya tur. | Bantuan di formulir (sudah ada) | Tetap. Contoh `tur` boleh diganti `wisata` agar lebih akrab. USULAN BARU (kecil) |
@@ -92,6 +92,8 @@ Kolom "Penjelasan di": **Bantuan** = kartu atau teks bantuan permanen di halaman
 | Istilah di layar | Padanan sederhana | Penjelasan satu kalimat | Penjelasan di | Tindakan |
 |---|---|---|---|---|
 | **Iuran** | iuran mingguan | Uang Rp15.000 yang dibayar setiap anggota, termasuk tuan rumah, di setiap pertemuan. | Bantuan di Buat periode dan Catat pembayaran | Tetap |
+| **Pembayaran** (keputusan 2026-11-13, G7) | daftar anggota dengan tunggakan per periode | Halaman untuk melihat siapa yang sudah dan belum membayar iuran, dan membuka pencatatan. | Label. Satu nama untuk ubin Beranda, tombol kartu periode di Beranda, tombol Jadwal, dan judul halaman | Ganti: ubin `Iuran` dan tombol `Catat pembayaran` di Beranda menjadi `Pembayaran` |
+| **Catat pembayaran** (keputusan 2026-11-13, G7) | form satu pembayaran | Form mencatat satu pembayaran iuran anggota. Hanya tombol di halaman anggota dan judul form. | Bantuan di form | Tetap |
 | **Tunggakan** | iuran yang belum dibayar | Iuran pertemuan yang belum dibayar anggota. | Label. Bantuan di dialog bayar tuan rumah | Tetap. Jangan pakai `utang` di layar (S8) |
 | **Kelipatan Rp15.000** | pembayaran harus pas | Pembayaran harus Rp15.000, Rp30.000, Rp45.000, dan seterusnya, tidak boleh sebagian. | Pesan galat dan teks bawah kolom jumlah (sudah baik) | Tetap |
 | **Pertemuan** | pertemuan mingguan | Satu kali kumpul di rumah tuan rumah; pengganti kata `minggu`. | Label | Tetap |
@@ -134,7 +136,7 @@ Kolom "Penjelasan di": **Bantuan** = kartu atau teks bantuan permanen di halaman
 | **Mulai dari nol** | hapus semua data | Menghapus semua data dan memulai kosong; salinan pengaman tetap dibuat dulu. | Dialog (sudah ada; kata `HAPUS SEMUA` tetap diketik) | Tetap |
 | **Ekspor** / **Berkas CSV** | simpan ke Excel | Berkas tabel yang dibuka di Excel atau Google Sheets; bukan cadangan dan tidak bisa dipulihkan. | Bantuan di halaman Cadangan dan ekspor (sudah ada di `backupLabels.ts:19`) | Tetap. `berkas`, bukan `file` (D3) |
 | **Transfer** (hanya kolom CSV, D10) | | Perpindahan Tunai dan Debit; tidak dihitung sebagai uang masuk atau keluar. | Petunjuk CSV | Tetap (D10), tidak tampil di aplikasi |
-| **Bulan ini** | | Ringkasan uang masuk dan keluar (Tunai dan Debit) dalam bulan berjalan. | Bantuan di Beranda | Tetap |
+| **Bulan ini** | | Ringkasan uang masuk dan keluar (Tunai dan Debit) dalam bulan berjalan. | Bantuan di Beranda | Berubah (keputusan 2026-11-13): Beranda hanya menampilkan satu pil `Pengeluaran` (dibaca "Pengeluaran bulan ini") yang membuka Riwayat bulan ini; ringkasan lengkap (Pemasukan dan Pengeluaran) di Riwayat |
 | **Pengingat** | | Daftar hal yang perlu dilakukan, misalnya pertemuan terlewat atau cadangan terlambat. | Kosong | Tetap |
 
 #### E. Ringkasan: yang sebaiknya diganti atau ditambah

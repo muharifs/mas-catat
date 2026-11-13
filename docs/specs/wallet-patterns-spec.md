@@ -36,6 +36,8 @@ Langkah awal (daftar centang) tetap, tampil di atas Pengingat selama belum seles
 Catatan: karena Beranda jadi panjang, hanya header + Pengingat yang terlihat tanpa menggulir di HP 640dp. Itu disengaja: dua hal itu yang paling sering dicari.
 
 ### 1.3 Header kas
+> CATATAN 2026-11-13 (PROJECT.md keputusan 27; rincian di `docs/specs/design-decisions-2026-11-13.md` bagian 1): bagian ini USANG. Tombol "Catat kas" dan kolom aksi samping dibuang; "Pindah saldo" turun ke bawah Tunai/Debit (terbuka A1); mata di samping angka Total kas, hanya "Rp" yang lebih kecil; pil Piutang dan Titipan dihapus; "Bulan ini" diganti satu pil "Pengeluaran". Gambar dan teks di bawah adalah rancangan lama.
+
 ```
 +--------------------------------------------------+
 | Total kas                       [ Pindah saldo ] |
@@ -82,7 +84,7 @@ Aturan, urut dari atas (jumlah baris realistis 0 sampai 4; semua ditampilkan, ti
 | 3 | Pertemuan terbuka tertua tanpa tuan rumah | "Tuan rumah pertemuan N belum ditentukan" / "Tanpa tuan rumah, pertemuan tidak bisa ditutup." | "Tentukan" | `/periods/[id]/meetings/[n]` | `week.hostMemberId === null` |
 | 4 | Pertemuan terbuka tertua punya tuan rumah dan tanggalnya hari ini atau lewat | "Pertemuan N siap ditutup" / "Tanggalnya <tanggal>. Ada X anggota menunggak." (kalimat tunggakan hanya bila X > 0; menunggak hanya memperingatkan, tidak memblokir, sesuai M5c) | "Tutup pertemuan" | Alert konfirmasi yang sudah ada (`closeWeekMessage`), BUKAN langsung menutup | `arrears` dari `getArrearsSummary` |
 | 5 | Pertemuan berikutnya (N+1) ada, pertemuan N sudah punya tuan rumah, N+1 belum punya tuan rumah (jendela dua pertemuan, `selectableWeekNumbers`) | "Tuan rumah pertemuan N+1 belum ditentukan" / "Tanggal sementara masih perkiraan." | "Tentukan" | `/periods/[id]/meetings/[n+1]` | `weeks` |
-| 6 | Semua pertemuan tertutup | "Semua pertemuan sudah ditutup" / "Periode siap diakhiri." (bila ada tuan rumah belum dibayar, baris 1 sudah tampil di atasnya) | "Akhiri periode" | `/periods/[id]/close` (layar itu sudah menjelaskan alasan bila belum bisa) | `weeks` |
+| 6 | Semua pertemuan tertutup | "Semua pertemuan sudah ditutup" / "Periode siap diakhiri." (bila ada tuan rumah belum dibayar, baris 1 sudah tampil di atasnya) | "Akhiri periode" (USANG 2026-11-13, keputusan 27: baris ini tidak tampil di Beranda, disaring di tampilan; tombolnya ada di kartu periode) | `/periods/[id]/close` (layar itu sudah menjelaskan alasan bila belum bisa) | `weeks` |
 | 7 | `backupReminder(...).due` (aturan 7 hari, M7) | "Cadangan belum dibuat" atau "Cadangan terakhir X hari lalu" (teks dari `reminderText`) | "Buat cadangan" | `/backup` | `backupReminder` + `readLastShared()` yang sudah dipakai |
 
 - Baris 7 menggantikan pita cadangan di atas Beranda pada spek M7.2 (pita tidak dipertahankan, supaya tidak ada dua peringatan yang sama). Itu perubahan terhadap M7.2; masuk daftar keputusan pemilik.
@@ -95,7 +97,7 @@ Aturan, urut dari atas (jumlah baris realistis 0 sampai 4; semua ditampilkan, ti
 
 ### 1.5 Pertemuan berjalan
 Kartu yang ada, dirapikan: nama periode (label), "Pertemuan N - <tanggal>", "Tuan rumah: <nama>", baris tunggakan (angka dari `getArrearsSummary`), `Notice` terlambat bila `overdueNotice`. Satu tombol `primary`: "Catat pembayaran" (tugas tersering). Aksi lain TETAP selalu ada sebagai `ListRow tone="alt"` (bukan tombol): "Bayar tuan rumah" (atau "Tuan rumah sudah dibayar"), "Ubah tuan rumah / tanggal", "Tutup pertemuan N" (teks merah `error`). Jadi jalur "Tutup pertemuan" tidak hilang saat belum jatuh tempo; Pengingat hanya mengangkatnya ke depan pada waktunya. Duplikat ini disengaja (pemberitahuan vs fitur); bila terasa ramai di HP, kartu bisa melipat tiga baris itu (keputusan setelah dilihat).
-Tanpa tuan rumah: tombol utama "Tentukan tuan rumah pertemuan N" dan "Catat pembayaran" sekunder (perilaku M5c, tidak berubah). Semua pertemuan tertutup: kartu berisi "Semua pertemuan sudah ditutup" dan satu `primary` "Akhiri periode" (tidak berubah).
+Tanpa tuan rumah: tombol utama "Tentukan tuan rumah pertemuan N" dan "Catat pembayaran" sekunder (perilaku M5c, tidak berubah). Semua pertemuan tertutup: kartu berisi "Semua pertemuan sudah ditutup" dan satu tombol "Akhiri periode" (berubah 2026-11-13, keputusan 27: merah outline `dangerOutline`, bukan `primary`; sekali per layar). Tombol utama "Catat pembayaran" kini bernama "Pembayaran" di Beranda (G7).
 
 ### 1.6 Aksi cepat (grid)
 - 4 kolom x 2 baris, ubin 72dp tinggi minimal, lebar sama. Komponen baru `QuickAction` (lingkaran 48dp `brandTint` berisi ikon 24 `brandStrong`, label 14sp di bawah, maksimal dua baris, lebar penuh ubin = area sentuh).

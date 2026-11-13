@@ -301,6 +301,18 @@ G5, G6, G8, G9, G10, G11, B7, B8, R6, J6, P1, P2, C3, C4, L1, L3, M1, M2, Bk2, R
 
 ## 14. Keputusan untuk pemilik
 
+STATUS: DIJAWAB (2026-11-13). Jawaban pemilik tercatat di `PROJECT.md` keputusan 27; spesifikasi bangun di `docs/specs/design-decisions-2026-11-13.md`. Ringkasan per butir:
+1. B2: urutan Beranda tetap. Tombol "Catat kas" dibuang dari kartu kas (ubin grid tetap). Kartu kas juga berubah: mata di samping angka Total kas, hanya "Rp" yang lebih kecil, satu pil "Pengeluaran" menggantikan "Bulan ini", pil Piutang dan Titipan dihapus.
+2. B5: "Akhiri periode" merah outline, sekali per layar. Beranda mempertahankan tombol di kartu periode; baris Pengingat `close_period` disaring. Tombol akhir di layar close tetap merah penuh sampai pemilik konfirmasi (terbuka, A4).
+3. G7: satu nama "Pembayaran" (ubin dan tombol Beranda). Form anggota tetap "Catat pembayaran".
+4. G10: mata hanya di Beranda, tidak berubah.
+5. Bk1 dan R4: aturan satu peringatan per layar; rincian di dialog atau "Selengkapnya". Teks yang sudah disetujui hanya berpindah tempat.
+6. L3: urutan tab Laporan tetap.
+7. Kata kecil disetujui: "Terlambat", alasan tombol Pulihkan, "Selesai/Belum" untuk pembaca layar, pemisah "·", "Filter aktif (n)", "Selengkapnya", baris pendek R4, label pil "Pengeluaran". ("Nama anggota" sudah disetujui sebelumnya.)
+Masih terbuka untuk pemilik: A1 sampai A8 di `PROJECT.md` keputusan 27 dan bagian 8 spesifikasi designer.
+
+Teks pertanyaan asli:
+
 1. B2: urutan Beranda. Kartu pertemuan (aksi utama) sebelum Pengingat, atau Pengingat mendesak saja di atas? Tombol "Catat kas" di kartu kas dibuang karena ada ubin grid?
 2. B5: "Akhiri periode" primer teal (Beranda) atau merah outline (Jadwal)? Pilih satu dan hapus duplikatnya di Beranda.
 3. G7: nama tujuan tunggal untuk layar pembayaran ("Iuran", "Catat pembayaran", atau "Pembayaran"); ikuti glosarium bila sudah memutuskan.

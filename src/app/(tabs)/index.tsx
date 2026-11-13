@@ -36,8 +36,8 @@ import { useLoad } from '@/ui/useLoad';
 
 const NO_PERIOD_REASON = 'Buat periode dulu.';
 
-// Home, top to bottom: kas card (Total kas with the eye right after the amount, Tunai, Debit, the "Pindah saldo"
-// button, and ONE pill with this month's Pengeluaran that opens Riwayat for the month), first-run checklist (until set
+// Home, top to bottom: kas card (Total kas row: amount, the eye right after it and the "Pindah saldo" button at the
+// right edge; Tunai, Debit, and ONE pill with this month's Pengeluaran that opens Riwayat for the month), first-run checklist (until set
 // up), Pengingat (what to do now, from the pure homeReminders), the running meeting with its actions, the quick-action
 // grid, who paid today, and the last three entries. All numbers come from the repositories; nothing is computed here.
 // The eye hides every balance amount: Total kas, Tunai, Debit and the Pengeluaran pill. Pemasukan, Piutang and Titipan
@@ -212,6 +212,17 @@ export default function HomeScreen() {
           >
             <Ionicons name={balanceHidden ? 'eye-off-outline' : 'eye-outline'} size={ICON.md} color={colors.textSecondary} />
           </Pressable>
+          {/* Owner 2026-11-13: "Pindah saldo" sits right of the eye on the same row; the amount shrinks (fit) to make room. */}
+          <View style={styles.totalAction}>
+            <Button
+              label="Pindah saldo"
+              variant="secondary"
+              compact
+              disabled={!hasAnyPeriod}
+              disabledReason={NO_PERIOD_REASON}
+              onPress={() => router.push({ pathname: '/kas/new', params: { kind: 'transfer' } })}
+            />
+          </View>
         </View>
         <View style={styles.posRow}>
           <View style={styles.pos}>
@@ -234,16 +245,6 @@ export default function HomeScreen() {
               <Money amount={balances.debit} size="large" fit />
             )}
           </View>
-        </View>
-        <View style={styles.startAligned}>
-          <Button
-            label="Pindah saldo"
-            variant="secondary"
-            compact
-            disabled={!hasAnyPeriod}
-            disabledReason={NO_PERIOD_REASON}
-            onPress={() => router.push({ pathname: '/kas/new', params: { kind: 'transfer' } })}
-          />
         </View>
         {monthOut !== null ? (
           <View style={styles.startAligned}>
@@ -428,6 +429,8 @@ const styles = StyleSheet.create({
   kasCard: { gap: spacing.md },
   totalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   shrink: { flexShrink: 1 },
+  // The button keeps its width and sits at the right edge; the amount gives way.
+  totalAction: { flexShrink: 0, marginLeft: 'auto' },
   // A real 48x48 touch target (no hitSlop), so it never overlaps the amount.
   eye: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   eyePressed: { backgroundColor: colors.bgMute },

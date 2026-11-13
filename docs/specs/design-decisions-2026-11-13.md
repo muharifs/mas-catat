@@ -23,7 +23,7 @@ Rp...                 Rp...
 
 Titik yang berubah dan alasan:
 
-- **Kolom tombol sisi (`sideActions`, lebar 128) dihapus dan "Pindah saldo" turun ke bawah Tunai/Debit.** Alasan hitungan: dengan kolom 128 + gap 12, kolom Total hanya 156dp. Tombol mata 48dp menyisakan 108dp untuk angka hero 36 (satu digit hero bold kira-kira 21dp, jadi "Rp12.345.000" butuh sekitar 210dp). Angka akan menyusut ke batas 0,6 atau terpotong. Dengan kolom penuh: 296 - 48 = 248dp, cukup. "Pindah saldo" memindahkan uang antara Tunai dan Debit, jadi tepat di bawah keduanya (K, U). INI KONSEKUENSI keputusan (a)/(b), bukan perubahan yang diminta pemilik; lihat butir A1 di bagian 8.
+- **[DIREVISI pemilik 2026-11-13: "Pindah saldo" di baris Total kas, kanan mata, angka mengecil (`fit`). Lihat PROJECT.md keputusan 27 (1).]** **Kolom tombol sisi (`sideActions`, lebar 128) dihapus dan "Pindah saldo" turun ke bawah Tunai/Debit.** Alasan hitungan: dengan kolom 128 + gap 12, kolom Total hanya 156dp. Tombol mata 48dp menyisakan 108dp untuk angka hero 36 (satu digit hero bold kira-kira 21dp, jadi "Rp12.345.000" butuh sekitar 210dp). Angka akan menyusut ke batas 0,6 atau terpotong. Dengan kolom penuh: 296 - 48 = 248dp, cukup. "Pindah saldo" memindahkan uang antara Tunai dan Debit, jadi tepat di bawah keduanya (K, U). INI KONSEKUENSI keputusan (a)/(b), bukan perubahan yang diminta pemilik; lihat butir A1 di bagian 8.
 - Garis `divider` di atas blok lama dihapus; pil mengikuti `gap: spacing.md` kartu. `Card` tetap pembungkus (cek apakah `Card` punya gap; bila tidak, bungkus isi dengan `View` gap `spacing.md`, nilai yang sudah dipakai kartu ini).
 
 ### 1a. Hapus tombol "Catat kas" dari kartu

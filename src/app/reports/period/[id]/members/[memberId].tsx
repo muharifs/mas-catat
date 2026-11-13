@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   reversedRow: { backgroundColor: colors.errorTint },
   strike: { textDecorationLine: 'line-through' },
   head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  rowTitle: { ...type.bodyStrong, color: colors.text },
+  rowTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
-  bad: { ...type.label, color: colors.error, flexShrink: 1 },
+  bad: { ...type.label, color: colors.error, flexShrink: 1, textAlign: 'right' },
 });

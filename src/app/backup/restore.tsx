@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,14 +19,14 @@ import {
 } from '@/ui/backupLabels';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
-import { ListRow, RowText } from '@/ui/components/ListRow';
+import { ListRow } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { TextField } from '@/ui/components/TextField';
 import { restoreErrorNeedsReload, toIndonesian } from '@/ui/errors';
 import { createSafetyStore, listSafetyCopies, pickBackupFile, readSafetyCopy, shareSafetyCopy } from '@/ui/shareFile';
-import { colors, spacing, type } from '@/ui/theme';
+import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 
 type Phase = 'idle' | 'checking' | 'review' | 'working';
@@ -284,7 +285,13 @@ export default function RestoreScreen() {
           </Text>
           {safetyNames.length === 0 ? <Text style={styles.body}>Belum ada salinan pengaman.</Text> : null}
           {safetyNames.map((name) => (
-            <ListRow key={name} title={safetyCopyLabel(name)} onPress={() => chooseSafety(name)} right={<RowText>Pulihkan</RowText>} />
+            <ListRow key={name} title={safetyCopyLabel(name)} onPress={() => chooseSafety(name)} right={
+                <View style={styles.pickAction}>
+                  <Text style={styles.pickLabel}>Pulihkan</Text>
+                  <Ionicons name="chevron-forward" size={ICON.sm} color={colors.brandStrong} />
+                </View>
+              }
+            />
           ))}
         </Card>
       </View>
@@ -323,4 +330,7 @@ const styles = StyleSheet.create({
   half: { gap: spacing.xs },
   line: { gap: spacing.xs },
   section: { gap: spacing.sm },
+  // The row is tappable; the bold teal word and the chevron say so.
+  pickAction: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  pickLabel: { ...type.label, color: colors.brandStrong },
 });

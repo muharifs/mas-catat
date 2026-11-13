@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, type, TABULAR } from '../theme';
+import { colors, fonts, radius, spacing, type, TABULAR } from '../theme';
 
 interface OptionRowProps {
   label: string;
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   radio: { borderRadius: radius.pill },
   markSelected: { borderColor: colors.brandStrong, backgroundColor: colors.brandStrong },
   dot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: colors.onBrand },
-  tick: { color: colors.onBrand, fontSize: 16, fontWeight: '700', lineHeight: 18 },
+  tick: { color: colors.onBrand, fontSize: 16, fontFamily: fonts.bold, lineHeight: 18 },
   text: { flex: 1 },
   label: { ...type.body, color: colors.text },
   labelSelected: { ...type.bodyStrong },

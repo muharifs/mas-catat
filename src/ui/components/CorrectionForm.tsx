@@ -60,5 +60,5 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
 const styles = StyleSheet.create({
   box: { gap: spacing.sm, padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.errorTint },
   explain: { ...type.secondary, color: colors.textSecondary },
-  error: { color: colors.error },
+  error: { ...type.secondary, color: colors.error },
 });

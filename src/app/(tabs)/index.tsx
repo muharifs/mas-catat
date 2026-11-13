@@ -30,7 +30,7 @@ import { paidTodayView } from '@/ui/paidToday';
 import { quickActionReasons } from '@/ui/quickActions';
 import { homeReminders, type Reminder } from '@/ui/reminders';
 import { readLastShared } from '@/ui/shareFile';
-import { colors, ICON, MIN_TOUCH, radius, spacing, TABULAR, type } from '@/ui/theme';
+import { colors, fonts, ICON, MIN_TOUCH, radius, spacing, TABULAR, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   heading: { ...type.titleM, color: colors.text },
   title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
-  ok: { color: colors.moneyIn, fontWeight: '700' },
+  ok: { color: colors.moneyIn, fontFamily: fonts.bold },
   flex: { flex: 1 },
   arrearsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkItem: { ...type.body, color: colors.text },

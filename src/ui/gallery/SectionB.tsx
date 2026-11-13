@@ -1,7 +1,6 @@
 // Section B: rows and lists (ListRow + RowText, OptionRow, ReminderRow, HistoryRow, InitialsRow, ReportLine).
-// React Native vs web: ReminderRow reads the REAL window width and font scale (useWindowDimensions), not the width
-// of its parent. The 320 / 360 dp control of the gallery narrows a wrapper View only, so it does not flip the
-// stacked layout of ReminderRow; the phone's font size setting (fontScale) does.
+// ReminderRow always puts its button below the text (no width or font-scale switch), so the 320 / 360 dp control of the
+// gallery shows the real layout.
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Badge } from '../components/Badge';
@@ -139,7 +138,7 @@ export function SectionB() {
 
       <Section
         title="ReminderRow"
-        states="5 kind dengan urgent bergantian, satu dengan judul/detail/tombol T2. Menumpuk bila lebar jendela di bawah 360 dp atau skala font di atas 1,15."
+        states="5 kind dengan urgent bergantian, satu dengan judul/detail/tombol T2. Tombol selalu di bawah teks, sejajar dengan teks."
       >
         {REMINDERS.map((r) => (
           <Demo key={r.kind} caption={`${r.kind}${r.urgent ? ' (urgent)' : ''}`}>

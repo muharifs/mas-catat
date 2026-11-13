@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { StyleSheet, View, type ColorValue } from 'react-native';
-import { colors, elevation, radius, spacing, type } from '@/ui/theme';
+import { colors, elevation, fonts, radius, spacing, type } from '@/ui/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -48,7 +48,8 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: colors.bgPage },
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        tabBarLabelStyle: { fontSize: type.label.fontSize, fontWeight: type.label.fontWeight },
+        tabBarLabelStyle: { fontSize: type.label.fontSize, fontFamily: type.label.fontFamily },
+        headerTitleStyle: { fontFamily: fonts.bold },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Beranda', headerTitle: 'Mas Catat', tabBarIcon: tabIcon('home', 'home-outline') }} />

@@ -1,10 +1,31 @@
-import { Stack } from 'expo-router';
-import { colors } from '@/ui/theme';
+import { useFonts } from 'expo-font';
+import { SplashScreen, Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { colors, fonts } from '@/ui/theme';
 import { DatabaseProvider, useDatabaseControl } from '@/db/provider';
+
+// Keep the splash screen up until the fonts are ready, so no screen flashes in the system font first.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 // Root navigator. Every file under src/app/ is a screen.
 // DatabaseProvider opens and migrates the database once; screens render only after that succeeded.
 export default function RootLayout() {
+  // Runtime loading (not the config plugin) so it also works in Expo Go. Two family names, one per file, because
+  // Android picks the file by family name and ignores fontWeight for custom fonts.
+  const [fontsLoaded, fontError] = useFonts({
+    [fonts.regular]: require('../../assets/fonts/Inter-Regular.ttf'),
+    [fonts.bold]: require('../../assets/fonts/Inter-Bold.ttf'),
+  });
+  const fontsDone = fontsLoaded || fontError !== null;
+
+  useEffect(() => {
+    if (fontError) console.warn('Fonts failed to load, continuing with system fonts:', fontError);
+    if (fontsDone) SplashScreen.hideAsync().catch(() => undefined);
+  }, [fontsDone, fontError]);
+
+  // On a load error we still render (system font) instead of blocking the app forever.
+  if (!fontsDone) return null;
+
   return (
     <DatabaseProvider>
       <AppStack />
@@ -24,6 +45,7 @@ function AppStack() {
         headerStyle: { backgroundColor: colors.bgPage },
         headerShadowVisible: false,
         headerTintColor: colors.text,
+        headerTitleStyle: { fontFamily: fonts.bold },
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="members/index" options={{ title: 'Anggota' }} />

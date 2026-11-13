@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   flow: { ...type.secondary, color: colors.textSecondary },
   hint: { ...type.secondary, color: colors.textSecondary },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
-  detailLabel: { ...type.secondary, color: colors.textSecondary },
+  detailLabel: { ...type.secondary, color: colors.textSecondary, flexShrink: 1 },
   detailValue: { ...type.bodyStrong, color: colors.text, flex: 1, textAlign: 'right' },
   chain: { gap: spacing.sm },
 });

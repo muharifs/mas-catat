@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { colors, fonts, MIN_TOUCH, radius, spacing, type } from '../theme';
 
 interface ListRowProps {
   title: string;
@@ -79,7 +79,7 @@ const pressedTone = StyleSheet.create({
 
 const subTone = StyleSheet.create({
   muted: { color: colors.textSecondary },
-  danger: { color: colors.error, fontWeight: '700' },
-  ok: { color: colors.moneyIn, fontWeight: '700' },
+  danger: { color: colors.error, fontFamily: fonts.bold },
+  ok: { color: colors.moneyIn, fontFamily: fonts.bold },
   warn: { color: colors.warn },
 });

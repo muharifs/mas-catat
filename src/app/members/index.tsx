@@ -201,10 +201,11 @@ export default function MembersScreen() {
                     key={m.id}
                     title={m.name}
                     tone="alt"
-                    right={<Button label="Aktifkan lagi" variant="secondary" compact onPress={() => void unarchive(m.id)} />}
                   >
                     {data?.remaining.has(m.id) ? <RowText>Pinjaman: sisa {formatRupiah(data.remaining.get(m.id) ?? 0)}</RowText> : null}
                     {unarchiveError?.id === m.id ? <RowText tone="danger">{unarchiveError.message}</RowText> : null}
+                    {/* Below the text at full width (not in the right slot), so a long name or a big font never squeezes the label. */}
+                    <Button label="Aktifkan lagi" variant="secondary" onPress={() => void unarchive(m.id)} />
                   </ListRow>
                 ))
               : null}

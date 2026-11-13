@@ -43,17 +43,23 @@ export const colors = {
   scrim: 'rgba(27,31,42,0.4)',
 } as const;
 
+// Inter 4.1 (SIL OFL), loaded in src/app/_layout.tsx. Every Text and TextInput gets an explicit family, because on
+// Android Fabric a Text without one is measured with the default typeface but drawn with the phone's system font
+// (RN issue #57950), which clips or wraps text wrongly. Android ignores fontWeight for custom fonts, so bold is
+// its own file and its own family name: never set fontWeight, pick fonts.bold instead.
+export const fonts = { regular: 'Inter-Regular', bold: 'Inter-Bold' } as const;
+
 export const type = {
   // Largest size, for the one number a screen is about (Total kas on Beranda). Added after design system v1 (owner-approved).
-  hero: { fontSize: 36, lineHeight: 44, fontWeight: '700' },
-  display: { fontSize: 28, lineHeight: 36, fontWeight: '700' },
-  titleL: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  amountL: { fontSize: 20, lineHeight: 28, fontWeight: '700' },
-  titleM: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
-  body: { fontSize: 16, lineHeight: 22, fontWeight: '400' },
-  bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  label: { fontSize: 14, lineHeight: 20, fontWeight: '700' },
-  secondary: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
+  hero: { fontSize: 36, lineHeight: 44, fontFamily: fonts.bold },
+  display: { fontSize: 28, lineHeight: 36, fontFamily: fonts.bold },
+  titleL: { fontSize: 22, lineHeight: 28, fontFamily: fonts.bold },
+  amountL: { fontSize: 20, lineHeight: 28, fontFamily: fonts.bold },
+  titleM: { fontSize: 18, lineHeight: 24, fontFamily: fonts.bold },
+  body: { fontSize: 16, lineHeight: 22, fontFamily: fonts.regular },
+  bodyStrong: { fontSize: 16, lineHeight: 22, fontFamily: fonts.bold },
+  label: { fontSize: 14, lineHeight: 20, fontFamily: fonts.bold },
+  secondary: { fontSize: 14, lineHeight: 20, fontFamily: fonts.regular },
 } as const satisfies Record<string, TextStyle>;
 
 /** Digits of equal width, so amounts line up in columns. */

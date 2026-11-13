@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    fontSize: type.body.fontSize,
+    ...type.body,
     color: colors.text,
     backgroundColor: colors.bgCard,
   },

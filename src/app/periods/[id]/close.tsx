@@ -16,7 +16,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { toasts } from '@/ui/messages';
-import { colors, radius, spacing, type } from '@/ui/theme';
+import { colors, fonts, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
   blockerTitle: { ...type.label, color: colors.error },
   blockerText: { ...type.body, color: colors.error },
   hint: { ...type.secondary, color: colors.textSecondary },
-  bad: { ...type.body, color: colors.error, fontWeight: '700' },
+  bad: { ...type.body, color: colors.error, fontFamily: fonts.bold },
   muted: { ...type.body, color: colors.textSecondary },
 });

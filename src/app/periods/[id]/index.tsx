@@ -115,9 +115,11 @@ export default function PeriodDetailScreen() {
         const isPaid = paidWeeks.has(w.number);
         // Same rule as the repository: a host payout is possible for the current meeting or a closed one.
         const canPay = isActive && !isPaid && w.hostMemberId !== null && (w.status === 'closed' || w.number === oldestOpen?.number);
+        const canViewPayout = isPaid && isActive;
+        const hasActions = canPick || canPay || canViewPayout;
         return (
           <View key={w.number} style={styles.row}>
-            <View style={styles.flex}>
+            <View>
               <Text style={styles.weekTitle}>
                 Pertemuan {w.number} - {formatDate(w.date)}
                 {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
@@ -129,13 +131,13 @@ export default function PeriodDetailScreen() {
               {isPaid ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
               {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
             </View>
+            {hasActions ? (
             <View style={styles.actions}>
               {canPick ? (
                 <Button
                   label={isPaid && w.hostMemberId ? 'Ubah tanggal' : w.hostMemberId ? 'Ubah' : 'Tentukan'}
                   accessibilityLabel={isPaid && w.hostMemberId ? 'Ubah tanggal pertemuan' : undefined}
                   variant="secondary"
-                  compact
                   onPress={() =>
                     router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
                   }
@@ -144,19 +146,18 @@ export default function PeriodDetailScreen() {
               {canPay ? (
                 <Button
                   label="Bayar tuan rumah"
-                  compact
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
-              {isPaid && isActive ? (
+              {canViewPayout ? (
                 <Button
                   label="Lihat pembayaran tuan rumah"
                   variant="secondary"
-                  compact
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
             </View>
+            ) : null}
           </View>
         );
       })}
@@ -187,9 +188,9 @@ const styles = StyleSheet.create({
   title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
   cardTitle: { ...type.titleM, color: colors.text },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard },
-  flex: { flex: 1 },
-  actions: { gap: spacing.sm },
+  // Text on top, buttons below at full card width (never beside the text, so long labels wrap instead of being clipped).
+  row: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard },
+  actions: { gap: spacing.sm, alignSelf: 'stretch' },
   weekTitle: { ...type.bodyStrong, color: colors.text },
   open: { ...type.body, color: colors.brandStrong },
   closed: { ...type.body, color: colors.textSecondary },

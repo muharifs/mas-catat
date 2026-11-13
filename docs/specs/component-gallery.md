@@ -1,6 +1,6 @@
 # Spesifikasi: galeri komponen (khusus developer)
 
-Tujuan: satu layar untuk memeriksa tata letak 27 komponen di `src/ui/components` dengan teks Indonesia sangat panjang dan ukuran font sistem besar, tanpa mencari layar asli yang kebetulan memuat teks itu. Disetujui pemilik sebagai "cara A". Dasar teks: glosarium final di `docs/specs/ui-language-review.md` bagian 2.
+Tujuan: satu layar untuk memeriksa tata letak 30 komponen (SearchField ke-30, keputusan 31) di `src/ui/components` dengan teks Indonesia sangat panjang dan ukuran font sistem besar, tanpa mencari layar asli yang kebetulan memuat teks itu. Disetujui pemilik sebagai "cara A". Dasar teks: glosarium final di `docs/specs/ui-language-review.md` bagian 2.
 
 Status: spek untuk dikerjakan developer. Belum ada kode. Tidak mengubah aturan bisnis, tidak menambah dependensi.
 
@@ -9,7 +9,7 @@ Status: spek untuk dikerjakan developer. Belum ada kode. Tidak mengubah aturan b
 - Semua isi adalah data tiruan statis (konstanta di satu berkas fixture). Tanpa data nyata, tanpa database, tanpa repository, tanpa store. Tidak ada tulis ke data apa pun.
 - Semua `onPress` hanya mengubah keadaan lokal layar atau memanggil `toast('Ditekan: <nama>')`. Tidak ada navigasi.
 - Pengecualian `HistoryRow`: komponen ini memanggil `router.push` ke `/kas/[entryId]` di dalamnya. Di galeri, bungkus dengan pembungkus yang menangkap sentuhan (mis. `Pressable` transparan di atasnya, `pointerEvents` diatur) atau tambahkan prop opsional `onPress` pada komponen; pilih yang paling kecil, putusan developer. Jangan sampai menekan baris membuka layar rincian dengan id palsu.
-- Komponen dengan keadaan (TextField, OptionRow, Chip, IconChoice, AmountKeypad) dipasang dengan state lokal supaya bisa dicoba.
+- Komponen dengan keadaan (TextField, SearchField, OptionRow, Chip, IconChoice, AmountKeypad) dipasang dengan state lokal supaya bisa dicoba.
 - Gaya galeri: `ScrollView` satu kolom, latar halaman biasa. Tiap bagian diberi `SectionHeader` (judul = nama komponen) dan satu baris teks kecil berisi daftar keadaan. Jangan menambah komponen baru; hanya pakai komponen yang diperiksa.
 - Teks galeri sendiri (judul bagian, keterangan) boleh bahasa Indonesia atau Inggris; ini layar developer dan tidak masuk glosarium pengguna.
 - Kontrol lebar layar di bagian atas (opsional, murah): tombol untuk membatasi lebar isi ke 320 dp, 360 dp, dan penuh, lewat `View` pembungkus dengan `maxWidth`. Ukuran font tidak diubah dari kode; pemilik mengubahnya di pengaturan HP (lihat bagian 5).
@@ -162,6 +162,12 @@ Urutan bagian mengikuti pengelompokan di bawah. Untuk setiap komponen, tampilkan
 - `multiline` dengan isi panjang.
 - Label panjang: `Piutang (dipinjam anggota) yang ingin dicatat`.
 - Dua TextField bertumpuk dengan keyboard terbuka: periksa kolom tidak tertutup (layar galeri harus memakai `keyboardShouldPersistTaps` dan inset keyboard seperti layar formulir lain).
+
+**SearchField** (`SearchField.tsx`, komponen ke-30; keputusan 31, spesifikasi di `docs/specs/member-search-spec.md`)
+- Kosong (placeholder "Cari anggota"); terisi dengan hasil banyak ("3 dari 19 anggota") dan tombol hapus (x); tanpa hasil ("Tidak ada anggota yang cocok."); fokus (garis tebal).
+- Satu demo interaktif: SearchField dengan daftar 12 nama dari fixture (termasuk T8) yang disaring langsung memakai `filterByQuery`.
+- Periksa dengan font besar: teks status tidak terpotong, tombol (x) tetap 48 dp, ikon kiri tidak terdorong.
+- Uji tetap di `gallery.test.ts`: jumlah komponen 30 dan `../components/SearchField` muncul di salah satu SectionA-F (SectionE).
 
 **DateField** (`DateField.tsx`)
 - Nilai tetap `2026-01-04`; hari ini; tanpa error; dengan error panjang (T5).

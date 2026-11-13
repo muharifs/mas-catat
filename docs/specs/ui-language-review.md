@@ -139,6 +139,15 @@ Kolom "Penjelasan di": **Bantuan** = kartu atau teks bantuan permanen di halaman
 | **Bulan ini** | | Ringkasan uang masuk dan keluar (Tunai dan Debit) dalam bulan berjalan. | Bantuan di Beranda | Berubah (keputusan 2026-11-13): Beranda hanya menampilkan satu pil `Pengeluaran` (dibaca "Pengeluaran bulan ini") yang membuka Riwayat bulan ini; ringkasan lengkap (Pemasukan dan Pengeluaran) di Riwayat |
 | **Pengingat** | | Daftar hal yang perlu dilakukan, misalnya pertemuan terlewat atau cadangan terlambat. | Kosong | Tetap |
 
+#### D2. Pencarian anggota (ditambahkan 2026-11-13, keputusan 31; spesifikasi di `docs/specs/member-search-spec.md`)
+
+| Istilah di layar | Padanan sederhana | Penjelasan satu kalimat | Penjelasan di | Tindakan |
+|---|---|---|---|---|
+| **Cari anggota** | cari nama | Kolom untuk menyaring daftar anggota dengan mengetik sebagian nama; hanya tampil bila daftar lebih dari 8 anggota. | Placeholder dan label aksesibilitas kolom cari | Baru. Kata `Cari`, bukan `Search` |
+| **Hapus pencarian** | kosongkan kolom cari | Tombol (x) yang mengosongkan kata pencarian. | Label aksesibilitas saja (tidak ada teks tampak) | Baru. Konsisten dengan `Hapus filter` |
+| **{n} dari {total} anggota** | jumlah hasil | Berapa anggota yang cocok dari seluruh anggota di daftar itu; tampil hanya saat ada kata pencarian. | Teks status di bawah kolom cari (dibacakan TalkBack) | Baru. Pola `n dari N` sama dengan `Sudah bayar hari ini: 5 dari 19` |
+| **Tidak ada anggota yang cocok.** | hasil kosong | Tidak ada anggota yang cocok dengan kata itu; bukan galat. | Teks status; menggantikan teks `Belum ada ...` milik layar | Baru. Berakhir dengan titik seperti kalimat status lain |
+
 #### E. Ringkasan: yang sebaiknya diganti atau ditambah
 
 Sudah diputuskan pemilik (hanya menyamakan kode dengan keputusan; tidak ada keputusan yang dibalik):

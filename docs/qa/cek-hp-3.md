@@ -247,3 +247,35 @@ Hanya yang tidak bisa dibuktikan tes (keputusan 30, B3). Sudah dibangun, belum d
 | F5 | Saat F1 (terblokir), cek Riwayat, Beranda, dan saldo kas | Tidak ada data berubah: tidak ada catatan baru, saldo sama |
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.
+
+## Cek HP 8: pencarian anggota (font NORMAL saja)
+Hanya yang tidak bisa dibuktikan tes (keputusan 31, `docs/specs/member-search-spec.md` bagian 8). Sudah dibangun, belum di-commit, belum pernah dilihat di HP. Perlu data dummy: 19 anggota, satu periode aktif dengan beberapa pembayaran. Kolom cari hanya tampil bila daftar lebih dari 8 anggota.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| G1 | Pembayaran > ketuk kolom cari, ketik "sit" | Jumlah baris turun, urutan tetap A-Z, teks "n dari 19 anggota" muncul. Tidak ada tulisan "Belum ada anggota di periode ini" saat hasil nol (yang tampil hanya "Tidak ada anggota yang cocok.") |
+| G2 | Pembayaran, papan ketik terbuka, ketuk satu baris; lalu geser satu baris ke kanan (swipe bayar); lalu gulir daftar | Ketuk baris langsung membuka detail (satu ketukan, bukan dua). Swipe bayar tetap jalan dan kata pencarian tetap sesudahnya. Menggulir daftar menutup papan ketik |
+| G3 | Pembayaran > buka detail anggota, bayar, tekan Back | Kata pencarian masih ada dan baris menunjukkan "Sudah bayar hari ini". Ketuk (x): 19 baris kembali |
+| G4 | Pembayaran, papan ketik terbuka, tekan Back Android | Back pertama hanya menutup papan ketik, layar tidak ikut tertutup. Back kedua kembali ke layar sebelumnya |
+| G5 | Catat kas > Pinjaman baru: ketik nominal, lalu cari anggota | Nominal dan keypad menyingkir saat papan ketik terbuka, dan muncul lagi dengan nominal yang sama setelah memilih anggota. Anggota terpilih tetap terlihat walau kata diubah sampai tidak cocok |
+| G6 | Catat kas, fokus ke kolom cari | Kolom cari terlihat di atas papan ketik (tidak tertutup); daftar tidak melompat |
+| G7 | Menu > Anggota | Kolom "Tambah anggota" dan kolom "Cari anggota" tidak tertukar. Setelah Tambah berhasil, kata pencarian kosong dan anggota baru terlihat |
+| G8 | Periode baru > Pilih anggota: ketuk beberapa anggota berurutan lewat pencarian; lalu "Pilih semua" | "Pilih anggota (n dipilih)" bertambah. "Pilih semua" mengosongkan kata dan memilih 19 |
+| G9 | Filter Riwayat dan Pilih tuan rumah: cari lalu ketuk satu pilihan | Papan ketik menutup; pilihan terlihat; tombol Terapkan/Simpan tidak tertutup papan ketik |
+| G10 | TalkBack (bila tersedia), kolom cari di Pembayaran | Kolom dibaca "Cari anggota". Saat mengetik, jumlah hasil dibacakan sopan (tidak memotong, tidak berulang berlebihan). Tombol (x) dibaca "Hapus pencarian" |
+| G11 | Ketuk (x) di kolom cari | Tidak menutup atau membuka papan ketik sendiri |
+| G12 | Layar dengan 8 anggota atau kurang (mis. Pilih tuan rumah di akhir periode, atau periode dummy kecil) | Kolom cari tidak muncul |
+
+Fokus risiko tambahan (hal yang paling mungkin salah di HP; catat angka dan tangkapan layar bila gagal):
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| G13 | Pembayaran, papan ketik terbuka: ketuk baris dan swipe bayar (ulangi 3 kali pada baris berbeda) | Tidak pernah butuh dua ketukan; swipe tidak terhenti oleh papan ketik; satu swipe = satu pembayaran, tidak ganda |
+| G14 | Pembayaran, papan ketik terbuka, Back Android dua kali | Urutan Back sama seperti G4 pada hasil pencarian kosong dan tidak kosong |
+| G15 | Catat kas (Pinjaman baru), nominal sudah diisi, cari anggota, pilih anggota | Setelah memilih, nominal dan keypad muncul lagi (bukan hanya papan ketik tertutup) dan nominal tidak berubah |
+| G16 | Tombol (x) di semua layar yang punya kolom cari | Area ketuk nyaman (48dp): ketuk di pinggir ikon tetap menghapus; tidak sering meleset ke baris di bawahnya |
+| G17 | TalkBack, ketik tiga huruf berurutan di Pembayaran | Jumlah hasil ("n dari 19 anggota" atau "Tidak ada anggota yang cocok.") dibacakan, tidak diam dan tidak berulang tiap huruf tanpa perubahan angka |
+
+Catatan QA rendah (sudah diketahui, bukan kegagalan): kata hanya spasi tidak memunculkan tombol (x) (sesuai spec); di Catat kas, kata cari tidak direset saat jenis kas diganti.
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.

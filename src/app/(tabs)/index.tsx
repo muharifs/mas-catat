@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { showDialog } from '@/ui/dialog';
 import { backupReminder } from '@/domain/backup';
 import { useRepos } from '@/db/provider';
@@ -35,6 +35,15 @@ import { colors, fonts, ICON, MIN_TOUCH, radius, spacing, TABULAR, type } from '
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 
+// Above this system font scale the quick-action grid switches from four tiles per row to two.
+const LARGE_FONT_SCALE = 1.1;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
+
 const NO_PERIOD_REASON = 'Buat periode dulu.';
 
 // Home, top to bottom: kas card (Total kas row: amount, the eye right after it and the "Pindah saldo" button at the
@@ -46,6 +55,7 @@ const NO_PERIOD_REASON = 'Buat periode dulu.';
 // is reachable from the grid or the Menu tab.
 export default function HomeScreen() {
   const repos = useRepos();
+  const { fontScale } = useWindowDimensions();
   const balanceHidden = useBalanceHidden();
 
   const load = useCallback(async () => {
@@ -195,6 +205,32 @@ export default function HomeScreen() {
         break;
     }
   }
+
+  // Eight quick-action tiles. Four per row normally; two per row when the phone's font size is above 1.1x, because
+  // the one-word label "Pembayaran" must never break mid-word and four tiles are then too narrow for it.
+  const tiles = [
+    <QuickAction key="pay" label="Pembayaran" icon="cash-outline" disabledReason={reasons.iuran} onPress={() => period && goPayments(period.id)} />,
+    <QuickAction
+      key="payout"
+      label="Bayar tuan rumah"
+      icon="home-outline"
+      disabledReason={reasons.tuanRumah}
+      onPress={() => period && week && goPayout(period.id, week.number)}
+    />,
+    <QuickAction key="kas" label="Catat kas" icon="create-outline" disabledReason={reasons.catatKas} onPress={() => router.push('/kas')} />,
+    <QuickAction key="members" label="Anggota" icon="people-outline" onPress={() => router.push('/members')} />,
+    <QuickAction key="loans" label="Pinjaman" icon="arrow-redo-outline" onPress={() => router.push('/loans')} />,
+    <QuickAction key="credits" label="Titipan" icon="wallet-outline" onPress={() => router.push('/credits')} />,
+    <QuickAction
+      key="schedule"
+      label="Jadwal"
+      icon="calendar-number-outline"
+      disabledReason={reasons.jadwal}
+      onPress={() => period && router.push({ pathname: '/periods/[id]', params: { id: period.id } })}
+    />,
+    <QuickAction key="all" label="Lihat semua" icon="grid-outline" onPress={() => router.push('/menu')} />,
+  ];
+  const tilesPerRow = fontScale > LARGE_FONT_SCALE ? 2 : 4;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -379,29 +415,12 @@ export default function HomeScreen() {
         />
       )}
 
-      <Card>
-        <View style={styles.gridRow}>
-          <QuickAction label="Pembayaran" icon="cash-outline" disabledReason={reasons.iuran} onPress={() => period && goPayments(period.id)} />
-          <QuickAction
-            label="Bayar tuan rumah"
-            icon="home-outline"
-            disabledReason={reasons.tuanRumah}
-            onPress={() => period && week && goPayout(period.id, week.number)}
-          />
-          <QuickAction label="Catat kas" icon="create-outline" disabledReason={reasons.catatKas} onPress={() => router.push('/kas')} />
-          <QuickAction label="Anggota" icon="people-outline" onPress={() => router.push('/members')} />
-        </View>
-        <View style={styles.gridRow}>
-          <QuickAction label="Pinjaman" icon="arrow-redo-outline" onPress={() => router.push('/loans')} />
-          <QuickAction label="Titipan" icon="wallet-outline" onPress={() => router.push('/credits')} />
-          <QuickAction
-            label="Jadwal"
-            icon="calendar-number-outline"
-            disabledReason={reasons.jadwal}
-            onPress={() => period && router.push({ pathname: '/periods/[id]', params: { id: period.id } })}
-          />
-          <QuickAction label="Lihat semua" icon="grid-outline" onPress={() => router.push('/menu')} />
-        </View>
+      <Card style={styles.gridCard}>
+        {chunk(tiles, tilesPerRow).map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.gridRow}>
+            {row}
+          </View>
+        ))}
       </Card>
 
       {period && week ? (
@@ -458,7 +477,9 @@ const styles = StyleSheet.create({
   arrearsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkItem: { ...type.body, color: colors.text },
   checkDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
-  gridRow: { flexDirection: 'row', gap: spacing.xs },
+  // Tighter side padding and no gap between tiles: at 360dp each of four tiles is 78dp wide, enough for "Pembayaran" at 12sp (71dp).
+  gridCard: { paddingHorizontal: spacing.sm },
+  gridRow: { flexDirection: 'row' },
   closeWeek: { marginTop: spacing.md },
   allClear: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   allClearText: { ...type.body, color: colors.text, flex: 1 },

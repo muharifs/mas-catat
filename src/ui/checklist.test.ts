@@ -12,8 +12,8 @@ describe('firstRunChecklist', () => {
     expect(c.visible).toBe(true);
     expect(c.items.map((i) => i.label)).toEqual([
       'Tambah anggota',
-      'Isi saldo awal kas',
       'Buat periode',
+      'Isi saldo awal kas',
       'Tentukan tuan rumah pertemuan 1',
     ]);
     expect(doneKeys(fresh)).toEqual([]);
@@ -22,6 +22,7 @@ describe('firstRunChecklist', () => {
   it('ticks each step when it is done', () => {
     expect(doneKeys({ ...fresh, memberCount: 3 })).toEqual(['members']);
     expect(doneKeys({ ...fresh, memberCount: 3, hasOpeningBalance: true })).toEqual(['members', 'opening']);
+    expect(doneKeys({ ...fresh, memberCount: 3, hasOpeningBalance: true, periodCount: 1 })).toEqual(['members', 'period', 'opening']);
     const withPeriod = { ...fresh, memberCount: 3, periodCount: 1, activePeriod: { hasClosedMeeting: false, firstMeetingHasHost: false } };
     expect(doneKeys(withPeriod)).toEqual(['members', 'period']);
     const withHost = { ...withPeriod, activePeriod: { hasClosedMeeting: false, firstMeetingHasHost: true } };

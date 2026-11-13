@@ -279,3 +279,18 @@ Fokus risiko tambahan (hal yang paling mungkin salah di HP; catat angka dan tang
 Catatan QA rendah (sudah diketahui, bukan kegagalan): kata hanya spasi tidak memunculkan tombol (x) (sesuai spec); di Catat kas, kata cari tidak direset saat jenis kas diganti.
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.
+
+## Cek HP 9: urutan Langkah awal dan label tombol cepat (font NORMAL saja)
+Keputusan pemilik 2026-11-13 (B1) dan laporan HP (label "Pembayaran" terpotong). Belum pernah dilihat di HP.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| H1 | Beranda pada data kosong (HP uji kosong atau setelah "Mulai dari nol"), kartu "Langkah awal" | Urutan: 1. Tambah anggota, 2. Buat periode, 3. Isi saldo awal kas, 4. Tentukan tuan rumah pertemuan 1 |
+| H2 | Tambah anggota, lalu buat periode | Langkah 1 dan 2 bertanda centang, langkah 3 dan 4 masih kosong |
+| H3 | Isi saldo awal kas (Catat kas > Saldo awal) | Langkah 3 bertanda centang; Catat kas bisa dibuka setelah periode ada (sebelum itu tombolnya nonaktif dengan alasan "Buat periode dulu.") |
+| H4 | Beranda, kotak tombol cepat, 8 tombol | Kata "Pembayaran" tampil penuh dalam satu baris, tidak terpotong dan tidak patah di tengah kata |
+| H5 | Baris tombol: "Bayar tuan rumah" dan "Lihat semua" | Membungkus jadi dua baris per kata; ikon semua tombol sejajar, ukuran huruf label sama di semua tombol |
+| H6 | Ketuk tiap tombol di tepi kiri dan kanan kotak | Tombol terbuka tanpa meleset ke tombol sebelahnya (area ketuk tetap nyaman) |
+| H7 | (Tambahan, boleh dilewati) Huruf HP dibesarkan | Tombol tersusun 2 per baris dan "Pembayaran" tetap utuh |
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.

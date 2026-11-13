@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: colors.bgMute },
   circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brandTint },
   circleDisabled: { backgroundColor: colors.bgDisabled },
-  label: { ...type.secondary, color: colors.text, textAlign: 'center' },
+  label: { ...type.tileLabel, color: colors.text, textAlign: 'center' },
   labelDisabled: { color: colors.textTertiary },
 });

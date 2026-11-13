@@ -60,6 +60,8 @@ export const type = {
   bodyStrong: { fontSize: 16, lineHeight: 22, fontFamily: fonts.bold },
   label: { fontSize: 14, lineHeight: 20, fontFamily: fonts.bold },
   secondary: { fontSize: 14, lineHeight: 20, fontFamily: fonts.regular },
+  // Smallest size, only for labels that must fit a narrow tile (quick-action grid on Beranda).
+  tileLabel: { fontSize: 12, lineHeight: 16, fontFamily: fonts.regular },
 } as const satisfies Record<string, TextStyle>;
 
 /** Digits of equal width, so amounts line up in columns. */

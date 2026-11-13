@@ -12,7 +12,7 @@ export interface ChecklistInput {
 }
 
 export interface ChecklistItem {
-  key: 'members' | 'opening' | 'period' | 'host';
+  key: 'members' | 'period' | 'opening' | 'host';
   label: string;
   done: boolean;
 }
@@ -23,11 +23,12 @@ export interface Checklist {
   items: ChecklistItem[];
 }
 
+// Order follows the real dependency: an opening balance is a kas entry and kas entries need a period (owner decision 2026-11-13, B1).
 export function firstRunChecklist(input: ChecklistInput): Checklist {
   const items: ChecklistItem[] = [
     { key: 'members', label: 'Tambah anggota', done: input.memberCount > 0 },
-    { key: 'opening', label: 'Isi saldo awal kas', done: input.hasOpeningBalance },
     { key: 'period', label: 'Buat periode', done: input.periodCount > 0 },
+    { key: 'opening', label: 'Isi saldo awal kas', done: input.hasOpeningBalance },
     { key: 'host', label: 'Tentukan tuan rumah pertemuan 1', done: input.activePeriod?.firstMeetingHasHost ?? false },
   ];
   const pastFirstRun = input.hasEndedPeriod || (input.activePeriod?.hasClosedMeeting ?? false);

@@ -21,7 +21,7 @@ interface MenuRowProps {
   label: string;
   icon: IconName;
   onPress: () => void;
-  /** Warning dot after the label; this text goes into the accessibility label so the dot is not the only signal. */
+  /** Warning dot and the word "Terlambat" after the label; this text goes into the accessibility label so the dot is not the only signal. */
   warning?: string;
 }
 
@@ -35,7 +35,13 @@ function MenuRow({ label, icon, onPress, warning }: MenuRowProps) {
     >
       <Ionicons name={icon} size={ICON.md} color={colors.brandStrong} />
       <Text style={styles.rowLabel}>{label}</Text>
-      {warning ? <Dot tone="error" /> : null}
+      {warning ? (
+        // The row already has an accessibility label that includes the warning; the dot and word are not read again.
+        <View style={styles.warningGroup} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Dot tone="error" />
+          <Text style={styles.warningText}>Terlambat</Text>
+        </View>
+      ) : null}
       <View style={styles.spacer} />
       <Ionicons name="chevron-forward" size={ICON.md} color={colors.textSecondary} />
     </Pressable>
@@ -112,7 +118,7 @@ const styles = StyleSheet.create({
   group: { gap: spacing.xs },
   groupTitle: { ...type.label, color: colors.textSecondary, marginBottom: spacing.xs },
   row: {
-    height: ROW_HEIGHT,
+    minHeight: ROW_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -121,7 +127,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgMute,
   },
   pressed: { opacity: 0.75 },
-  rowLabel: { ...type.body, color: colors.text },
+  rowLabel: { ...type.body, color: colors.text, flexShrink: 1 },
+  warningGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 0 },
+  warningText: { ...type.label, color: colors.error, flexShrink: 0 },
   spacer: { flex: 1 },
   version: { ...type.secondary, color: colors.textTertiary, textAlign: 'center', paddingVertical: spacing.md },
 });

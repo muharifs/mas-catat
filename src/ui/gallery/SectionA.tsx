@@ -109,7 +109,7 @@ export function SectionA() {
         </Demo>
       </Section>
 
-      <Section title="PillLink" states="3 isi, dua pill berdampingan (wrap), saldo disembunyikan.">
+      <Section title="PillLink" states="4 isi, dua pill berdampingan (wrap), saldo disembunyikan.">
         <Demo caption="Piutang Rp1.250.000">
           <Row wrap>
             <PillLink label="Piutang" amount={AMOUNT_MID} onPress={pressedToast('Piutang')} />
@@ -129,6 +129,11 @@ export function SectionA() {
           <Row wrap>
             <PillLink label="Piutang" amount={AMOUNT_MID} onPress={pressedToast('Piutang')} />
             <PillLink label="Titipan" amount={AMOUNT_BIG} onPress={pressedToast('Titipan')} />
+          </Row>
+        </Demo>
+        <Demo caption="Label pendek dengan spokenLabel (TalkBack: Pengeluaran bulan ini Rp600.000)">
+          <Row wrap>
+            <PillLink label="Pengeluaran" spokenLabel="Pengeluaran bulan ini" amount={600_000} onPress={pressedToast('Pengeluaran')} />
           </Row>
         </Demo>
         <Demo caption="hidden (topeng saldo)">

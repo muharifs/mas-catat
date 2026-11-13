@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LedgerListItem } from '@/db/ledger';
 import { useDatabaseControl, useRepos } from '@/db/provider';
 import { monthOfDate, summarizeMonth } from '@/domain/flow';
@@ -14,7 +14,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { MonthSwitcher } from '@/ui/components/MonthSwitcher';
 import { formatDate, todayIso } from '@/ui/dates';
-import { activeFilterCount, filterHistory, GROUP_CHIPS, groupByDate, isFilterEmpty, type DateSection } from '@/ui/history';
+import { activeFilterCount, filterHistory, GROUP_CHIPS, groupByDate, isFilterEmpty, SUMMARY_NOTE_FULL, SUMMARY_NOTE_SHORT, type DateSection } from '@/ui/history';
 import {
   resetHistoryFilter,
   resetHistoryMonth,
@@ -95,10 +95,19 @@ export default function RiwayatScreen() {
             <Money amount={moneyOut} size="large" sign={moneyOut > 0 ? '-' : ''} fit />
           </View>
         </View>
-        <Text style={styles.summaryNote}>
-          Ringkasan ini menghitung uang yang masuk dan keluar dari Tunai dan Debit. Tidak dihitung: pindah saldo, pinjaman
-          dan pelunasannya, saldo awal, tunggakan ditanggung kas, serta catatan yang sudah dikoreksi.
-        </Text>
+        <View style={styles.noteRow}>
+          <Text style={[styles.summaryNote, styles.noteText]}>{SUMMARY_NOTE_SHORT}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Selengkapnya tentang ringkasan"
+            onPress={() => Alert.alert('Ringkasan bulan ini', SUMMARY_NOTE_FULL, [{ text: 'Tutup' }])}
+            style={styles.moreLink}
+          >
+            <Text maxFontSizeMultiplier={1.3} style={styles.clearLabel}>
+              Selengkapnya
+            </Text>
+          </Pressable>
+        </View>
         {!isFilterEmpty(filter) ? (
           <Text style={styles.summaryNote}>Ringkasan memuat semua catatan bulan ini. Daftar di bawah sedang difilter.</Text>
         ) : null}
@@ -124,6 +133,7 @@ export default function RiwayatScreen() {
       </View>
       {!isFilterEmpty(filter) ? (
         <View style={styles.clearRow}>
+          <Text style={[styles.summaryNote, styles.noteText]}>Filter aktif ({filterCount + (filter.group !== null ? 1 : 0)})</Text>
           <Pressable accessibilityRole="button" onPress={clearAll} style={styles.clearLink}>
             <Text maxFontSizeMultiplier={1.3} style={styles.clearLabel}>
               Hapus filter
@@ -210,7 +220,10 @@ const styles = StyleSheet.create({
   filterButtonPressed: { backgroundColor: colors.brandTint },
   filterLabel: { ...type.label, color: colors.brandStrong },
   chipScroll: { flex: 1 },
-  clearRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  clearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  noteText: { flex: 1, flexShrink: 1 },
+  moreLink: { minHeight: MIN_TOUCH, justifyContent: 'center', paddingHorizontal: spacing.sm },
   clearLink: { minHeight: MIN_TOUCH, justifyContent: 'center', paddingLeft: spacing.sm },
   clearLabel: { ...type.label, color: colors.brandStrong },
   summaryRow: { flexDirection: 'row', gap: spacing.lg },

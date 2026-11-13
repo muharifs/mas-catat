@@ -15,6 +15,7 @@ import { closeWeekMessage, toasts } from '@/ui/messages';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and the way to the
 // pre-close screen ("Akhiri periode").
@@ -80,8 +81,8 @@ export default function PeriodDetailScreen() {
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{period.name}</Text>
       <Text style={styles.body}>
-        {isActive ? 'Aktif' : 'Berakhir'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
-        {period.endDate ? ` - sampai ${formatDate(period.endDate)}` : ''}
+        {isActive ? 'Aktif' : 'Berakhir'}{SEP}{period.memberCount} anggota{SEP}mulai {formatDate(period.startDate)}
+        {period.endDate ? `${SEP}sampai ${formatDate(period.endDate)}` : ''}
       </Text>
 
       <Button
@@ -121,7 +122,7 @@ export default function PeriodDetailScreen() {
           <View key={w.number} style={styles.row}>
             <View>
               <Text style={styles.weekTitle}>
-                Pertemuan {w.number} - {formatDate(w.date)}
+                Pertemuan {w.number}{SEP}{formatDate(w.date)}
                 {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
               </Text>
               <Text style={w.hostMemberId ? styles.body : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>

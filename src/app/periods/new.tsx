@@ -22,6 +22,7 @@ import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 const NO_IDS: string[] = [];
 
@@ -167,8 +168,8 @@ export default function NewPeriodScreen() {
           </Text>
           {preview.map((row) => (
             <Text key={row.week} style={styles.body}>
-              Pertemuan {row.week} - {formatDate(row.date)}
-              {selected.length > 1 ? ' - Belum ditentukan' : ' - tuan rumah otomatis'}
+              Pertemuan {row.week}{SEP}{formatDate(row.date)}
+              {selected.length > 1 ? `${SEP}Belum ditentukan` : `${SEP}tuan rumah otomatis`}
             </Text>
           ))}
         </>

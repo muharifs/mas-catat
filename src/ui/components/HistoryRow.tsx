@@ -9,6 +9,7 @@ import { entryTitle, showsNoPosWarning, visibleNote } from '../kasLabels';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
 import { Badge } from './Badge';
 import { Money } from './Money';
+import { SEP } from '../separator';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -53,7 +54,7 @@ interface HistoryRowProps {
 export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }: HistoryRowProps) {
   const title = e.type === 'reversal' ? reversalTitle(e, byId) : entryTitle(e);
   const corrected = Boolean(e.reversedById);
-  const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(' - ');
+  const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(SEP);
   const note = visibleNote(e);
   const direction = entryDirection(e);
   return (

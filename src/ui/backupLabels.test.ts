@@ -1,5 +1,5 @@
 import { backupReminder, type DbSummary } from '@/domain/backup';
-import { classificationText, classificationTitle, lastSharedText, phraseInstruction, reminderText, safetyCopyLabel, summaryRows, BACKUP_WARNING, CSV_HINT, CSV_LEDGER_HINT, ONE_PHONE_HINT, OFFSITE_HINT, restoreTexts, RESET_SAFETY_NOTE, ROLLED_BACK_TEXT } from './backupLabels';
+import { classificationText, classificationTitle, lastSharedText, phraseInstruction, phraseReason, reminderText, safetyCopyLabel, summaryRows, BACKUP_WARNING, CSV_HINT, CSV_LEDGER_HINT, ONE_PHONE_HINT, OFFSITE_HINT, restoreTexts, RESET_SAFETY_NOTE, ROLLED_BACK_TEXT } from './backupLabels';
 
 const summary: DbSummary = {
   userVersion: 4,
@@ -78,6 +78,11 @@ describe('backup labels', () => {
   it('asks for the right word', () => {
     expect(phraseInstruction('PULIHKAN')).toContain('PULIHKAN');
     expect(phraseInstruction('HAPUS SEMUA')).toContain('HAPUS SEMUA');
+  });
+
+  it('gives a short reason under the disabled restore button', () => {
+    expect(phraseReason('PULIHKAN')).toBe('Ketik PULIHKAN dulu.');
+    expect(phraseReason('HAPUS SEMUA')).toBe('Ketik HAPUS SEMUA dulu.');
   });
 
   it('never uses the word kredit', () => {

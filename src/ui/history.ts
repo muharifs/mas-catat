@@ -7,6 +7,13 @@ import type { LedgerListItem } from '@/db/ledger';
 import { formatDate } from './dates';
 import { TYPE_LABELS } from './kasLabels';
 
+/** Full text of the "Selengkapnya" dialog on the Riwayat summary card (approved wording, moved from the card). */
+export const SUMMARY_NOTE_FULL =
+  'Ringkasan ini menghitung uang yang masuk dan keluar dari Tunai dan Debit. Tidak dihitung: pindah saldo, pinjaman dan pelunasannya, saldo awal, tunggakan ditanggung kas, serta catatan yang sudah dikoreksi.';
+
+/** Short line on the Riwayat summary card; the full text opens from "Selengkapnya". */
+export const SUMMARY_NOTE_SHORT = 'Hanya uang masuk dan keluar dari Tunai dan Debit.';
+
 /** Chip groups of Riwayat. 'other' has no chip (opening balance, write-off): it shows under "Semua" only. */
 export type EntryGroup = 'iuran' | 'tuan_rumah' | 'pinjaman' | 'pindah' | 'pengeluaran' | 'koreksi' | 'other';
 export type ChipGroup = Exclude<EntryGroup, 'other'>;

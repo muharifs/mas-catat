@@ -19,6 +19,7 @@ import { formatRupiah } from '@/ui/format';
 import { amountSign, correctionRoute, entryTitle, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // Detail of one ledger entry and its correction. The ledger is append-only: "Koreksi" adds a reversal entry (the
 // original stays, marked as corrected). The right entry is then re-entered through the normal form.
@@ -134,7 +135,7 @@ export default function KasEntryScreen() {
             {original ? (
               <ChainRow
                 title={`Catatan asli: ${TYPE_LABELS[original.type]}`}
-                detail={`${formatDate(original.date)} - ${formatRupiah(original.amount)}`}
+                detail={`${formatDate(original.date)}${SEP}${formatRupiah(original.amount)}`}
                 current={original.id === entry.id}
                 onPress={() => openEntry(original.id)}
               />
@@ -142,7 +143,7 @@ export default function KasEntryScreen() {
             {reversal ? (
               <ChainRow
                 title="Koreksi"
-                detail={`${formatDate(reversal.date)} - Alasan: ${reversal.correctionReason ?? '-'}`}
+                detail={`${formatDate(reversal.date)}${SEP}Alasan: ${reversal.correctionReason ?? '-'}`}
                 current={reversal.id === entry.id}
                 onPress={() => openEntry(reversal.id)}
               />

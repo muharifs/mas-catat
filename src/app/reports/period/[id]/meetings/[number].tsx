@@ -14,6 +14,7 @@ import { formatDate } from '@/ui/dates';
 import { isSettledState, MEETING_STATUS_LABELS, WEEK_STATE_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // Report of one meeting: dues and how they were covered, the host payout and offset, kas contribution, and every member's state.
 export default function MeetingReportScreen() {
@@ -37,7 +38,7 @@ export default function MeetingReportScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Pertemuan {meeting.week}</Text>
       <Text style={styles.hint}>
-        {formatDate(meeting.date)} - {MEETING_STATUS_LABELS[meeting.status]} - tuan rumah: {nameOf(meeting.hostMemberId)}
+        {formatDate(meeting.date)}{SEP}{MEETING_STATUS_LABELS[meeting.status]}{SEP}tuan rumah: {nameOf(meeting.hostMemberId)}
       </Text>
 
       <SectionHeader title="Iuran pertemuan" />

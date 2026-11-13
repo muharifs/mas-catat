@@ -92,9 +92,7 @@ export default function BackupScreen() {
         <Card>
           <Text style={styles.body}>{lastSharedText(lastShared, reminder)}</Text>
           <Notice tone="warn">{BACKUP_WARNING}</Notice>
-          <Text style={styles.body}>{OFFSITE_HINT}</Text>
           <Button label="Buat dan bagikan cadangan" onPress={confirmBackup} disabled={busy !== null} />
-          <Text style={styles.caption}>{NO_ENCRYPTION_HINT}</Text>
         </Card>
       </View>
 

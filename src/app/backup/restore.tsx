@@ -9,6 +9,7 @@ import {
   classificationText,
   classificationTitle,
   phraseInstruction,
+  phraseReason,
   RESET_SAFETY_NOTE,
   restoreTexts,
   ROLLED_BACK_TEXT,
@@ -260,6 +261,7 @@ export default function RestoreScreen() {
           label={isReset ? 'Hapus semua dan mulai dari nol' : 'Ganti semua data dengan cadangan ini'}
           variant="danger"
           disabled={!ready}
+          disabledReason={phrase ? phraseReason(phrase) : undefined}
           onPress={() => confirm(prepared)}
         />
         <Button label="Batal" variant="secondary" onPress={cancel} />

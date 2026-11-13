@@ -14,6 +14,7 @@ import { formatDate } from '@/ui/dates';
 import { CORRECTED_NOT_COUNTED, MEETING_STATUS_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // Report of one period (active or ended): summary, one row per meeting, one row per member (A-Z).
 export default function PeriodReportScreen() {
@@ -43,8 +44,8 @@ export default function PeriodReportScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{period.name}</Text>
       <Text style={styles.hint}>
-        {period.status === 'active' ? 'Aktif' : 'Berakhir'} - {period.memberCount} anggota - mulai {formatDate(period.startDate)}
-        {period.endDate ? ` - sampai ${formatDate(period.endDate)}` : ''}
+        {period.status === 'active' ? 'Aktif' : 'Berakhir'}{SEP}{period.memberCount} anggota{SEP}mulai {formatDate(period.startDate)}
+        {period.endDate ? `${SEP}sampai ${formatDate(period.endDate)}` : ''}
       </Text>
 
       <SectionHeader title="Ringkasan periode" />
@@ -70,14 +71,14 @@ export default function PeriodReportScreen() {
       {meetings.map((m) => (
         <ListRow
           key={m.week}
-          title={`Pertemuan ${m.week} - ${formatDate(m.date)}`}
+          title={`Pertemuan ${m.week}${SEP}${formatDate(m.date)}`}
           tone="alt"
           onPress={() => router.push({ pathname: '/reports/period/[id]/meetings/[number]', params: { id, number: String(m.week) } })}
           right={<Money amount={m.unpaid} size="heading" tone={m.unpaid > 0 ? 'negative' : 'neutral'} />}
         >
           <RowText>Tuan rumah: {nameOf(m.hostMemberId)}</RowText>
           <RowText tone={m.fullyCovered ? 'ok' : 'warn'}>
-            {MEETING_STATUS_LABELS[m.status]} - {m.fullyCovered ? 'iuran lengkap' : 'ada yang belum bayar'}
+            {MEETING_STATUS_LABELS[m.status]}{SEP}{m.fullyCovered ? 'iuran lengkap' : 'ada yang belum bayar'}
           </RowText>
         </ListRow>
       ))}

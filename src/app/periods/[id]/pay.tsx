@@ -121,7 +121,6 @@ export default function PayScreen() {
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Catat pembayaran</Text>
         <Text style={styles.name}>{memberName}</Text>
 
         <DateField label="Tanggal bayar" value={date} onChange={setDate} maxDate={todayIso()} />
@@ -171,7 +170,6 @@ export default function PayScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, gap: spacing.md },
-  title: { ...type.titleL, color: colors.text },
   name: { ...type.titleM, color: colors.text },
   amountBox: { gap: spacing.xs, paddingVertical: spacing.sm },
   helpRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },

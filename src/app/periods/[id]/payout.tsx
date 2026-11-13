@@ -18,6 +18,7 @@ import { toasts } from '@/ui/messages';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 type PayAccount = 'tunai' | 'debit';
 const ACCOUNTS: readonly PayAccount[] = ['tunai', 'debit'];
@@ -131,7 +132,7 @@ export default function PayoutScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Bayar tuan rumah</Text>
         <Text style={styles.name}>
-          Pertemuan {meeting.number} ({formatDate(meeting.date)}) - {hostName}
+          Pertemuan {meeting.number} ({formatDate(meeting.date)}){SEP}{hostName}
         </Text>
 
         {paid ? (

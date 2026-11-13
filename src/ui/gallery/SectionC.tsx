@@ -48,6 +48,14 @@ export function SectionC() {
             <Money amount={AMOUNT_EXTREME} size="hero" fit />
           </View>
         </Demo>
+        <Demo caption="smallPrefix: hanya Rp 20, digit hero 36; dibaca TalkBack sekali (Rp123.456.789)">
+          <View style={styles.narrow120}>
+            <Money amount={AMOUNT_EXTREME} size="hero" smallPrefix fit />
+          </View>
+        </Demo>
+        <Demo caption="smallPrefix, saldo negatif (minus tetap ukuran hero)">
+          <Money amount={-AMOUNT_MID} size="hero" smallPrefix />
+        </Demo>
         <Demo caption="fit false, wadah yang sama (pembanding: membungkus atau terpotong)">
           <View style={styles.narrow120}>
             <Money amount={AMOUNT_EXTREME} size="hero" />

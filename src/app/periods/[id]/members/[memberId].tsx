@@ -16,6 +16,7 @@ import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { WEEK_STATE_LABELS } from '@/ui/reportLabels';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 function weekDetail(s: WeekStatus): string {
   const parts: string[] = [];
@@ -84,7 +85,7 @@ export default function MemberInPeriodScreen() {
             <View style={styles.head}>
               <Text style={styles.weekTitle}>
                 Pertemuan {s.week}
-                {week ? ` - ${formatDate(week.date)}` : ''}
+                {week ? `${SEP}${formatDate(week.date)}` : ''}
               </Text>
               <Text style={state === 'paid' || state === 'offset' || state === 'credited' ? styles.ok : styles.bad}>{WEEK_STATE_LABELS[state]}</Text>
             </View>
@@ -100,7 +101,7 @@ export default function MemberInPeriodScreen() {
         return (
           <View key={p.id} style={p.reversed ? [styles.row, styles.reversedRow] : styles.row}>
             <Text style={[styles.weekTitle, p.reversed ? styles.strike : null]}>
-              {formatDate(p.date)} - {formatRupiah(p.amount)}
+              {formatDate(p.date)}{SEP}{formatRupiah(p.amount)}
             </Text>
             {p.reversed ? (
               <Text style={styles.bad}>Dikoreksi (dibatalkan): {p.reversalReason}</Text>

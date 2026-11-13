@@ -21,6 +21,7 @@ import {
 } from '@/ui/reportLabels';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // History of one member in one period: status per meeting, then payments, offsets, titipan, write-off and refund in
 // date order (corrected items stay, marked), then the member's Piutang loans.
@@ -62,7 +63,7 @@ export default function MemberHistoryScreen() {
           <View style={styles.head}>
             <Text style={styles.rowTitle}>
               Pertemuan {w.week}
-              {w.date ? ` - ${formatDate(w.date)}` : ''}
+              {w.date ? `${SEP}${formatDate(w.date)}` : ''}
             </Text>
             <Text style={isSettledState(w.state) ? styles.ok : styles.bad}>{WEEK_STATE_LABELS[w.state]}</Text>
           </View>

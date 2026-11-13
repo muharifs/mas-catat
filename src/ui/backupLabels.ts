@@ -86,6 +86,11 @@ export function phraseInstruction(phrase: string): string {
     : `Untuk melanjutkan, ketik ${PHRASE_RESTORE} di bawah ini.`;
 }
 
+/** Reason under the disabled restore button (short, like "Buat periode dulu."). */
+export function phraseReason(phrase: string): string {
+  return `Ketik ${phrase} dulu.`;
+}
+
 export const restoreTexts = {
   firstDialogTitle: 'Ganti semua data?',
   firstDialogBody:

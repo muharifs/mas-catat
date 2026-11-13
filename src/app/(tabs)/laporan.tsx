@@ -15,6 +15,7 @@ import { formatDate } from '@/ui/dates';
 import { EXPECTED_FORMULA, EXPECTED_LABELS, EXPECTED_SUBTITLE, unpaidPayoutText } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
+import { SEP } from '@/ui/separator';
 
 // Reports home: kas balances and expected kas (global over every period), then the way to the per-period reports.
 // The screen only displays; every number comes from repos.reports (pure functions in src/domain/report.ts).
@@ -78,8 +79,8 @@ export default function ReportsScreen() {
       {periods.map((p) => (
         <ListRow key={p.id} title={p.name} tone="alt" onPress={() => goPeriod(p.id)}>
           <RowText tone={p.status === 'active' ? 'ok' : 'muted'}>
-            {p.status === 'active' ? 'Aktif' : 'Berakhir'} - mulai {formatDate(p.startDate)}
-            {p.endDate ? ` - sampai ${formatDate(p.endDate)}` : ''}
+            {p.status === 'active' ? 'Aktif' : 'Berakhir'}{SEP}mulai {formatDate(p.startDate)}
+            {p.endDate ? `${SEP}sampai ${formatDate(p.endDate)}` : ''}
           </RowText>
         </ListRow>
       ))}

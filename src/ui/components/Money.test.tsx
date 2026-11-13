@@ -4,9 +4,11 @@ import path from 'node:path';
 import { act } from 'react';
 import { createRoot } from 'test-renderer';
 import type { ReactElement } from 'react';
+import { StyleSheet } from 'react-native';
 import { buildCsv } from '@/domain/csv';
+import { fonts } from '../theme';
 import { formatRupiah, formatSigned } from '../format';
-import { displayMoneyText, Money, moneyAccessibilityLabel } from './Money';
+import { displayMoneyText, Money, moneyAccessibilityLabel, splitMoneyText } from './Money';
 
 interface Json {
   type?: string;
@@ -59,6 +61,36 @@ describe('Money (screen only)', () => {
     expect(displayMoneyText('-Rp1.000')).toBe('−Rp1.000');
     expect(displayMoneyText('Rp1.000')).toBe('Rp1.000');
     expect(moneyAccessibilityLabel('Rp0')).toBeUndefined();
+  });
+});
+
+describe('Money smallPrefix', () => {
+  it('splitMoneyText separates sign, Rp and digits', () => {
+    expect(splitMoneyText('−Rp5.000')).toEqual(['−', 'Rp', '5.000']);
+    expect(splitMoneyText('Rp15.000')).toEqual(['', 'Rp', '15.000']);
+    expect(splitMoneyText('+Rp1')).toEqual(['+', 'Rp', '1']);
+    expect(splitMoneyText('15.000')).toBeNull();
+  });
+
+  it('nests a smaller Rp and reads the whole amount once', async () => {
+    const tree = firstText(await render(<Money amount={15_000} size="hero" smallPrefix />));
+    expect(tree.props?.accessibilityLabel).toBe('Rp15.000');
+    const prefix = (tree.children ?? []).find((c): c is Json => typeof c !== 'string');
+    expect(prefix?.children).toEqual(['Rp']);
+    expect(StyleSheet.flatten(prefix?.props?.style as never)).toEqual({ fontSize: 20, fontFamily: fonts.bold });
+    expect((tree.children ?? []).filter((c) => typeof c === 'string')).toEqual(['15.000']);
+  });
+
+  it('keeps the minus at full size and says "minus" in words', async () => {
+    const tree = firstText(await render(<Money amount={-5_000} smallPrefix />));
+    expect(tree.props?.accessibilityLabel).toBe('minus Rp5.000');
+    expect((tree.children ?? []).filter((c) => typeof c === 'string')).toEqual(['−', '5.000']);
+  });
+
+  it('without smallPrefix the output is the single plain string as before', async () => {
+    const tree = firstText(await render(<Money amount={15_000} size="hero" />));
+    expect(tree.children).toEqual(['Rp15.000']);
+    expect(tree.props?.accessibilityLabel).toBeUndefined();
   });
 });
 

@@ -3,8 +3,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Badge, Dot, type BadgeTone } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { ListRow } from '../components/ListRow';
 import { Notice } from '../components/Notice';
 import { ReportLine } from '../components/ReportLine';
+import { Section as ScreenSection } from '../components/Section';
 import { colors, spacing, type } from '../theme';
 import { AMOUNT_BIG, AMOUNT_MID, T3_TITLE, T4_TITLE, T5_ERROR, T6_LONG, T7_VERY_LONG } from './fixtures';
 import { Demo, pressedToast, Row, Section } from './parts';
@@ -22,6 +24,21 @@ const BADGES: { label: string; tone: BadgeTone }[] = [
 export function SectionD() {
   return (
     <>
+      <Section title="Section" states="dua bagian berurutan dalam kontainer gap lg: satu dengan actionLabel, satu dengan contentGap md dan tiga baris. Judul ke isi 8 dp, antar bagian 24 dp.">
+        <View style={styles.sectionDemo}>
+          <ScreenSection title="Terakhir" actionLabel="Lihat semua riwayat" onAction={pressedToast('Section aksi')}>
+            <Card>
+              <Text style={styles.cardText}>Isi kartu di bawah judul.</Text>
+            </Card>
+          </ScreenSection>
+          <ScreenSection title="Jadwal" contentGap={spacing.md}>
+            <ListRow title="Pertemuan 1" tone="alt" />
+            <ListRow title="Pertemuan 2" tone="alt" />
+            <ListRow title="Pertemuan 3" tone="alt" />
+          </ScreenSection>
+        </View>
+      </Section>
+
       <Section title="Card" states="5 tone dengan judul + T5, kartu berisi ReportLine dan Button.">
         {CARD_TONES.map((tone) => (
           <Demo key={tone} caption={`tone ${tone}`}>
@@ -119,6 +136,7 @@ export function SectionD() {
 }
 
 const styles = StyleSheet.create({
+  sectionDemo: { gap: spacing.lg },
   cardTitle: { ...type.bodyStrong, color: colors.text },
   cardText: { ...type.secondary, color: colors.textSecondary },
   stack: { gap: spacing.sm },

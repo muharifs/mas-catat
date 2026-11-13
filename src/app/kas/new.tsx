@@ -310,7 +310,7 @@ export default function NewKasEntryScreen() {
             <Text style={styles.label}>Arah</Text>
             <View style={styles.row}>
               <IconChoice label="Tunai ke Debit" icon="arrow-forward-outline" selected={direction === 'tunai_debit'} onPress={() => setDirection('tunai_debit')} />
-              <IconChoice label="Debit ke Tunai" icon="arrow-forward-outline" selected={direction === 'debit_tunai'} onPress={() => setDirection('debit_tunai')} />
+              <IconChoice label="Debit ke Tunai" icon="arrow-back-outline" selected={direction === 'debit_tunai'} onPress={() => setDirection('debit_tunai')} />
             </View>
           </View>
         ) : null}

@@ -20,6 +20,8 @@ import {
   AMOUNT_MID,
   HISTORY_BY_ID,
   HISTORY_CORRECTED,
+  HISTORY_CORRECTED_FLAT,
+  HISTORY_CORRECTED_OUT,
   HISTORY_EXTREME,
   HISTORY_FLAT,
   HISTORY_LONG_NAME,
@@ -101,6 +103,20 @@ export function SectionB() {
             <RowText>Baris biasa</RowText>
           </ListRow>
         </Demo>
+        <Demo caption="Panah otomatis: dapat ditekan tanpa dan dengan right Money T8 (jumlah tidak terdorong keluar)">
+          <ListRow title="Dapat ditekan, tanpa right" tone="alt" onPress={pressedToast('ListRow panah')}>
+            <RowText>Panah di kanan</RowText>
+          </ListRow>
+          <ListRow title={T8_MEMBER} tone="alt" right={<Money amount={AMOUNT_BIG} size="heading" />} onPress={pressedToast('ListRow panah T8')}>
+            <RowText>Sisa pinjaman</RowText>
+          </ListRow>
+        </Demo>
+        <Demo caption="chevron={false} pada baris dapat ditekan (membuka dialog); baris tidak dapat ditekan tidak punya panah">
+          <ListRow title="Tutup pertemuan 2" tone="alt" destructive chevron={false} onPress={pressedToast('ListRow tanpa panah')} />
+          <ListRow title="Baris informasi" tone="alt">
+            <RowText>Tanpa panah</RowText>
+          </ListRow>
+        </Demo>
         <Demo caption="right berisi Badge di atas Money">
           <ListRow
             title="Siti"
@@ -161,7 +177,7 @@ export function SectionB() {
         title="HistoryRow"
         states="8 jenis, catatan T6, nama T8, dikoreksi, peringatan tanpa pos, 3 jumlah, flat di dalam Card. Ketuk baris: toast, tanpa navigasi."
       >
-        <Demo caption="Delapan jenis: pembayaran, bayaran tuan rumah, potongan, pindah saldo, pinjaman, tunggakan ditanggung kas, pengembalian titipan, koreksi">
+        <Demo caption="Delapan jenis: pembayaran, bayaran tuan rumah, potongan, pindah saldo, pinjaman, tunggakan ditanggung kas, pengembalian titipan, koreksi. Cek TalkBack: dibaca satu kalimat">
           {HISTORY_TYPES.map((e) => (
             <HistoryRow key={e.id} entry={e} byId={HISTORY_BY_ID} memberName={e.memberId ? 'Siti' : ''} onPress={pressedToast(`HistoryRow ${e.type}`)} />
           ))}
@@ -175,11 +191,23 @@ export function SectionB() {
         <Demo caption="Sudah dikoreksi (judul dicoret, Dikoreksi, latar merah muda)">
           <HistoryRow entry={HISTORY_CORRECTED} byId={HISTORY_BY_ID} memberName="Siti" onPress={pressedToast('HistoryRow dikoreksi')} />
         </Demo>
+        <Demo caption="Dikoreksi, arah KELUAR (bayaran tuan rumah)">
+          <HistoryRow entry={HISTORY_CORRECTED_OUT} byId={HISTORY_BY_ID} memberName="Siti" onPress={pressedToast('HistoryRow dikoreksi keluar')} />
+        </Demo>
         <Demo caption="Peringatan belum ada Tunai atau Debit">
           <HistoryRow entry={HISTORY_NO_POS} byId={HISTORY_BY_ID} memberName="Siti" onPress={pressedToast('HistoryRow tanpa pos')} />
         </Demo>
         <Demo caption="Jumlah ekstrem Rp123.456.789 dengan nama T8">
           <HistoryRow entry={HISTORY_EXTREME} byId={HISTORY_BY_ID} memberName={T8_MEMBER} onPress={pressedToast('HistoryRow ekstrem')} />
+        </Demo>
+        <Demo caption="Dikoreksi flat di dalam Card: arah masuk lalu arah keluar. Tahan baris untuk melihat warna tekan (tanpa prop khusus galeri, supaya komponen produksi tidak berubah).">
+          <Card>
+            {HISTORY_CORRECTED_FLAT.map((e, i) => (
+              <View key={e.id} style={i > 0 ? styles.divider : undefined}>
+                <HistoryRow flat entry={e} byId={HISTORY_BY_ID} memberName="Siti" onPress={pressedToast('HistoryRow dikoreksi flat')} />
+              </View>
+            ))}
+          </Card>
         </Demo>
         <Demo caption="flat di dalam Card, dua baris berurutan">
           <Card>

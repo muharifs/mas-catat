@@ -30,7 +30,7 @@ describe('component gallery', () => {
     const components = readdirSync(COMPONENTS_DIR)
       .filter((f) => f.endsWith('.tsx') && !f.includes('.test.'))
       .map((f) => f.replace('.tsx', ''));
-    expect(components).toHaveLength(26);
+    expect(components).toHaveLength(27);
     const gallery = readdirSync(GALLERY_DIR)
       .filter((f) => /^Section[A-F]\.tsx$/.test(f))
       .map(read)

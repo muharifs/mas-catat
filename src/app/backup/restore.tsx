@@ -27,7 +27,7 @@ import { SectionHeader } from '@/ui/components/SectionHeader';
 import { TextField } from '@/ui/components/TextField';
 import { restoreErrorNeedsReload, toIndonesian } from '@/ui/errors';
 import { createSafetyStore, listSafetyCopies, pickBackupFile, readSafetyCopy, shareSafetyCopy } from '@/ui/shareFile';
-import { colors, ICON, spacing, type } from '@/ui/theme';
+import { colors, ICON, spacing, TABULAR, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 
 type Phase = 'idle' | 'checking' | 'review' | 'working';
@@ -229,20 +229,16 @@ export default function RestoreScreen() {
           <Notice tone="info">Cadangan ini dari versi lama aplikasi. Isinya disesuaikan otomatis ke versi sekarang sebelum dipakai.</Notice>
         ) : null}
 
-        <View style={styles.compare}>
-          <Card style={styles.half}>
-            <Text style={styles.heading}>Di HP ini sekarang</Text>
-            {summaryRows(prepared.live).map((row) => (
-              <SummaryLine key={row.label} label={row.label} value={row.value} />
-            ))}
-          </Card>
-          <Card tone="alt" style={styles.half}>
-            <Text style={styles.heading}>{isReset ? 'Setelah mulai dari nol' : 'Isi cadangan'}</Text>
-            {summaryRows(prepared.candidate).map((row) => (
-              <SummaryLine key={row.label} label={row.label} value={row.value} />
-            ))}
-          </Card>
-        </View>
+        {/* One comparison card: two column titles, then each item once with its two values side by side. */}
+        <Card>
+          <View style={styles.columns}>
+            <Text style={[styles.heading, styles.column]}>Di HP ini sekarang</Text>
+            <Text style={[styles.heading, styles.column]}>{isReset ? 'Setelah mulai dari nol' : 'Isi cadangan'}</Text>
+          </View>
+          {summaryRows(prepared.live).map((row, index) => (
+            <CompareLine key={row.label} label={row.label} current={row.value} other={summaryRows(prepared.candidate)[index]?.value ?? '-'} />
+          ))}
+        </Card>
 
         {phrase ? (
           <>
@@ -287,7 +283,7 @@ export default function RestoreScreen() {
           </Text>
           {safetyNames.length === 0 ? <Text style={styles.body}>Belum ada salinan pengaman.</Text> : null}
           {safetyNames.map((name) => (
-            <ListRow key={name} title={safetyCopyLabel(name)} onPress={() => chooseSafety(name)} right={
+            <ListRow key={name} title={safetyCopyLabel(name)} chevron={false} onPress={() => chooseSafety(name)} right={
                 <View style={styles.pickAction}>
                   <Text style={styles.pickLabel}>Pulihkan</Text>
                   <Ionicons name="chevron-forward" size={ICON.sm} color={colors.brandStrong} />
@@ -312,11 +308,16 @@ export default function RestoreScreen() {
   );
 }
 
-function SummaryLine({ label, value }: { label: string; value: string }) {
+// One item of the comparison: label once, then the two values in the same two columns as the titles.
+// summaryRows() returns the same labels in the same order for both sides, so the index pairs them up.
+function CompareLine({ label, current, other }: { label: string; current: string; other: string }) {
   return (
     <View style={styles.line}>
       <Text style={styles.caption}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+      <View style={styles.columns}>
+        <Text style={[styles.value, styles.column]}>{current}</Text>
+        <Text style={[styles.value, styles.column]}>{other}</Text>
+      </View>
     </View>
   );
 }
@@ -327,10 +328,11 @@ const styles = StyleSheet.create({
   heading: { ...type.titleM, color: colors.text },
   body: { ...type.body, color: colors.text },
   caption: { ...type.secondary, color: colors.textSecondary },
-  value: { ...type.bodyStrong, color: colors.text },
-  compare: { gap: spacing.md },
-  half: { gap: spacing.xs },
-  line: { gap: spacing.xs },
+  value: { ...type.bodyStrong, ...TABULAR, color: colors.text },
+  columns: { flexDirection: 'row', gap: spacing.lg },
+  column: { flex: 1 },
+  // A hairline between items; gap keeps the label close to its values.
+  line: { gap: spacing.xs, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
   section: { gap: spacing.sm },
   // The row is tappable; the bold teal word and the chevron say so.
   pickAction: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },

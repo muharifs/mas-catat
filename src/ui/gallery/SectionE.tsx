@@ -60,6 +60,17 @@ function ChoiceRow({ labels, count }: { labels?: string[]; count: number }) {
   );
 }
 
+// The direction pair of the transfer form: same tiles, two different arrows.
+function TransferChoice() {
+  const [selected, setSelected] = useState('Tunai ke Debit');
+  return (
+    <Row>
+      <IconChoice label="Tunai ke Debit" icon="arrow-forward-outline" selected={selected === 'Tunai ke Debit'} onPress={() => setSelected('Tunai ke Debit')} />
+      <IconChoice label="Debit ke Tunai" icon="arrow-back-outline" selected={selected === 'Debit ke Tunai'} onPress={() => setSelected('Debit ke Tunai')} />
+    </Row>
+  );
+}
+
 // A MonthSwitcher with local month state; `latest` is the newest month (its "next" button is disabled).
 function MonthDemo({ start, latest }: { start: string; latest?: string }) {
   const [month, setMonth] = useState(start);
@@ -134,6 +145,9 @@ export function SectionE() {
         </Demo>
         <Demo caption="Label panjang di ubin (numberOfLines 1: akan terpotong)">
           <ChoiceRow labels={['Tunai', 'Debit', T1_LABEL]} count={3} />
+        </Demo>
+        <Demo caption="Arah pindah saldo seperti di layar Catat kas: dua ikon berbeda arah">
+          <TransferChoice />
         </Demo>
         <Demo caption="Dua ubin">
           <ChoiceRow count={2} />

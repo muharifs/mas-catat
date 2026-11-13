@@ -8,6 +8,7 @@ import {
   filterHistory,
   groupByDate,
   historyFlowText,
+  historyRowLabel,
   isFilterEmpty,
   previousDay,
   reversalTitle,
@@ -154,5 +155,36 @@ describe('filterHistory', () => {
     expect(activeFilterCount({ ...EMPTY_FILTER, group: 'iuran' })).toBe(0);
     expect(activeFilterCount({ ...EMPTY_FILTER, memberId: 'm1', account: 'tunai' })).toBe(2);
     expect(isFilterEmpty({ ...EMPTY_FILTER, group: 'iuran' })).toBe(false);
+  });
+});
+
+describe('historyRowLabel', () => {
+  it('joins title, member, flow text and an unsigned amount', () => {
+    const e = entry({ amount: 50_000 });
+    expect(historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e })).toBe('Iuran, Dedi, Masuk ke Tunai, Rp50.000');
+  });
+
+  it('adds Dikoreksi for a corrected entry', () => {
+    const e = entry({ amount: 50_000, reversedById: 'r1' });
+    expect(historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e })).toBe('Iuran, Dedi, Masuk ke Tunai, Rp50.000, Dikoreksi');
+  });
+
+  it('skips the member part when there is none (no double comma)', () => {
+    const e = entry({ memberId: null, type: 'shared_goal', direction: 'out', amount: 20_000 });
+    const label = historyRowLabel({ title: 'Pengeluaran', memberName: '', entry: e });
+    expect(label).toBe('Pengeluaran, Keluar dari Tunai, Rp20.000');
+    expect(label).not.toContain(',,');
+  });
+
+  it('reads a transfer as "Tunai ke Debit"', () => {
+    const e = entry({ type: 'transfer', memberId: null, direction: 'out', account: 'tunai', toAccount: 'debit', amount: 100_000 });
+    expect(historyRowLabel({ title: 'Pindah saldo', memberName: '', entry: e })).toBe('Pindah saldo, Tunai ke Debit, Rp100.000');
+  });
+
+  it('includes the no-pos warning and the note when they are shown', () => {
+    const e = entry({ account: null, note: 'Catatan lama' });
+    const label = historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e });
+    expect(label).toContain('Belum ada tempat uang');
+    expect(label).toContain('Peringatan: belum ada Tunai atau Debit');
   });
 });

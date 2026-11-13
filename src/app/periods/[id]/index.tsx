@@ -1,18 +1,20 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { selectableWeekNumbers } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
+import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
-import { SectionHeader } from '@/ui/components/SectionHeader';
+import { Section } from '@/ui/components/Section';
 import { formatDate } from '@/ui/dates';
 import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
 import { closeWeekMessage, toasts } from '@/ui/messages';
-import { colors, radius, spacing, type } from '@/ui/theme';
+import { colors, ICON, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
 import { SEP } from '@/ui/separator';
@@ -110,7 +112,7 @@ export default function PeriodDetailScreen() {
         </Card>
       ) : null}
 
-      <SectionHeader title="Jadwal" />
+      <Section title="Jadwal" contentGap={spacing.md}>
       {weeks.map((w) => {
         const canPick = isActive && w.status === 'open' && selectable.includes(w.number);
         const isPaid = paidWeeks.has(w.number);
@@ -118,22 +120,46 @@ export default function PeriodDetailScreen() {
         const canPay = isActive && !isPaid && w.hostMemberId !== null && (w.status === 'closed' || w.number === oldestOpen?.number);
         const canViewPayout = isPaid && isActive;
         const hasActions = canPick || canPay || canViewPayout;
+        // J4: a closed and paid meeting of the active period is one tap area (no extra button) with a chevron.
+        const wholeCardTap = canViewPayout && w.status === 'closed';
+        const openPayout = () =>
+          router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } });
+        // J2: the current meeting gets a 4dp accent line on the left (no words; the colour only supports).
+        const isCurrent = isActive && oldestOpen?.number === w.number;
+        const texts = (
+          <View style={[styles.texts, wholeCardTap && styles.textsFlex]}>
+            <Text style={styles.weekTitle}>
+              Pertemuan {w.number}{SEP}{formatDate(w.date)}
+              {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
+            </Text>
+            <Text style={w.hostMemberId ? styles.body : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
+            {w.status === 'open' ? <Badge label="Terbuka" tone="brand" /> : <Badge label="Ditutup" tone="neutral" />}
+            {/* With the "Lihat pembayaran tuan rumah" button (open meeting, active period) the paid state is obvious;
+                otherwise the status line stays. */}
+            {isPaid && (!canViewPayout || wholeCardTap) ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
+            {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
+          </View>
+        );
+        if (wholeCardTap) {
+          return (
+            // Pressable is the RN tappable view; accessibilityRole="button" is what TalkBack reads as actionable.
+            <Pressable
+              key={w.number}
+              accessibilityRole="button"
+              accessibilityLabel={`Pertemuan ${w.number}, ${nameOf(w.hostMemberId)}, Ditutup, Lihat pembayaran tuan rumah, sudah dibayar`}
+              onPress={openPayout}
+              style={({ pressed }) => [styles.row, styles.rowTap, pressed && styles.rowPressed]}
+            >
+              {texts}
+              <View accessibilityElementsHidden importantForAccessibility="no">
+                <Ionicons name="chevron-forward" size={ICON.sm} color={colors.textTertiary} />
+              </View>
+            </Pressable>
+          );
+        }
         return (
-          <View key={w.number} style={styles.row}>
-            <View>
-              <Text style={styles.weekTitle}>
-                Pertemuan {w.number}{SEP}{formatDate(w.date)}
-                {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
-              </Text>
-              <Text style={w.hostMemberId ? styles.body : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
-              <Text style={w.status === 'open' ? styles.open : styles.closed}>
-                {w.status === 'open' ? 'Terbuka' : 'Ditutup'}
-              </Text>
-              {/* With the "Lihat pembayaran tuan rumah" button (active period) the paid state is obvious;
-                  a finished period has no button, so the status line stays there. */}
-              {isPaid && !canViewPayout ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
-              {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
-            </View>
+          <View key={w.number} style={[styles.row, isCurrent && styles.rowCurrent]}>
+            {texts}
             {hasActions ? (
             <View style={styles.actions}>
               {canPick ? (
@@ -157,7 +183,7 @@ export default function PeriodDetailScreen() {
                   label="Lihat pembayaran tuan rumah"
                   accessibilityLabel="Lihat pembayaran tuan rumah, sudah dibayar"
                   variant="secondary"
-                  onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
+                  onPress={openPayout}
                 />
               ) : null}
             </View>
@@ -165,6 +191,7 @@ export default function PeriodDetailScreen() {
           </View>
         );
       })}
+      </Section>
 
       {isActive ? (
         <Card tone="alt">
@@ -188,15 +215,19 @@ export default function PeriodDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md },
+  container: { padding: spacing.lg, gap: spacing.lg },
   title: { ...type.titleL, color: colors.text },
   body: { ...type.body, color: colors.text },
   cardTitle: { ...type.titleM, color: colors.text },
   // Text on top, buttons below at full card width (never beside the text, so long labels wrap instead of being clipped).
-  row: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard },
+  row: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm, padding: spacing.lg, borderRadius: radius.md, backgroundColor: colors.bgCard },
+  rowTap: { flexDirection: 'row', alignItems: 'center' },
+  rowPressed: { backgroundColor: colors.bgMute },
+  rowCurrent: { borderLeftWidth: 4, borderLeftColor: colors.brand },
+  texts: { gap: spacing.xs },
+  textsFlex: { flex: 1 },
   actions: { gap: spacing.sm, alignSelf: 'stretch' },
   weekTitle: { ...type.bodyStrong, color: colors.text },
-  open: { ...type.body, color: colors.brandStrong },
   closed: { ...type.body, color: colors.textSecondary },
   hint: { ...type.secondary, color: colors.textSecondary },
 });

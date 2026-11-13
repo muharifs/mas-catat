@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LedgerListItem } from '@/db/ledger';
 import type { LedgerEntryType } from '@/domain/types';
-import { entryDirection, historyFlowText, reversalTitle } from '../history';
+import { entryDirection, historyFlowText, historyRowLabel, NO_POS_WARNING, reversalTitle } from '../history';
 import { entryTitle, showsNoPosWarning, visibleNote } from '../kasLabels';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
 import { Badge } from './Badge';
@@ -60,6 +60,8 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
   return (
     <Pressable
       accessibilityRole="button"
+      // One sentence for TalkBack; the icon and the +/- sign inside are hidden from it (see historyRowLabel).
+      accessibilityLabel={historyRowLabel({ title, memberName, entry: e })}
       onPress={onPress ?? (() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } }))}
       style={({ pressed }) => [
         styles.row,
@@ -68,7 +70,11 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.icon, { backgroundColor: corrected ? colors.bgCard : DIRECTION_ICON[direction].circle }]}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={[styles.icon, { backgroundColor: corrected ? colors.bgCard : DIRECTION_ICON[direction].circle }]}
+      >
         <Ionicons name={TYPE_ICONS[e.type]} size={24} color={DIRECTION_ICON[direction].icon} />
       </View>
       <View style={styles.main}>
@@ -76,7 +82,7 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
         <Text style={styles.sub}>{second}</Text>
         {note ? <Text style={styles.sub}>{note}</Text> : null}
         {corrected ? <Badge label="Dikoreksi" tone="error" onTint /> : null}
-        {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>Peringatan: belum ada Tunai atau Debit pada catatan ini, jadi tidak dihitung di saldo</Text> : null}
+        {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>{NO_POS_WARNING}</Text> : null}
       </View>
       <Money amount={e.amount} size="heading" sign={SIGN[direction]} />
     </Pressable>

@@ -1,16 +1,14 @@
 import { router } from 'expo-router';
 import { useCallback } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { defaultReportPeriod } from '@/domain/report';
 import { useRepos } from '@/db/provider';
-import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
-import { SectionHeader } from '@/ui/components/SectionHeader';
+import { Section } from '@/ui/components/Section';
 import { formatDate } from '@/ui/dates';
 import { EXPECTED_FORMULA, EXPECTED_LABELS, EXPECTED_SUBTITLE, unpaidPayoutText } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -34,11 +32,10 @@ export default function ReportsScreen() {
   const { kas, periods } = data;
   const { balances, expected } = kas;
   const goPeriod = (id: string) => router.push({ pathname: '/reports/period/[id]', params: { id } });
-  const preferred = defaultReportPeriod(periods);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <SectionHeader title="Saldo kas" />
+      <Section title="Saldo kas">
       <Card>
         <ReportLine label="Tunai" amount={balances.tunai} />
         <ReportLine label="Debit" amount={balances.debit} />
@@ -46,8 +43,9 @@ export default function ReportsScreen() {
         <ReportLine label={EXPECTED_LABELS.actual} amount={balances.actual} strong />
         <Text style={styles.hint}>Sama dengan Total kas di Beranda. Piutang belum ada di tangan, jadi tidak dihitung dalam Total kas.</Text>
       </Card>
+      </Section>
 
-      <SectionHeader title={EXPECTED_LABELS.expected} />
+      <Section title={EXPECTED_LABELS.expected}>
       <Text style={styles.hint}>{EXPECTED_SUBTITLE}</Text>
       <Card>
         <ReportLine label={EXPECTED_LABELS.actual} amount={expected.actualKas} />
@@ -66,16 +64,17 @@ export default function ReportsScreen() {
         <ReportLine label={`= ${EXPECTED_LABELS.expected}`} amount={expected.expected} strong />
         <Text style={styles.hint}>{EXPECTED_FORMULA}</Text>
       </Card>
+      </Section>
 
-      <SectionHeader title="Catatan tambahan (tidak masuk hitungan)" />
+      <Section title="Catatan tambahan (tidak masuk hitungan)">
       <Card tone="alt">
         <ReportLine label={EXPECTED_LABELS.prepaid} amount={expected.prepaidDues} hint="Iuran pertemuan setelah pertemuan berjalan yang sudah dibayar." />
         <ReportLine label={EXPECTED_LABELS.unpaidPayout} amount={expected.unpaidPayoutAmount} hint={unpaidPayoutText(expected.unpaidPayoutCount)} />
       </Card>
+      </Section>
 
-      <SectionHeader title="Laporan per periode" />
+      <Section title="Laporan per periode">
       {periods.length === 0 ? <Notice>Belum ada periode.</Notice> : null}
-      {preferred ? <Button label={`Buka ${preferred.name}`} onPress={() => goPeriod(preferred.id)} /> : null}
       {periods.map((p) => (
         <ListRow key={p.id} title={p.name} tone="alt" onPress={() => goPeriod(p.id)}>
           <RowText tone={p.status === 'active' ? 'ok' : 'muted'}>
@@ -84,11 +83,12 @@ export default function ReportsScreen() {
           </RowText>
         </ListRow>
       ))}
+      </Section>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   hint: { ...type.secondary, color: colors.textSecondary },
 });

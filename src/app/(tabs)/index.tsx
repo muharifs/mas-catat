@@ -18,7 +18,7 @@ import { Notice } from '@/ui/components/Notice';
 import { PillLink } from '@/ui/components/PillLink';
 import { QuickAction } from '@/ui/components/QuickAction';
 import { ReminderRow } from '@/ui/components/ReminderRow';
-import { SectionHeader } from '@/ui/components/SectionHeader';
+import { Section } from '@/ui/components/Section';
 import { BALANCE_MASK, balanceToggleLabel, toggleBalanceHidden, useBalanceHidden } from '@/ui/balanceVisibilityStore';
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
@@ -277,8 +277,7 @@ export default function HomeScreen() {
       ) : null}
 
       {visibleReminders.length > 0 || (period && week) ? (
-        <>
-          <SectionHeader title={visibleReminders.length > 0 ? `Pengingat (${visibleReminders.length})` : 'Pengingat'} />
+        <Section title={visibleReminders.length > 0 ? `Pengingat (${visibleReminders.length})` : 'Pengingat'}>
           <Card>
             {visibleReminders.length === 0 ? (
               <View style={styles.allClear}>
@@ -302,7 +301,7 @@ export default function HomeScreen() {
             )}
           </Card>
           {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
-        </>
+        </Section>
       ) : null}
 
       {period ? (
@@ -341,7 +340,10 @@ export default function HomeScreen() {
                     onPress={() => goPayout(period.id, week.number)}
                   />
                   <ListRow title={hostPaid ? 'Ubah tanggal' : 'Ubah tuan rumah / tanggal'} tone="alt" onPress={() => goMeeting(period.id, week.number)} />
-                  <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive onPress={confirmCloseWeek} />
+                  {/* Set apart from the rows above (8 gap + 12 margin = 20dp); no chevron because it opens a dialog, not a screen. */}
+                  <View style={styles.closeWeek}>
+                    <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive chevron={false} onPress={confirmCloseWeek} />
+                  </View>
                 </>
               )}
             </>
@@ -398,15 +400,14 @@ export default function HomeScreen() {
       </Card>
 
       {period && week ? (
-        <>
-          <SectionHeader title={paidView.summary} actionLabel="Lihat" onAction={() => goPayments(period.id)} />
+        <Section title={paidView.summary} actionLabel="Lihat" onAction={() => goPayments(period.id)}>
           <Card>
             <InitialsRow view={paidView} onPress={() => goPayments(period.id)} />
           </Card>
-        </>
+        </Section>
       ) : null}
 
-      <SectionHeader title="Terakhir" actionLabel="Lihat semua riwayat" onAction={() => router.push('/riwayat')} />
+      <Section title="Terakhir" actionLabel="Lihat semua riwayat" onAction={() => router.push('/riwayat')}>
       <Card>
         {lastEntries.length === 0 ? (
           <Text style={styles.body}>Belum ada catatan.</Text>
@@ -419,6 +420,7 @@ export default function HomeScreen() {
           ))
         )}
       </Card>
+      </Section>
     </ScrollView>
   );
 }
@@ -452,6 +454,7 @@ const styles = StyleSheet.create({
   checkItem: { ...type.body, color: colors.text },
   checkDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
   gridRow: { flexDirection: 'row', gap: spacing.xs },
+  closeWeek: { marginTop: spacing.md },
   allClear: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   allClearText: { ...type.body, color: colors.text, flex: 1 },
 });

@@ -12,6 +12,7 @@ import { AMOUNT_BIG, AMOUNT_EXTREME, AMOUNT_MID } from './fixtures';
 import { Demo, Section } from './parts';
 
 const SIZES = ['hero', 'display', 'large', 'heading', 'body'] as const;
+const SIGN_SIZES = ['hero', 'large', 'heading', 'body'] as const;
 
 export function SectionC() {
   const [typed, setTyped] = useState('');
@@ -33,6 +34,17 @@ export function SectionC() {
           <Money amount={AMOUNT_MID} size="large" sign="+" />
           <Money amount={AMOUNT_MID} size="large" sign="-" />
           <Money amount={AMOUNT_MID} size="large" />
+        </Demo>
+        <Demo caption="Tanda +, -, tanpa tanda pada empat ukuran (hero, large, heading, body) berdampingan">
+          <View style={styles.signGrid}>
+            {SIGN_SIZES.map((size) => (
+              <View key={size} style={styles.signColumn}>
+                <Money amount={AMOUNT_MID} size={size} sign="+" />
+                <Money amount={AMOUNT_MID} size={size} sign="-" />
+                <Money amount={AMOUNT_MID} size={size} />
+              </View>
+            ))}
+          </View>
         </Demo>
         <Demo caption="Angka negatif dan nol">
           <Money amount={-AMOUNT_MID} size="large" />
@@ -101,6 +113,8 @@ export function SectionC() {
 }
 
 const styles = StyleSheet.create({
+  signGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  signColumn: { gap: 4 },
   // Fixed-width boxes with an outline so the edge the text must respect is visible.
   narrow120: { width: 120, borderWidth: 1, borderColor: colors.borderStrong },
   narrow200: { width: 200, borderWidth: 1, borderColor: colors.borderStrong },

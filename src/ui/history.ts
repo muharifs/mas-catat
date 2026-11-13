@@ -5,7 +5,8 @@ import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { Account, LedgerEntryType } from '@/domain/types';
 import type { LedgerListItem } from '@/db/ledger';
 import { formatDate } from './dates';
-import { TYPE_LABELS } from './kasLabels';
+import { formatRupiah } from './format';
+import { showsNoPosWarning, TYPE_LABELS, visibleNote } from './kasLabels';
 
 /** Full text of the "Selengkapnya" dialog on the Riwayat summary card (approved wording, moved from the card). */
 export const SUMMARY_NOTE_FULL =
@@ -66,6 +67,29 @@ export function historyFlowText(e: FlowFields): string {
   if (e.toAccount) return `${ACCOUNT_LABELS[e.account]} ke ${ACCOUNT_LABELS[e.toAccount]}`;
   if (e.account === 'piutang') return 'Tercatat di Piutang';
   return e.direction === 'in' ? `Masuk ke ${ACCOUNT_LABELS[e.account]}` : `Keluar dari ${ACCOUNT_LABELS[e.account]}`;
+}
+
+/** Warning line of an entry without a pos (shown on the row, also read by the screen reader). */
+export const NO_POS_WARNING = 'Peringatan: belum ada Tunai atau Debit pada catatan ini, jadi tidak dihitung di saldo';
+
+/**
+ * Screen-reader label of a history row: one sentence from the words already on the row (title, member, flow text,
+ * amount, note, warning, "Dikoreksi"), joined by commas. The amount has no sign: direction is carried by the flow text
+ * ("Masuk ke" / "Keluar dari"), so TalkBack does not depend on how it reads "+" or "-". Empty parts are skipped.
+ */
+export function historyRowLabel(p: { title: string; memberName: string; entry: LedgerListItem }): string {
+  const e = p.entry;
+  return [
+    p.title,
+    p.memberName,
+    historyFlowText(e),
+    formatRupiah(e.amount),
+    visibleNote(e),
+    showsNoPosWarning(e) ? NO_POS_WARNING : '',
+    e.reversedById ? 'Dikoreksi' : '',
+  ]
+    .filter((part) => part !== '')
+    .join(', ');
 }
 
 /** Title of a reversal row: "Koreksi: <type of the original>". */

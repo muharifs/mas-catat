@@ -83,9 +83,15 @@ export default function BackupScreen() {
   const reminder = backupReminder(lastShared, now, true);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {busy ? <Notice tone="info">{busy}</Notice> : null}
-      {error ? <Notice tone="danger">{error}</Notice> : null}
+    <View style={styles.screen}>
+      {/* Progress and error live ABOVE the scroll area, so they stay visible when a button far down was tapped. */}
+      {busy || error ? (
+        <View style={styles.status}>
+          {busy ? <Notice tone="info">{busy}</Notice> : null}
+          {error ? <Notice tone="danger">{error}</Notice> : null}
+        </View>
+      ) : null}
+      <ScrollView contentContainerStyle={styles.container}>
 
       <View style={styles.section}>
         <SectionHeader title="Cadangan" />
@@ -121,16 +127,20 @@ export default function BackupScreen() {
           <Text style={styles.body}>{ONE_PHONE_HINT}</Text>
           <ListRow
             title="Pulihkan dari cadangan"
+            chevron
             onPress={busy === null ? () => router.push('/backup/restore') : undefined}
           />
           <Text style={styles.caption}>Mulai dari nol, untuk menghapus semua data, ada di halaman Pulihkan data.</Text>
         </Card>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  status: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.sm },
   container: { padding: spacing.lg, gap: spacing.lg },
   section: { gap: spacing.sm },
   body: { ...type.body, color: colors.text },

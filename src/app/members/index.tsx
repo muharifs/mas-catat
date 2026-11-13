@@ -8,7 +8,7 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
-import { SectionHeader } from '@/ui/components/SectionHeader';
+import { Section } from '@/ui/components/Section';
 import { TextField } from '@/ui/components/TextField';
 import { archiveBlockText, toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
@@ -182,8 +182,9 @@ export default function MembersScreen() {
             error={addError}
           />
           <Button label="Tambah" onPress={add} />
-          <SectionHeader title={`${members.length} anggota`} />
-          {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubah nama, menghapus, atau mengarsipkan anggota.</Text> : null}
+          <Section title={`${members.length} anggota`}>
+            {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubah nama, menghapus, atau mengarsipkan anggota.</Text> : null}
+          </Section>
         </View>
       }
       ListEmptyComponent={<EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." />}
@@ -220,12 +221,16 @@ export default function MembersScreen() {
               <Button label="Simpan" onPress={saveEdit} style={styles.flex} />
               <Button label="Batal" variant="secondary" onPress={stopEdit} style={styles.flex} />
             </View>
-            {editCanDelete === true ? (
-              <Button label="Hapus anggota" variant="dangerOutline" onPress={() => confirmDelete(item.id, item.name)} />
-            ) : null}
-            {editCanDelete === false ? (
-              <Button label="Arsipkan anggota" variant="dangerOutline" onPress={() => void confirmArchive(item.id, item.name)} />
-            ) : null}
+            {editCanDelete === null ? null : (
+              // Destructive action set apart from Simpan/Batal by a hairline and extra space.
+              <View style={styles.dangerZone}>
+                {editCanDelete ? (
+                  <Button label="Hapus anggota" variant="dangerOutline" onPress={() => confirmDelete(item.id, item.name)} />
+                ) : (
+                  <Button label="Arsipkan anggota" variant="dangerOutline" onPress={() => void confirmArchive(item.id, item.name)} />
+                )}
+              </View>
+            )}
           </View>
         ) : (
           <ListRow
@@ -245,7 +250,8 @@ const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.sm },
   form: { gap: spacing.md, marginBottom: spacing.md },
   hint: { ...type.secondary, color: colors.textSecondary },
-  editRow: { padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.bgCard, gap: spacing.sm },
+  editRow: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard, gap: spacing.sm },
+  dangerZone: { marginTop: spacing.sm, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   archived: { gap: spacing.sm, marginTop: spacing.lg },
   actions: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },

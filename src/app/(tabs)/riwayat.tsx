@@ -204,7 +204,8 @@ function Separator() {
 const styles = StyleSheet.create({
   list: { padding: spacing.lg, paddingBottom: spacing.xl },
   controls: { gap: spacing.sm, marginBottom: spacing.md },
-  chips: { gap: spacing.sm },
+  // Chips scroll to the screen edge: the negative margin cancels the list padding, paddingRight keeps 16dp after the last chip.
+  chips: { gap: spacing.sm, paddingRight: spacing.lg },
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   filterButton: {
     minHeight: MIN_TOUCH,
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   },
   filterButtonPressed: { backgroundColor: colors.brandTint },
   filterLabel: { ...type.label, color: colors.brandStrong },
-  chipScroll: { flex: 1 },
+  chipScroll: { flex: 1, marginRight: -spacing.lg },
   clearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   noteText: { flex: 1, flexShrink: 1 },

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Chip } from '../components/Chip';
-import { SectionHeader } from '../components/SectionHeader';
 import { colors, spacing, type } from '../theme';
 import { SectionA } from './SectionA';
 import { SectionB } from './SectionB';
@@ -46,7 +45,10 @@ export function ComponentGallery() {
         <View style={[styles.content, maxWidth !== null && { maxWidth }]}>
           {GROUPS.map(({ title, Body }) => (
             <View key={title} style={styles.group}>
-              <SectionHeader title={title} />
+              {/* Group title is one level above the component titles (titleL vs titleM). */}
+              <Text accessibilityRole="header" style={styles.groupTitle}>
+                {title}
+              </Text>
               <Body />
             </View>
           ))}
@@ -59,6 +61,7 @@ export function ComponentGallery() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl * 3 },
+  groupTitle: { ...type.titleL, color: colors.text },
   note: { ...type.secondary, color: colors.textSecondary },
   widthRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   // `width: '100%'` with a maxWidth: full width until the cap, then centred.

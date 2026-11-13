@@ -65,6 +65,9 @@ const writeoff = item('h-writeoff', 'debt_writeoff', 'out', 30_000, null);
 const refund = item('h-refund', 'credit_refund', 'out', 25_000, 'tunai');
 const original = item('h-original', 'member_payment', 'in', 45_000, 'tunai', { reversedById: 'h-reversal' });
 const reversal = item('h-reversal', 'reversal', 'out', 45_000, 'tunai', { reversesEntryId: 'h-original', correctionReason: 'Salah memilih anggota' });
+// A corrected money-OUT entry (a host payout) and the reversal that cancels it (the reversal goes back in).
+const originalOut = item('h-original-out', 'host_payout', 'out', AMOUNT_BIG, 'tunai', { week: 2, reversedById: 'h-reversal-out' });
+const reversalOut = item('h-reversal-out', 'reversal', 'in', AMOUNT_BIG, 'tunai', { week: 2, reversesEntryId: 'h-original-out', correctionReason: 'Jumlah salah' });
 
 const longNote = item('h-longnote', 'shared_goal', 'out', AMOUNT_BIG, 'debit', { memberId: null, note: T6_LONG });
 const longName = item('h-longname', 'member_payment', 'in', AMOUNT_BIG, 'tunai');
@@ -76,6 +79,9 @@ const flatB = item('h-flat-b', 'host_payout', 'out', AMOUNT_BIG, 'tunai', { week
 /** Normal rows in the order of the spec: payment, payout, offset, transfer, loan, write-off, refund, reversal. */
 export const HISTORY_TYPES: readonly LedgerListItem[] = [payment, payout, offset, transfer, loan, writeoff, refund, reversal];
 export const HISTORY_CORRECTED = original;
+export const HISTORY_CORRECTED_OUT = originalOut;
+/** A corrected money-in row and a corrected money-out row, to show both flat inside one Card. */
+export const HISTORY_CORRECTED_FLAT: readonly LedgerListItem[] = [original, originalOut];
 export const HISTORY_LONG_NOTE = longNote;
 export const HISTORY_LONG_NAME = longName;
 export const HISTORY_EXTREME = extreme;
@@ -84,7 +90,7 @@ export const HISTORY_FLAT: readonly LedgerListItem[] = [flatA, flatB];
 
 /** HistoryRow looks up the original of a reversal here. */
 export const HISTORY_BY_ID: ReadonlyMap<string, LedgerListItem> = new Map(
-  [...HISTORY_TYPES, original, longNote, longName, extreme, noPos, flatA, flatB].map((e) => [e.id, e]),
+  [...HISTORY_TYPES, original, originalOut, reversalOut, longNote, longName, extreme, noPos, flatA, flatB].map((e) => [e.id, e]),
 );
 
 // ---- InitialsRow fixtures (same shape paidTodayView() returns) ----

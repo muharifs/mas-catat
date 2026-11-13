@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { colors, fonts, ICON, MIN_TOUCH, radius, spacing, type } from '../theme';
 
 interface ListRowProps {
   title: string;
@@ -15,12 +16,15 @@ interface ListRowProps {
   /** Title in the error colour, for an action that ends something (for example closing a meeting). The words still say it. */
   destructive?: boolean;
   accessibilityLabel?: string;
+  /** Chevron at the far right. Default: shown when the row is tappable (tappable = chevron, information = none). */
+  chevron?: boolean;
 }
 
 // One list row: title (and details) on the left, optional right-hand content. A tappable row is a Pressable with
 // accessibilityRole="button" so TalkBack announces it as actionable (on the web it would be an <a> or <button>).
 // Rows are flat (no shadow: a long list of shadows is slow); a hairline border separates them from the page.
-export function ListRow({ title, children, right, onPress, tone = 'default', strikeTitle = false, destructive = false, accessibilityLabel }: ListRowProps) {
+export function ListRow({ title, children, right, onPress, tone = 'default', strikeTitle = false, destructive = false, accessibilityLabel, chevron }: ListRowProps) {
+  const showChevron = chevron ?? Boolean(onPress);
   const body = (
     <>
       <View style={styles.main}>
@@ -28,6 +32,12 @@ export function ListRow({ title, children, right, onPress, tone = 'default', str
         {children}
       </View>
       {right ? <View style={styles.right}>{right}</View> : null}
+      {showChevron ? (
+        // Decoration only: hidden from TalkBack (accessibilityElementsHidden is iOS, importantForAccessibility is Android).
+        <View style={styles.chevron} accessibilityElementsHidden importantForAccessibility="no">
+          <Ionicons name="chevron-forward" size={ICON.sm} color={colors.textTertiary} />
+        </View>
+      ) : null}
     </>
   );
   if (!onPress) return <View style={[styles.row, toneStyle[tone]]}>{body}</View>;
@@ -59,6 +69,7 @@ const styles = StyleSheet.create({
   },
   main: { flex: 1, gap: spacing.xs },
   right: { alignItems: 'flex-end', gap: spacing.xs },
+  chevron: { flexShrink: 0 },
   title: { ...type.bodyStrong, color: colors.text },
   strike: { textDecorationLine: 'line-through' },
   destructive: { color: colors.error },

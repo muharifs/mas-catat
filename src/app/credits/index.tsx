@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import { sortByName } from '@/domain/sort';
 import type { RefundableCredit } from '@/db/credits';
@@ -62,10 +63,14 @@ export default function CreditsScreen() {
         lines.push(`Peringatan: saldo ${ACCOUNT_LABELS[account]} akan menjadi minus. Tetap bisa disimpan.`);
       }
       lines.push('Pengembalian ini final: tidak bisa dikoreksi atau dibatalkan. Periksa tempat uang dan tanggalnya.');
-      Alert.alert(`Kembalikan uang ${formatRupiah(preview.entry.amount)}`, lines.join('\n\n'), [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Kembalikan uang', style: 'destructive', onPress: () => void save(item, preview.entry.amount) },
-      ]);
+      showDialog({
+        title: `Kembalikan uang ${formatRupiah(preview.entry.amount)}`,
+        message: lines.join('\n\n'),
+        buttons: [
+          { label: 'Batal', role: 'cancel' },
+          { label: 'Kembalikan uang', role: 'destructive', onPress: () => void save(item, preview.entry.amount) },
+        ],
+      });
     } catch (e) {
       setError(toIndonesian(e, 'preview'));
       setBusy(false);

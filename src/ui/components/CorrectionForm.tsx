@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '../dialog';
 import { toIndonesian } from '../errors';
 import { colors, radius, spacing, type } from '../theme';
 import { Button } from './Button';
 import { TextField } from './TextField';
 
 interface CorrectionFormProps {
-  /** Alert title, for example "Koreksi pembayaran Rp45.000". */
+  /** Dialog title, for example "Koreksi pembayaran Rp45.000". */
   title: string;
-  /** Alert body: says what the correction does. */
+  /** Dialog body: says what the correction does. */
   message: string;
   submitLabel?: string;
   onSubmit: (reason: string) => Promise<void>;
@@ -28,22 +29,26 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
       return;
     }
     setError(null);
-    Alert.alert(title, message, [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: submitLabel,
-        style: 'destructive',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            await onSubmit(reason.trim());
-          } catch (e) {
-            setError(toIndonesian(e, 'correct'));
-            setBusy(false);
-          }
+    showDialog({
+      title,
+      message,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        {
+          label: submitLabel,
+          role: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await onSubmit(reason.trim());
+            } catch (e) {
+              setError(toIndonesian(e, 'correct'));
+              setBusy(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   }
 
   return (

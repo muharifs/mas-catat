@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { sortByName } from '@/domain/sort';
 import {
   defaultMeetingDate,
@@ -107,10 +108,14 @@ export default function MeetingHostScreen() {
       week.hostMemberId === null
         ? `${nameOf(host)} sekarang tuan rumah pertemuan ${holder.number}; pertemuan itu akan menjadi belum ditentukan.`
         : `${nameOf(host)} sekarang tuan rumah pertemuan ${holder.number}; kedua pertemuan saling bertukar (pertemuan ${holder.number} jadi ${nameOf(week.hostMemberId)}).`;
-    Alert.alert('Tukar tuan rumah', `${summary}\n\n${swapNote}`, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Simpan', onPress: () => void save() },
-    ]);
+    showDialog({
+      title: 'Tukar tuan rumah',
+      message: `${summary}\n\n${swapNote}`,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        { label: 'Simpan', onPress: () => void save() },
+      ],
+    });
   }
 
   return (

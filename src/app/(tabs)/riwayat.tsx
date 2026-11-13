@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showMessage } from '@/ui/dialog';
 import type { LedgerListItem } from '@/db/ledger';
 import { useDatabaseControl, useRepos } from '@/db/provider';
 import { monthOfDate, summarizeMonth } from '@/domain/flow';
@@ -100,7 +101,7 @@ export default function RiwayatScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Selengkapnya tentang ringkasan"
-            onPress={() => Alert.alert('Ringkasan bulan ini', SUMMARY_NOTE_FULL, [{ text: 'Tutup' }])}
+            onPress={() => showMessage('Ringkasan bulan ini', SUMMARY_NOTE_FULL)}
             style={styles.moreLink}
           >
             <Text maxFontSizeMultiplier={1.3} style={styles.clearLabel}>

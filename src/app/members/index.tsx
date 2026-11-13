@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { useRepos } from '@/db/provider';
 import { canHardDelete } from '@/domain/members';
 import { sortByName } from '@/domain/sort';
@@ -87,16 +88,16 @@ export default function MembersScreen() {
     setEditError(null);
   }
 
-  // Alert.alert is the native dialog (web: window.confirm); buttons are an array, the destructive one is styled red.
+  // showDialog is the in-app dialog (web: window.confirm); buttons are an array, the destructive one is styled red.
   function confirmDelete(id: string, name: string) {
-    Alert.alert(
-      `Hapus ${name}?`,
-      `${name} belum punya data apa pun, jadi akan dihapus dari daftar. Tindakan ini tidak bisa dibatalkan.`,
-      [
-        { text: 'Batal', style: 'cancel' },
+    showDialog({
+      title: `Hapus ${name}?`,
+      message: `${name} belum punya data apa pun, jadi akan dihapus dari daftar. Tindakan ini tidak bisa dibatalkan.`,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
         {
-          text: 'Hapus',
-          style: 'destructive',
+          label: 'Hapus',
+          role: 'destructive',
           onPress: () => {
             repos.members.remove(id).then(
               () => {
@@ -108,7 +109,7 @@ export default function MembersScreen() {
           },
         },
       ],
-    );
+    });
   }
 
   async function confirmArchive(id: string, name: string) {
@@ -123,14 +124,14 @@ export default function MembersScreen() {
       setEditError(toIndonesian(e, 'archive'));
       return;
     }
-    Alert.alert(
-      `Arsipkan ${name}?`,
-      `${name} akan disembunyikan dari daftar anggota dan dari pilihan anggota periode baru. Riwayat dan laporan tetap utuh. Bisa diaktifkan lagi kapan saja.`,
-      [
-        { text: 'Batal', style: 'cancel' },
+    showDialog({
+      title: `Arsipkan ${name}?`,
+      message: `${name} akan disembunyikan dari daftar anggota dan dari pilihan anggota periode baru. Riwayat dan laporan tetap utuh. Bisa diaktifkan lagi kapan saja.`,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
         {
-          text: 'Arsipkan',
-          style: 'destructive',
+          label: 'Arsipkan',
+          role: 'destructive',
           onPress: () => {
             repos.members.archive(id).then(
               () => {
@@ -142,7 +143,7 @@ export default function MembersScreen() {
           },
         },
       ],
-    );
+    });
   }
 
   async function unarchive(id: string) {

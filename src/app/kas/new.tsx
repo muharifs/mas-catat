@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { appendAmountDigits, deleteLastDigit } from '@/domain/amount-input';
 import { ACCOUNT_LABELS, KAS_KINDS, type KasEntryInput, type KasKind } from '@/domain/kas';
@@ -224,10 +225,14 @@ export default function NewKasEntryScreen() {
         lines.push(`Peringatan: saldo ${preview.negativeAccounts.map((a) => ACCOUNT_LABELS[a]).join(' dan ')} akan menjadi minus. Tetap bisa disimpan.`);
       }
       lines.push('Jika salah, catatan ini bisa dikoreksi di tab Riwayat (dengan alasan).');
-      Alert.alert(`Simpan ${kind === 'transfer' ? 'pindah saldo' : KIND_LABELS[kind].toLowerCase()} ${formatRupiah(e.amount)}?`, lines.join('\n\n'), [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Simpan', onPress: () => void save(input) },
-      ]);
+      showDialog({
+        title: `Simpan ${kind === 'transfer' ? 'pindah saldo' : KIND_LABELS[kind].toLowerCase()} ${formatRupiah(e.amount)}?`,
+        message: lines.join('\n\n'),
+        buttons: [
+          { label: 'Batal', role: 'cancel' },
+          { label: 'Simpan', onPress: () => void save(input) },
+        ],
+      });
     } catch (e) {
       setError(errorText(e, 'preview'));
       setBusy(false);

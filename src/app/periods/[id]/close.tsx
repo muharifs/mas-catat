@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { endDateProblem, type EndDateProblem } from '@/domain/close';
 import { sortByName } from '@/domain/sort';
 import { useRepos } from '@/db/provider';
@@ -88,28 +89,28 @@ export default function ClosePeriodScreen() {
     }
   }
 
-  // Two steps, both with Alert.alert (the native dialog; it is not a web confirm() and has no text input).
+  // Two steps, both in-app dialogs (showDialog; not a web confirm() and no text input).
   function confirmClose() {
     setActionError(null);
-    Alert.alert(
-      'Akhiri periode',
-      `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan ditanggung kas dan dihapus dari catatan anggota. Sisa titipan anggota tetap tersimpan.`,
-      [
-        { text: 'Batal', style: 'cancel' },
+    showDialog({
+      title: 'Akhiri periode',
+      message: `Akhiri "${periodName}" pada ${formatDate(endDate)}?\n\nTunggakan ${formatRupiah(preview.totalWriteoff)} dari ${preview.writeoffs.length} anggota akan ditanggung kas dan dihapus dari catatan anggota. Sisa titipan anggota tetap tersimpan.`,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
         {
-          text: 'Lanjut',
+          label: 'Lanjut',
           onPress: () =>
-            Alert.alert(
-              'Yakin ingin mengakhiri periode?',
-              'Ini tidak bisa dibatalkan. Setelah periode berakhir, pembayaran, pertemuan dan pembayaran tuan rumah periode ini tidak bisa diubah lagi.',
-              [
-                { text: 'Batal', style: 'cancel' },
-                { text: 'Ya, akhiri periode', style: 'destructive', onPress: () => void performClose() },
+            showDialog({
+              title: 'Yakin ingin mengakhiri periode?',
+              message: 'Ini tidak bisa dibatalkan. Setelah periode berakhir, pembayaran, pertemuan dan pembayaran tuan rumah periode ini tidak bisa diubah lagi.',
+              buttons: [
+                { label: 'Batal', role: 'cancel' },
+                { label: 'Ya, akhiri periode', role: 'destructive', onPress: () => void performClose() },
               ],
-            ),
+            }),
         },
       ],
-    );
+    });
   }
 
   return (

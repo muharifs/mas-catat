@@ -2,7 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { appendAmountDigits, checkPaymentAmount, deleteLastDigit, type PaymentAmountCheck } from '@/domain/amount-input';
 import { AMOUNT_FORMAT_HINT, parseRupiahInput, paymentChoices, type PaymentPreview } from '@/domain/payment-preview';
 import { useRepos } from '@/db/provider';
@@ -101,14 +102,14 @@ export default function PayScreen() {
     try {
       const preview = await repos.payments.preview({ periodId: id, memberId, date, amount });
       setBusy(false);
-      Alert.alert(
-        paymentConfirmTitle(preview),
-        confirmMessage(memberName, date, preview),
-        [
-          { text: 'Batal', style: 'cancel' },
-          { text: 'Simpan', onPress: () => void save(amount) },
+      showDialog({
+        title: paymentConfirmTitle(preview),
+        message: confirmMessage(memberName, date, preview),
+        buttons: [
+          { label: 'Batal', role: 'cancel' },
+          { label: 'Simpan', onPress: () => void save(amount) },
         ],
-      );
+      });
     } catch (e) {
       setError(toIndonesian(e, 'preview'));
       setBusy(false);

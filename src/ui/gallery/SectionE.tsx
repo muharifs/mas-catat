@@ -158,7 +158,7 @@ export function SectionE() {
       </Section>
 
       <Section title="CorrectionForm" states="awal, alasan kosong (galat), title panjang, message T6, sibuk setelah konfirmasi (1 detik), batal (toast).">
-        <Demo caption="Ketuk 'Koreksi' dengan alasan kosong: muncul 'Alasan koreksi wajib diisi.'. Dengan alasan: dialog Alert sungguhan, lalu tombol nonaktif 1 detik.">
+        <Demo caption="Ketuk 'Koreksi' dengan alasan kosong: muncul 'Alasan koreksi wajib diisi.'. Dengan alasan: dialog sungguhan, lalu tombol nonaktif 1 detik.">
           <CorrectionForm
             title="Koreksi pembayaran Rp12.345.000 oleh Siti Nurhaliza Rahmawati"
             message={T6_LONG}

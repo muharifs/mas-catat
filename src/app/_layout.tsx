@@ -3,6 +3,8 @@ import { SplashScreen, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { colors, fonts } from '@/ui/theme';
 import { DatabaseProvider, useDatabaseControl } from '@/db/provider';
+import { DialogHost } from '@/ui/components/DialogHost';
+import { ToastHost } from '@/ui/components/ToastHost';
 
 // Keep the splash screen up until the fonts are ready, so no screen flashes in the system font first.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -27,9 +29,14 @@ export default function RootLayout() {
   if (!fontsDone) return null;
 
   return (
-    <DatabaseProvider>
-      <AppStack />
-    </DatabaseProvider>
+    <>
+      <DatabaseProvider>
+        <AppStack />
+      </DatabaseProvider>
+      {/* Siblings of DatabaseProvider, outside <Stack key={dataVersion}>: they must survive reloadEverything() after a restore. */}
+      <DialogHost />
+      <ToastHost />
+    </>
   );
 }
 

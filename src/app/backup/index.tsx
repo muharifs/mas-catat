@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { backupFileName, backupReminder } from '@/domain/backup';
 import type { CsvKind } from '@/domain/csv';
 import { createBackupSnapshot } from '@/db/backup';
@@ -59,10 +60,14 @@ export default function BackupScreen() {
   }
 
   function confirmBackup() {
-    Alert.alert('Bagikan cadangan', `${BACKUP_WARNING}\n\n${OFFSITE_HINT}\n\n${NO_ENCRYPTION_HINT}`, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Lanjut bagikan', onPress: () => void run('Membuat cadangan...', shareBackup) },
-    ]);
+    showDialog({
+      title: 'Bagikan cadangan',
+      message: `${BACKUP_WARNING}\n\n${OFFSITE_HINT}\n\n${NO_ENCRYPTION_HINT}`,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        { label: 'Lanjut bagikan', onPress: () => void run('Membuat cadangan...', shareBackup) },
+      ],
+    });
   }
 
   async function shareBackup() {

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { backupReminder } from '@/domain/backup';
 import { useRepos } from '@/db/provider';
 import { monthOfDate, summarizeMonth } from '@/domain/flow';
@@ -136,23 +137,27 @@ export default function HomeScreen() {
     if (!period || !week) return;
     const periodId = period.id;
     const number = week.number;
-    Alert.alert(`Tutup pertemuan ${number}`, closeWeekMessage(number, week.date, arrears), [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Tutup pertemuan',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await repos.weeks.closeOldest(periodId);
-            setActionError(null);
-            toast(toasts.weekClosed(number));
-            await reload();
-          } catch (e) {
-            setActionError(toIndonesian(e, 'close_week'));
-          }
+    showDialog({
+      title: `Tutup pertemuan ${number}`,
+      message: closeWeekMessage(number, week.date, arrears),
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        {
+          label: 'Tutup pertemuan',
+          role: 'destructive',
+          onPress: async () => {
+            try {
+              await repos.weeks.closeOldest(periodId);
+              setActionError(null);
+              toast(toasts.weekClosed(number));
+              await reload();
+            } catch (e) {
+              setActionError(toIndonesian(e, 'close_week'));
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   }
 
   function openMonthInRiwayat() {

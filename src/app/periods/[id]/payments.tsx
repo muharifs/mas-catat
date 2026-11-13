@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { showMessage } from '@/ui/dialog';
 import { useRepos } from '@/db/provider';
 import { sortByName } from '@/domain/sort';
 import { canSwipePay, SWIPE_PAYMENT_AMOUNT } from '@/domain/swipe-pay';
@@ -70,7 +71,7 @@ export default function PeriodPaymentsScreen() {
       toast(swipePaymentToast(name, preview));
     } catch (e) {
       paidTodayRef.current.delete(memberId); // nothing was saved: release the lock
-      Alert.alert('Pembayaran gagal', toIndonesian(e));
+      showMessage('Pembayaran gagal', toIndonesian(e));
     }
     await reload();
   }

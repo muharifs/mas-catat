@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { PayoutPreview } from '@/domain/payout';
 import { useRepos } from '@/db/provider';
@@ -117,14 +118,14 @@ export default function PayoutScreen() {
       : preview.accountShort
         ? `\n\nPeringatan: saldo ${ACCOUNT_LABELS[preview.account]} lebih kecil dari uang keluar bersih, jadi akan menjadi minus. Tetap bisa disimpan.`
         : '';
-    Alert.alert(
-      `Bayar tuan rumah ${formatRupiah(preview.payout)}`,
-      confirmMessage(hostName, week, date, preview) + warning,
-      [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Bayar', onPress: () => void save() },
+    showDialog({
+      title: `Bayar tuan rumah ${formatRupiah(preview.payout)}`,
+      message: confirmMessage(hostName, week, date, preview) + warning,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        { label: 'Bayar', onPress: () => void save() },
       ],
-    );
+    });
   }
 
   return (

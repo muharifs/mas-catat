@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog } from '@/ui/dialog';
 import { selectableWeekNumbers } from '@/domain/schedule';
 import { useRepos } from '@/db/provider';
 import { Badge } from '@/ui/components/Badge';
@@ -60,23 +61,27 @@ export default function PeriodDetailScreen() {
   function confirmCloseWeek() {
     if (!oldestOpen) return;
     const number = oldestOpen.number;
-    Alert.alert(`Tutup pertemuan ${number}`, closeWeekMessage(number, oldestOpen.date, arrears), [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Tutup pertemuan',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await repos.weeks.closeOldest(period.id);
-            setActionError(null);
-            toast(toasts.weekClosed(number));
-            await reload();
-          } catch (e) {
-            setActionError(toIndonesian(e, 'close_week'));
-          }
+    showDialog({
+      title: `Tutup pertemuan ${number}`,
+      message: closeWeekMessage(number, oldestOpen.date, arrears),
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        {
+          label: 'Tutup pertemuan',
+          role: 'destructive',
+          onPress: async () => {
+            try {
+              await repos.weeks.closeOldest(period.id);
+              setActionError(null);
+              toast(toasts.weekClosed(number));
+              await reload();
+            } catch (e) {
+              setActionError(toIndonesian(e, 'close_week'));
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   }
 
   return (

@@ -1,14 +1,20 @@
 // Section D: cards and messages (Card, Notice, Badge + Dot).
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Badge, Dot, type BadgeTone } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { DIALOG_MAX_WIDTH } from '../components/DialogHost';
 import { ListRow } from '../components/ListRow';
 import { Notice } from '../components/Notice';
 import { ReportLine } from '../components/ReportLine';
 import { Section as ScreenSection } from '../components/Section';
+import { TextField } from '../components/TextField';
+import { TOAST_BOTTOM_OFFSET } from '../components/ToastHost';
+import { showDialog, showMessage } from '../dialog';
 import { colors, spacing, type } from '../theme';
-import { AMOUNT_BIG, AMOUNT_MID, T3_TITLE, T4_TITLE, T5_ERROR, T6_LONG, T7_VERY_LONG } from './fixtures';
+import { toast } from '../toast';
+import { AMOUNT_BIG, AMOUNT_MID, T1_LABEL, T3_TITLE, T4_TITLE, T5_ERROR, T6_LONG, T7_VERY_LONG, T8_MEMBER } from './fixtures';
 import { Demo, pressedToast, Row, Section } from './parts';
 
 const CARD_TONES = ['default', 'alt', 'info', 'warn', 'danger'] as const;
@@ -131,7 +137,178 @@ export function SectionD() {
           </Row>
         </Demo>
       </Section>
+
+      <Section
+        title="DialogHost"
+        states={`Dialog dalam aplikasi (font Inter, lebar maks ${DIALOG_MAX_WIDTH} dp). 10 keadaan: konfirmasi biasa, merah, info, judul panjang, pesan sangat panjang, tiga tombol, tidak bisa ditutup, dua dialog beruntun, antrean, dengan keyboard.`}
+      >
+        <Demo caption="1. Konfirmasi biasa: Batal dan Simpan">
+          <Button
+            label="Buka konfirmasi"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Simpan pembayaran?',
+                message: 'Pembayaran Rp15.000 akan dicatat.',
+                buttons: [
+                  { label: 'Batal', role: 'cancel' },
+                  { label: 'Simpan', onPress: pressedToast('Simpan') },
+                ],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="2. Konfirmasi merah (destructive), dua paragraf">
+          <Button
+            label="Buka konfirmasi merah"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Yakin ingin mengakhiri periode?',
+                message: `${T6_LONG}\n\nIni tidak bisa dibatalkan.`,
+                buttons: [
+                  { label: 'Batal', role: 'cancel' },
+                  { label: 'Ya, akhiri periode', role: 'destructive', onPress: pressedToast('Ya, akhiri periode') },
+                ],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="3. Info satu tombol (Tutup); ketuk di luar juga menutup">
+          <Button label="Buka info" variant="secondary" onPress={() => showMessage('Pembayaran gagal', T5_ERROR)} />
+        </Demo>
+        <Demo caption="4. Judul panjang (T1) dan label tombol panjang">
+          <Button
+            label="Buka judul panjang"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: `${T1_LABEL} ${T8_MEMBER}`,
+                message: 'Pesan pendek.',
+                buttons: [
+                  { label: 'Batal', role: 'cancel' },
+                  { label: 'Ya, ganti semua data sekarang juga', role: 'destructive' },
+                ],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="5. Pesan sangat panjang: pesan menggulir, tombol tetap terlihat">
+          <Button
+            label="Buka pesan panjang"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Pesan panjang',
+                message: Array.from({ length: 6 }, () => `${T5_ERROR}\n\n${T6_LONG}`).join('\n\n'),
+                buttons: [{ label: 'Batal', role: 'cancel' }, { label: 'Simpan' }],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="6. Tiga tombol: dua aksi dan Batal">
+          <Button
+            label="Buka tiga tombol"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Pilih tindakan',
+                message: 'Dua aksi, Batal di paling bawah.',
+                buttons: [{ label: 'Bagikan' }, { label: 'Simpan di HP' }, { label: 'Batal', role: 'cancel' }],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="7. cancelable false: Back dan ketuk di luar tidak menutup; tombol menutup">
+          <Button
+            label="Buka tidak bisa ditutup"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Harus dipilih',
+                message: 'Coba tombol Back dan ketuk di luar kartu.',
+                cancelable: false,
+                buttons: [{ label: 'Mengerti' }],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="8. Dua dialog beruntun (seperti Akhiri periode)">
+          <Button
+            label="Buka dua langkah"
+            variant="secondary"
+            onPress={() =>
+              showDialog({
+                title: 'Akhiri periode',
+                message: 'Langkah 1.',
+                buttons: [
+                  { label: 'Batal', role: 'cancel' },
+                  {
+                    label: 'Lanjut',
+                    onPress: () =>
+                      showDialog({
+                        title: 'Yakin?',
+                        message: 'Langkah 2.',
+                        buttons: [
+                          { label: 'Batal', role: 'cancel' },
+                          { label: 'Ya, akhiri periode', role: 'destructive' },
+                        ],
+                      }),
+                  },
+                ],
+              })
+            }
+          />
+        </Demo>
+        <Demo caption="9. Antrean: dua dialog sekaligus, yang kedua tampil setelah yang pertama">
+          <Button
+            label="Buka dua sekaligus"
+            variant="secondary"
+            onPress={() => {
+              showMessage('Dialog pertama', 'Tutup untuk melihat yang kedua.');
+              showMessage('Dialog kedua', 'Tampil setelah yang pertama.');
+            }}
+          />
+        </Demo>
+        <KeyboardDemo />
+      </Section>
+
+      <Section title="ToastHost" states={`Snackbar dalam aplikasi, 3 detik, ${TOAST_BOTTOM_OFFSET} dp di atas tepi bawah. Pesan baru menggantikan yang lama.`}>
+        <Demo caption="11. Toast pendek">
+          <Button label="Tampilkan toast" variant="secondary" onPress={() => toast('Pembayaran tersimpan')} />
+        </Demo>
+        <Demo caption="12. Toast panjang (dua baris), dan tiga ketukan cepat (yang terakhir menggantikan)">
+          <Row wrap>
+            <Button label="Toast panjang" variant="secondary" compact onPress={() => toast(`${T6_LONG} Pastikan cadangan benar-benar terkirim.`)} />
+            <Button
+              label="Tiga ketukan"
+              variant="secondary"
+              compact
+              onPress={() => {
+                toast('Toast pertama');
+                toast('Toast kedua');
+                toast('Toast ketiga');
+              }}
+            />
+          </Row>
+        </Demo>
+      </Section>
     </>
+  );
+}
+
+// 10. A real TextField above the button: open the keyboard, then open the dialog (the host closes the keyboard).
+function KeyboardDemo() {
+  const [text, setText] = useState('');
+  return (
+    <Demo caption="10. Dengan keyboard: ketik di kolom, lalu buka dialog; keyboard tertutup">
+      <TextField label="Catatan" value={text} onChangeText={setText} placeholder="Ketik sesuatu" />
+      <Button
+        label="Buka dialog"
+        variant="secondary"
+        onPress={() => showDialog({ title: 'Simpan catatan?', message: text || 'Catatan kosong.', buttons: [{ label: 'Batal', role: 'cancel' }, { label: 'Simpan' }] })}
+      />
+    </Demo>
   );
 }
 

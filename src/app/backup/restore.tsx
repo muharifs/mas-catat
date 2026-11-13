@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { showDialog, showMessage } from '@/ui/dialog';
 import { checkFileSize, phraseMatches, requiredPhrase, SAFETY_KEEP } from '@/domain/backup';
 import { commitRestore, discardRestore, prepareRestore, type PreparedRestore, type RestoreInput } from '@/db/backup';
 import { useDatabaseControl } from '@/db/provider';
@@ -144,27 +145,31 @@ export default function RestoreScreen() {
       setPrepared(null);
       reloadEverything();
       if (outcome.outcome === 'rolled_back') {
-        Alert.alert('Data lama dikembalikan', ROLLED_BACK_TEXT);
+        showMessage('Data lama dikembalikan', ROLLED_BACK_TEXT);
         return;
       }
       toast(current.source === 'empty' ? restoreTexts.resetDone : restoreTexts.done);
       // Offer the safety copy to the share sheet. The restore is already finished, so this blocks nothing.
-      Alert.alert('Salinan pengaman', safetyOfferText(outcome), [
-        { text: 'Nanti', style: 'cancel' },
-        {
-          text: 'Bagikan',
-          onPress: () => {
-            shareSafetyCopy(outcome.safetyName).catch((e: unknown) => Alert.alert('Gagal membagikan', toIndonesian(e, 'share_safety')));
+      showDialog({
+        title: 'Salinan pengaman',
+        message: safetyOfferText(outcome),
+        buttons: [
+          { label: 'Nanti', role: 'cancel' },
+          {
+            label: 'Bagikan',
+            onPress: () => {
+              shareSafetyCopy(outcome.safetyName).catch((e: unknown) => showMessage('Gagal membagikan', toIndonesian(e, 'share_safety')));
+            },
           },
-        },
-      ]);
+        ],
+      });
     } catch (e) {
       setPrepared(null);
       if (restoreErrorNeedsReload(e)) {
         // The live data may already have changed (for example restore_failed), so no screen may keep old numbers.
         // The screens are rebuilt, so the message goes into a dialog instead of this screen's state.
         reloadEverything();
-        Alert.alert('Pemulihan bermasalah', toIndonesian(e, 'restore'));
+        showMessage('Pemulihan bermasalah', toIndonesian(e, 'restore'));
       } else {
         setError(toIndonesian(e));
         setPhase('idle');
@@ -181,18 +186,26 @@ export default function RestoreScreen() {
       void perform(current); // typing the word is the confirmation
       return;
     }
-    // Same as ending a period: two native dialogs in a row.
-    Alert.alert(restoreTexts.firstDialogTitle, restoreTexts.firstDialogBody, [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Lanjut',
-        onPress: () =>
-          Alert.alert(restoreTexts.secondDialogTitle, restoreTexts.secondDialogBody, [
-            { text: 'Batal', style: 'cancel' },
-            { text: restoreTexts.secondDialogOk, style: 'destructive', onPress: () => void perform(current) },
-          ]),
-      },
-    ]);
+    // Same as ending a period: two in-app dialogs in a row.
+    showDialog({
+      title: restoreTexts.firstDialogTitle,
+      message: restoreTexts.firstDialogBody,
+      buttons: [
+        { label: 'Batal', role: 'cancel' },
+        {
+          label: 'Lanjut',
+          onPress: () =>
+            showDialog({
+              title: restoreTexts.secondDialogTitle,
+              message: restoreTexts.secondDialogBody,
+              buttons: [
+                { label: 'Batal', role: 'cancel' },
+                { label: restoreTexts.secondDialogOk, role: 'destructive', onPress: () => void perform(current) },
+              ],
+            }),
+        },
+      ],
+    });
   }
 
   // The header back arrow is hidden while a job runs (the job cannot be stopped halfway).

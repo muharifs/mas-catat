@@ -410,7 +410,8 @@ async function bestEffortRemove(store: SafetyStore, name: string): Promise<void>
 
 /**
  * Steps 6 and 7. Everything runs inside db.runExclusive, so no transaction and no other query interleaves.
- * - A failure BEFORE the live data is touched (safety copy cannot be written or verified) throws and changes nothing.
+ * - A failure BEFORE the live data is touched (live data cannot be read, or the safety copy cannot be written or
+ *   verified, up to the rename into place) throws `safety_failed` and changes nothing.
  * - A failure AFTER (copy error, or verification differs) restores the safety copy automatically and reports
  *   'rolled_back'. Only if that recovery also fails does it throw a restore_failed error.
  * The memory copies are closed in the end, whatever happened.
@@ -431,11 +432,16 @@ export async function commitRestore(
       const q = bridge.liveRaw;
 
       // 6a) safety copy: serialize, write to a temp name, read back, verify, then rename into place
-      const liveBytes = await bridge.serializeLive();
-      const before: Expectation = { summary: await summarizeDb(q), schema: await readSchema(q) };
-      const holdsRecords = before.summary.ledgerCount + before.summary.paymentCount + before.summary.memberCount + before.summary.periodCount > 0;
-      const safetyName = safetyFileName(now(), before.summary.userVersion, !holdsRecords);
+      // Boundary: every failure up to and including `store.rename` below is classified `safety_failed`. Until that
+      // rename succeeds only reads and the temp file happen, so the live data cannot have changed. Nothing after
+      // it is ever classified `safety_failed`.
+      let before: Expectation;
+      let safetyName: string;
       try {
+        const liveBytes = await bridge.serializeLive();
+        before = { summary: await summarizeDb(q), schema: await readSchema(q) };
+        const holdsRecords = before.summary.ledgerCount + before.summary.paymentCount + before.summary.memberCount + before.summary.periodCount > 0;
+        safetyName = safetyFileName(now(), before.summary.userVersion, !holdsRecords);
         inspectHeader(liveBytes, LATEST_VERSION);
         await store.writeTemp(SAFETY_TEMP_NAME, liveBytes);
         const readBack = await store.readBytes(SAFETY_TEMP_NAME);

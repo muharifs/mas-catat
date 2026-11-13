@@ -364,6 +364,6 @@ Tidak ada tes yang mengunci `Bayar di muka`, `Menu bagikan ditutup`, `Data tidak
 ## 10. Keputusan terbuka untuk pemilik
 
 1. Bagian 2c: sepuluh pesan "tidak ditemukan" ikut diberi judul "Data tidak ditemukan"? (usul: ya, batch kecil terpisah).
-2. Bagian 3 (saran tampilan): tampilkan Notice `accountShort` hanya bila `!kasShort`? (developer memastikan di `src/domain/payout.ts`; tampilan saja).
-3. Bagian 6: bungkus galat sebelum penyalinan pengaman menjadi `safety_failed` agar pesan pulihkan bisa tegas "Data tidak berubah"? (perubahan kecil di `db/backup.ts`, bukan teks).
+2. DITUTUP 2026-11-13 (pemilik: "1-3 ikut usul"): TIDAK diubah. Notice `accountShort` tetap tampil, karena `kasShort` bisa berlaku tanpa `accountShort` saat Debit negatif, sehingga menyembunyikannya bisa menyembunyikan peringatan nyata. (Pertanyaan asli: tampilkan Notice `accountShort` hanya bila `!kasShort`?)
+3. DITUTUP 2026-11-13 (pemilik: "1-3 ikut usul"): YA, sudah dibuat. Galat sebelum salinan pengaman ada dibungkus `safety_failed` di `commitRestore` (`src/db/backup.ts`); pesan menyebut "Data tidak berubah". (Pertanyaan asli: bungkus galat sebelum penyalinan pengaman menjadi `safety_failed`?)
 4. Bagian 4b: kalimat `CSV_LEDGER_HINT` ditampilkan sebagai caption (usul) atau Notice kecil bertajuk `Cara membaca Buku kas`?

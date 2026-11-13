@@ -116,7 +116,7 @@ const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArra
   { pattern: /repayment \d+ is above the remaining loan (\d+)/, text: (m) => `Jumlah melebihi sisa pinjaman (${formatRupiah(Number(m[1]))}). Kurangi jumlah.` },
   {
     pattern: /loan cannot be corrected: the member already repaid (\d+)/,
-    text: (m) => `Pinjaman ini sudah dibayar ${formatRupiah(Number(m[1]))}. Koreksi pelunasannya dulu, baru koreksi pinjamannya.`,
+    text: (m) => `Pinjaman ini sudah dikembalikan ${formatRupiah(Number(m[1]))}. Koreksi pelunasannya dulu, baru koreksi pinjamannya.`,
   },
   { pattern: /has history and cannot be deleted/, text: 'Anggota ini punya riwayat, jadi tidak bisa dihapus. Arsipkan saja.' },
   { pattern: /archived and cannot join a period|archived member cannot join/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu di halaman Anggota.' },
@@ -140,7 +140,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   invariant: 'Angka di dalam berkas tidak cocok dengan hitungan iuran, jadi tidak dipakai. Pilih berkas cadangan yang lain.',
   unreadable: 'Berkas tidak bisa dibaca. Pastikan itu berkas cadangan Mas Catat yang utuh.',
   busy: 'Proses lain masih berjalan. Tunggu sebentar, lalu coba lagi.',
-  safety_failed: 'Salinan pengaman gagal dibuat, jadi data tidak diubah sama sekali. Periksa ruang penyimpanan lalu coba lagi.',
+  safety_failed: 'Data tidak berubah. Salinan pengaman gagal dibuat, mungkin karena ruang penyimpanan penuh atau data lama tidak terbaca, jadi pemulihan dibatalkan. Periksa ruang penyimpanan lalu coba lagi.',
   restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan lewat Cadangan, lalu Pulihkan dari cadangan.',
   share_unavailable: 'Fitur berbagi tidak tersedia di HP ini, jadi berkas tidak bisa dikirim.',
 };

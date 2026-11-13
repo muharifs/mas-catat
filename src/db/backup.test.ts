@@ -658,9 +658,40 @@ describe('commitRestore: failures leave the data intact or recover automatically
   describe('before the live data is touched (nothing changes, an error is thrown)', () => {
     it('serializing the live database fails', async () => {
       const s = await setup((b) => ({ ...b, serializeLive: async () => Promise.reject(new Error('serialize failed')) }));
-      await expect(commitRestore(s.bridge, s.live.db, s.prepared, s.store, NOW)).rejects.toThrow('serialize failed');
+      expect(await codeOfAsync(commitRestore(s.bridge, s.live.db, s.prepared, s.store, NOW))).toBe('safety_failed');
       await expectUntouched(s);
+      expect(s.live.liveBytes()).toEqual(s.beforeBytes); // byte for byte the same
       expect(s.store.files.size).toBe(0);
+    });
+
+    it('reading the live data (before the safety copy) fails', async () => {
+      const s = await setup((b) => ({
+        ...b,
+        liveRaw: { ...b.liveRaw, getAll: async () => Promise.reject(new Error('read failed')) },
+      }));
+      expect(await codeOfAsync(commitRestore(s.bridge, s.live.db, s.prepared, s.store, NOW))).toBe('safety_failed');
+      await expectUntouched(s);
+      expect(s.live.liveBytes()).toEqual(s.beforeBytes);
+      expect(s.store.files.size).toBe(0);
+    });
+
+    it('the safety copy renames fine but a later step fails: never safety_failed', async () => {
+      const s = await setup();
+      let copies = 0;
+      const bridge: NativeBridge = {
+        ...s.bridge,
+        copyIntoLive: async (source) => {
+          copies += 1;
+          if (copies === 1) throw new Error('copy failed');
+          await s.bridge.copyIntoLive(source);
+        },
+      };
+      const outcome = await commitRestore(bridge, s.live.db, s.prepared, s.store, NOW);
+      expect(outcome.outcome).toBe('rolled_back');
+      const s2 = await setup((b) => ({ ...b, copyIntoLive: async () => Promise.reject(new Error('always fails')) }));
+      const code = await codeOfAsync(commitRestore(s2.bridge, s2.live.db, s2.prepared, s2.store, NOW));
+      expect(code).toBe('restore_failed');
+      expect(code).not.toBe('safety_failed');
     });
 
     it.each(['writeTemp', 'readBytes', 'rename'] as const)('the safety store fails at %s', async (step) => {

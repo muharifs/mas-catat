@@ -68,7 +68,7 @@ describe('toIndonesian', () => {
     [new LoanError('above_remaining', 'repayment 300001 is above the remaining loan 300000', 300_000), 'Jumlah melebihi sisa pinjaman (Rp300.000). Kurangi jumlah.'],
     [
       new LoanError('reversal_below_zero', 'loan cannot be corrected: the member already repaid 100000; correct the repayment first', 200_000, 100_000),
-      'Pinjaman ini sudah dibayar Rp100.000. Koreksi pelunasannya dulu, baru koreksi pinjamannya.',
+      'Pinjaman ini sudah dikembalikan Rp100.000. Koreksi pelunasannya dulu, baru koreksi pinjamannya.',
     ],
     [new DomainError('an opening balance in piutang needs a member'), 'Pilih anggota yang punya pinjaman lama ini.'],
   ])('maps %s', (error, expected) => {

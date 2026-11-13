@@ -197,7 +197,7 @@ describe('corrections', () => {
     const before = await entryCount(f.db);
     const err = await f.repos.ledger.reverseEntry(loan.id, 'salah').catch((e: unknown) => e);
     expect(err).toMatchObject({ code: 'reversal_below_zero', repaid: 100_000 });
-    expect(toIndonesian(err)).toBe('Pinjaman ini sudah dibayar Rp100.000. Koreksi pelunasannya dulu, baru koreksi pinjamannya.');
+    expect(toIndonesian(err)).toBe('Pinjaman ini sudah dikembalikan Rp100.000. Koreksi pelunasannya dulu, baru koreksi pinjamannya.');
     expect(await entryCount(f.db)).toBe(before);
   });
 

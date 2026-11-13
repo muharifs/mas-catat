@@ -102,7 +102,7 @@ Setiap pertemuan: iuran 15.000 x 5 = 75.000, tuan rumah menerima 50.000, kas nai
 - **Huruf besar:** dengan ukuran huruf HP dibesarkan, tidak ada teks yang terpotong di semua layar.
 
 ## Batch E: teks baru (cek di HP, dengan font normal lalu font besar)
-Status: teks sudah masuk (commit b3b293c dan a2bc0ae) dan lolos tes otomatis. Tampilan di layar BELUM pernah dilihat di HP. Perbaikan tampilan F1, F2, F3, F6, dan F7 juga masih menunggu tangkapan layar dari pemilik; jangan dianggap selesai.
+Status: teks sudah masuk (commit b3b293c dan a2bc0ae) dan lolos tes otomatis. Tampilan di layar BELUM pernah dilihat di HP. Tangkapan layar sudah diterima 2026-11-13; perbaikan dicek ulang lewat R1-R9 di bawah.
 
 | # | Buka | Yang harus tampak |
 |---|---|---|
@@ -122,7 +122,7 @@ Status: teks sudah masuk (commit b3b293c dan a2bc0ae) dan lolos tes otomatis. Ta
 | E14 | Periode > Pembayaran dan rincian anggota | Tulisan "Dibayar di muka: ..." (bukan "Bayar di muka") |
 | E15 | Pesan galat umum | Sulit dipicu di HP; sudah dites otomatis. Cukup pastikan galat yang sudah dikenal (pulihkan berkas bukan cadangan, arsipkan anggota periode aktif) tetap memakai pesan lama |
 
-Perbaikan tampilan yang masih menunggu tangkapan layar: F1, F2, F3, F6, F7. Kirim tangkapan layar layar yang bersangkutan sebelum dinyatakan selesai.
+Perbaikan tampilan F1, F2, F3, F6, F7: tangkapan layar diterima 2026-11-13, perbaikan dicek lewat R1-R9.
 
 ## Recheck: font Inter + layout (2026-11-13)
 Status: dibuat, belum dilihat di HP. Penyebab teks terpotong (Android mengukur teks dengan font bawaan tetapi menggambar dengan font MiSans) diperbaiki dengan font Inter bawaan aplikasi, ditambah perbaikan tata letak baris Jadwal (F1) dan ReminderRow. Inter sekitar 5-8% lebih lebar dari font lama, jadi periksa juga angka besar. Lakukan SETIAP butir di bawah dua kali: sekali dengan ukuran huruf NORMAL, sekali dengan ukuran huruf TERBESAR (Pengaturan HP > Tampilan > Ukuran huruf).
@@ -141,4 +141,4 @@ Status: dibuat, belum dilihat di HP. Penyebab teks terpotong (Android mengukur t
 
 Jika masih ada teks yang terpotong, kirim tangkapan layar dan catat layar serta ukuran hurufnya (normal atau terbesar).
 
-Keputusan pemilik (2026-11-13, "oke buang saja"): baris berulang "Pembayaran tuan rumah: sudah dibayar" sudah dihapus dari Jadwal periode aktif; statusnya ada pada tombol "Lihat pembayaran tuan rumah". Pertanyaan terbuka untuk pemilik: pada periode yang sudah selesai baris itu dipertahankan karena tidak ada tombolnya. Beri tahu jika mau dihapus juga.
+Keputusan pemilik (2026-11-13, "oke buang saja"): baris berulang "Pembayaran tuan rumah: sudah dibayar" sudah dihapus dari Jadwal periode aktif; statusnya ada pada tombol "Lihat pembayaran tuan rumah". Diputuskan pemilik ("oke"): pada periode yang sudah selesai baris itu dipertahankan karena tidak ada tombolnya. Beri tahu jika mau dihapus juga.

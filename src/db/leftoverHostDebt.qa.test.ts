@@ -247,24 +247,18 @@ describe('Close preview and write-off with leftover debt', () => {
     expect(kas.expected).toMatchObject({ creditHeld: 5_000, outstandingDues: 0, expected: 100_000 });
   });
 
-  it('Titipan (non-multiple) settles the member\'s own arrears oldest first, then the rest is written off', async () => {
-    // Eka pays 15.000 (weeks 4 +10.000, 5 +5.000) and then 30.000 (week 5 +10.000, Titipan 20.000).
-    // Correcting the first payment frees weeks 4 (10.000) and 5 (5.000): arrears 15.000, credit 20.000.
+  it('B3 (2026-11-13): Eka cannot correct her payment while her host payout stands, so no arrears and Titipan appear together', async () => {
+    // Before B3 this test corrected the first payment (arrears 15.000 + Titipan 20.000) and checked that close settled
+    // the arrears from the Titipan. That state can no longer be reached for a paid-out host; the close rule itself is
+    // still covered by the domain test below.
     const e = await build('ready');
     const first = await pay(e, 'eka', 15_000);
     await pay(e, 'eka', 30_000);
-    await e.repos.payments.reverse(first.payment.id, 'salah catat');
-    expect(await outstanding(e, 'eka')).toEqual([0, 0, 0, 10_000, 5_000]);
+    await expect(e.repos.payments.reverse(first.payment.id, 'salah catat')).rejects.toThrow(/host payout in force/);
+    expect(await outstanding(e, 'eka')).toEqual([0, 0, 0, 0, 0]);
     expect(await credit(e, 'eka')).toBe(20_000);
     const preview = await e.repos.periods.previewClose(e.periodId);
-    const eka = preview.members.find((m) => m.memberId === e.ids.eka);
-    expect(eka).toMatchObject({ arrearsBefore: 15_000, credit: 20_000, settledByCredit: 15_000, writeoff: 0, creditLeft: 5_000 });
-    expect(eka?.settlements).toEqual([{ week: 4, amount: 10_000 }, { week: 5, amount: 5_000 }]);
-    const before = await tunai(e);
-    await e.repos.periods.close(e.periodId, TODAY);
-    expect(await tunai(e)).toBe(before);
-    expect(await credit(e, 'eka')).toBe(5_000);
-    expect((await e.repos.ledger.listByPeriod(e.periodId)).some((x) => x.type === 'debt_writeoff' && x.memberId === e.ids.eka)).toBe(false);
+    expect(preview.members.find((m) => m.memberId === e.ids.eka)).toMatchObject({ arrearsBefore: 0, credit: 20_000, writeoff: 0, creditLeft: 20_000 });
   });
 
   it('domain: Titipan 5.000 against arrears 25.000 settles week 4 partly (oldest first), 20.000 is written off', () => {

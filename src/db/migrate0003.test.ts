@@ -81,6 +81,9 @@ describe('migration 0003 (kas moves and corrections)', () => {
   it('keeps old rows working with the new code: reverse the SECOND of three identical payments', async () => {
     const db = await v2WithM4Data();
     await migrate(db);
+    // B3 blocks payment corrections while the payer's host payout stands. This test is about identical payments, so the
+    // legacy pre-pos payout e4 (week 1, no pos, outside the balances) is detached from its host.
+    await db.run("UPDATE weeks SET host_member_id = NULL WHERE period_id = 'p1' AND number = 1");
     const repos = createRepositories(db, { newId: () => 'new1', now: () => '2026-12-31T12:00:00.000Z' });
 
     const reversal = await repos.payments.reverse('pa2', 'dobel');

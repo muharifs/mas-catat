@@ -4,11 +4,15 @@ import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { MemberArchiveError, type ArchiveBlockCode } from '@/domain/members';
 import { DomainError } from '@/domain/money';
+import { PaymentHostPayoutStandsError } from '@/domain/payment-correction';
 import { HostPayoutStandsError } from '@/domain/schedule';
 import { formatRupiah } from './format';
 
 /** Shown when a host change is refused because the host payout of that meeting stands. */
 export const HOST_PAYOUT_STANDS_TEXT = 'Tuan rumah sudah dibayar. Koreksi pembayarannya dulu untuk mengganti tuan rumah.';
+
+/** Shown when a payment correction is refused because that member's own host payout stands (also the reason on the disabled button). */
+export const PAYMENT_HOST_PAYOUT_STANDS_TEXT = 'Pembayaran tuan rumah untuk anggota ini sudah dicatat. Koreksi pembayaran tuan rumah dulu.';
 
 /** Unknown error while reading data (a screen could not load). Reading never changes data, so it says so. */
 export const GENERIC_LOAD_ERROR =
@@ -165,6 +169,7 @@ export function toIndonesian(error: unknown, context: ErrorContext = 'save'): st
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
   if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
   if (error instanceof HostPayoutStandsError) return HOST_PAYOUT_STANDS_TEXT;
+  if (error instanceof PaymentHostPayoutStandsError) return PAYMENT_HOST_PAYOUT_STANDS_TEXT;
   if (error instanceof MigrationError) return 'Gagal memuat data. Tutup aplikasi sepenuhnya lalu buka lagi. Jika tetap gagal, jangan hapus aplikasi karena data bisa hilang.';
   if (error instanceof RepositoryError || error instanceof DomainError) {
     for (const rule of RULES) {

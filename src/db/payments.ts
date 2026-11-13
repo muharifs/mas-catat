@@ -4,6 +4,7 @@
 // and then stored. It is never recomputed, so entering a back-dated payment later cannot move what was
 // already allocated. The repository only reads/writes rows; the money rules stay in src/domain.
 import { memberBalance } from '@/domain/dues';
+import { assertPaymentCorrectable } from '@/domain/payment-correction';
 import { buildReversal, requireReason } from '@/domain/reversal';
 import { assertPaymentDate, previewPayment, type PaymentPreview } from '@/domain/payment-preview';
 import type { Account, Allocation, Payment, WeekStatus } from '@/domain/types';
@@ -12,7 +13,7 @@ import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
 import { loadAvailableCredit } from './credits';
 import { insertEntry, loadEntry, requireActivePeriod, type StoredLedgerEntry } from './ledger';
-import { loadCurrentWeek, loadWeekStatuses } from './weeks';
+import { loadCurrentWeek, loadStandingPayoutWeeksOfHost, loadWeekStatuses } from './weeks';
 
 export { loadWeekAmounts, loadWeekStatuses } from './weeks';
 
@@ -309,8 +310,8 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
     async reverse(paymentId: string, reason: string): Promise<StoredLedgerEntry> {
       const cleanReason = requireReason(reason);
       return db.transaction(async (tx) => {
-        const payment = await tx.getFirst<{ period_id: string; ledger_entry_id: string | null }>(
-          'SELECT period_id, ledger_entry_id FROM payments WHERE id = ?',
+        const payment = await tx.getFirst<{ period_id: string; member_id: string; ledger_entry_id: string | null }>(
+          'SELECT period_id, member_id, ledger_entry_id FROM payments WHERE id = ?',
           [paymentId],
         );
         if (!payment) throw new RepositoryError(`payment ${paymentId} not found`);
@@ -318,6 +319,8 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         const done = await tx.getFirst('SELECT 1 AS ok FROM payment_reversals WHERE payment_id = ?', [paymentId]);
         if (done) throw new RepositoryError(`payment ${paymentId} is already corrected`);
         if (!payment.ledger_entry_id) throw new RepositoryError(`payment ${paymentId} has no ledger entry to reverse`);
+        // B3: not while the payer's own host payout stands in this period (nothing is written before this check).
+        assertPaymentCorrectable(await loadStandingPayoutWeeksOfHost(tx, payment.period_id, payment.member_id));
         const entry = await loadEntry(tx, payment.ledger_entry_id);
         if (!entry) throw new RepositoryError(`ledger entry ${payment.ledger_entry_id} not found`);
         if (entry.reversedById) throw new RepositoryError(`payment ${paymentId} is already corrected`);
@@ -332,6 +335,14 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         ]);
         return stored;
       });
+    },
+
+    /**
+     * Meetings this member hosted in the period whose payout stands. Not empty = the member's payments cannot be
+     * corrected yet (see reverse); the UI uses it to disable "Koreksi" before the form opens.
+     */
+    getStandingHostPayoutWeeks(periodId: string, memberId: string): Promise<number[]> {
+      return loadStandingPayoutWeeksOfHost(db, periodId, memberId);
     },
 
     /** Per-week paid / offset / outstanding for one member, weeks 1..N. */

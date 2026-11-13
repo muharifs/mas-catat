@@ -12,6 +12,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
+import { PAYMENT_HOST_PAYOUT_STANDS_TEXT } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { WEEK_STATE_LABELS } from '@/ui/reportLabels';
@@ -33,7 +34,7 @@ export default function MemberInPeriodScreen() {
   const repos = useRepos();
 
   const load = useCallback(async () => {
-    const [period, member, weeks, statuses, payments, allocations, balances] = await Promise.all([
+    const [period, member, weeks, statuses, payments, allocations, balances, standingPayouts] = await Promise.all([
       repos.periods.getById(id),
       repos.members.getById(memberId),
       repos.weeks.listByPeriod(id),
@@ -41,8 +42,19 @@ export default function MemberInPeriodScreen() {
       repos.payments.listWithCredit(id, memberId),
       repos.payments.listAllocations(id, memberId),
       repos.payments.listBalances(id),
+      repos.payments.getStandingHostPayoutWeeks(id, memberId),
     ]);
-    return { period, member, weeks, statuses, payments, allocations, balance: balances.find((b) => b.memberId === memberId) };
+    return {
+      period,
+      member,
+      weeks,
+      statuses,
+      payments,
+      allocations,
+      balance: balances.find((b) => b.memberId === memberId),
+      // B3: while the member's own host payout stands, their payments cannot be corrected.
+      correctionBlocked: standingPayouts.length > 0,
+    };
   }, [repos, id, memberId]);
   const { data, error, reload } = useLoad(load);
   // Id of the payment whose correction form is open (one at a time).
@@ -50,7 +62,7 @@ export default function MemberInPeriodScreen() {
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
-  const { period, member, weeks, statuses, payments, allocations, balance } = data;
+  const { period, member, weeks, statuses, payments, allocations, balance, correctionBlocked } = data;
   if (!period || !member) return <ErrorState title="Data tidak ditemukan" message="Anggota atau periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
   return (
@@ -111,7 +123,9 @@ export default function MemberInPeriodScreen() {
                   <Text style={styles.body}>Melunasi: {own.map((a) => `pertemuan ${a.week} (${formatRupiah(a.amount)})`).join(', ')}</Text>
                 ) : null}
                 {p.credit > 0 ? <Text style={styles.bad}>Menjadi titipan: {formatRupiah(p.credit)}</Text> : null}
-                {period.status === 'active' && correcting !== p.id ? (
+                {period.status === 'active' && correctionBlocked ? (
+                  <Text style={styles.muted}>{PAYMENT_HOST_PAYOUT_STANDS_TEXT}</Text>
+                ) : period.status === 'active' && correcting !== p.id ? (
                   <Button label="Koreksi" variant="secondary" onPress={() => setCorrecting(p.id)} />
                 ) : null}
               </>

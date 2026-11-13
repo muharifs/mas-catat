@@ -89,6 +89,22 @@ export async function loadStandingPayoutWeeks(db: Queryable, periodId: string): 
   return rows.map((r) => r.week);
 }
 
+/**
+ * Meetings hosted by this member in the period whose host payout stands (recorded, not corrected). A payout cannot
+ * stand while its host changes (F1), so the current host of the week is the one who was paid.
+ */
+export async function loadStandingPayoutWeeksOfHost(db: Queryable, periodId: string, memberId: string): Promise<number[]> {
+  const rows = await db.getAll<{ week: number }>(
+    `SELECT DISTINCT e.week AS week FROM ledger_entries e
+      JOIN weeks w ON w.period_id = e.period_id AND w.number = e.week
+      WHERE e.period_id = ? AND e.type = 'host_payout' AND e.week IS NOT NULL AND w.host_member_id = ?
+        AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.reverses_entry_id = e.id)
+      ORDER BY e.week`,
+    [periodId, memberId],
+  );
+  return rows.map((r) => r.week);
+}
+
 async function assertHasHost(db: Queryable, periodId: string, number: number): Promise<void> {
   const row = await db.getFirst<{ host_member_id: string | null }>(
     'SELECT host_member_id FROM weeks WHERE period_id = ? AND number = ?',

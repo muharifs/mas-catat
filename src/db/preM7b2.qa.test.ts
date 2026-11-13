@@ -14,6 +14,7 @@
 // A test marked it.failing documents a real finding: it must become a plain `it` when the developer fixes it.
 import { PHRASE_RESTORE, requiredPhrase } from '@/domain/backup';
 import { csvAmountColumns } from '@/domain/flow';
+import { PaymentHostPayoutStandsError } from '@/domain/payment-correction';
 import { commitRestore, discardRestore, healthCheck, prepareRestore } from './backup';
 import type { Db } from './db';
 import { createRepositories, type Repositories } from './index';
@@ -60,7 +61,7 @@ const CORRUPTION = /inconsistent|do not add up|exceeds the weekly due|would be n
 function isBenign(e: unknown): boolean {
   if (!(e instanceof Error)) return false;
   if (CORRUPTION.test(e.message)) return false;
-  return ['RepositoryError', 'DomainError', 'LoanError', 'HostPayoutStandsError', 'MemberArchiveError'].includes(e.name);
+  return ['RepositoryError', 'DomainError', 'LoanError', 'HostPayoutStandsError', 'PaymentHostPayoutStandsError', 'MemberArchiveError'].includes(e.name);
 }
 
 interface Tally {
@@ -507,34 +508,29 @@ describe('Integer money: floats, huge and malformed amounts never reach the ledg
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// 3d. Correction of a member payment after that member's host payout (behaviour record, owner decision)
+// 3d. Correction of a member payment after that member's host payout (owner decision 2026-11-13, B3: blocked)
 // ---------------------------------------------------------------------------------------------------------------
 
 describe('Correcting a payment AFTER the payer was paid out as host', () => {
-  it('the host keeps the FULL payout and the re-opened debt is neither offset nor blocked: it stays debt and is written off at close', async () => {
+  it('is rejected while the payout stands, writes nothing, and works after the payout is corrected', async () => {
     const { db, repos } = await setup();
     const [a, b] = [(await repos.members.create('Ani')).id, (await repos.members.create('Budi')).id];
     const p = await repos.periods.create({ name: 'P', startDate: START, memberIds: [a, b] });
     await repos.weeks.assignHost(p.id, 1, a, START);
-    // Ani prepays 60.000 (the whole period: 2 x 30.000 would be 60.000 for N=2), Budi pays 30.000.
     const pay = await repos.payments.record({ periodId: p.id, memberId: a, date: TODAY, amount: 30_000, account: 'tunai' });
     await repos.payments.record({ periodId: p.id, memberId: b, date: TODAY, amount: 30_000, account: 'tunai' });
-    await repos.ledger.settleHost(p.id, 1, TODAY, 'tunai'); // 20.000 payout, no offset (Ani paid up through meeting 1)
+    await repos.ledger.settleHost(p.id, 1, TODAY, 'tunai'); // 20.000 payout, no offset
     await repos.weeks.closeOldest(p.id);
-    // The owner now notices Ani's payment was wrong and corrects it (no warning that Ani is a paid-out host).
+    const before = await repos.ledger.listKas();
+    await expect(repos.payments.reverse(pay.payment.id, 'salah orang')).rejects.toBeInstanceOf(PaymentHostPayoutStandsError);
+    expect(await repos.ledger.listKas()).toEqual(before);
+    expect(await db.getFirst('SELECT 1 AS ok FROM payment_reversals')).toBeNull();
+    expect((await repos.payments.getWeekStatuses(p.id, a)).map((s) => s.outstanding)).toEqual([0, 0]);
+    await checkInvariants(db, repos, 'after rejected correction');
+    // Correct the payout first, then the payment can be corrected.
+    await repos.ledger.reverseHostPayout(p.id, 1, 'salah');
     await repos.payments.reverse(pay.payment.id, 'salah orang');
-    const ani = await repos.payments.getWeekStatuses(p.id, a);
-    expect(ani.map((s) => s.outstanding)).toEqual([15_000, 15_000]);
-    // The payout of meeting 1 still stands in full: the 15.000 Ani owed for meeting 1 was NOT offset against it.
-    const payout = await repos.ledger.getWeekPayout(p.id, 1);
-    expect(payout?.payout.amount).toBe(20_000);
-    expect(payout?.offset).toBeNull();
-    // Closing the period writes it off: kas absorbs 15.000 (meeting 1) + 15.000 (meeting 2).
-    await repos.weeks.assignHost(p.id, 2, b, '2026-02-10');
-    await repos.ledger.settleHost(p.id, 2, TODAY, 'tunai');
-    await repos.weeks.closeOldest(p.id);
-    const preview = await repos.periods.previewClose(p.id);
-    expect(preview.writeoffs).toEqual([{ memberId: a, amount: 30_000 }]);
+    expect((await repos.payments.getWeekStatuses(p.id, a)).map((s) => s.outstanding)).toEqual([15_000, 15_000]);
     await checkInvariants(db, repos, 'after correction');
   });
 });

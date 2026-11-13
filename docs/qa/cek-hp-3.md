@@ -211,3 +211,5 @@ Hanya yang tidak bisa dibuktikan tes. Belum di-commit dan belum pernah dilihat d
 Tambahan kecil: Laporan tidak lagi punya tombol "Buka periode", hanya daftar. Ini perubahan sengaja (L2).
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar).
+
+UPDATE 2026-11-13: Cek HP 5 sudah dicek pemilik di HP ("cek hp 5 juga sudah aku cek"). Pemulihan cadangan lama (sebelum 0005) juga sudah dites sekali.

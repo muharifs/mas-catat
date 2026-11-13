@@ -171,7 +171,7 @@ export default function ClosePeriodScreen() {
       <DateField label="Tanggal berakhir" value={endDate} onChange={setEndDate} maxDate={todayIso()} error={problem ? END_DATE_MESSAGE[problem] : null} />
 
       {actionError ? <Notice tone="danger">{actionError}</Notice> : null}
-      <Button label={busy ? 'Memproses...' : 'Akhiri periode'} variant="danger" disabled={!canClose} onPress={confirmClose} />
+      <Button label={busy ? 'Memproses...' : 'Akhiri periode'} variant="dangerOutline" disabled={!canClose} onPress={confirmClose} />
       {!preview.canClose ? <Text style={styles.hint}>Tombol aktif setelah semua pertemuan ditutup dan semua tuan rumah dibayar.</Text> : null}
       <Button label="Batal" variant="secondary" onPress={() => router.back()} />
     </ScrollView>

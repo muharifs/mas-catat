@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LedgerListItem } from '@/db/ledger';
 import { useDatabaseControl, useRepos } from '@/db/provider';
 import { monthOfDate, summarizeMonth } from '@/domain/flow';
-import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Chip } from '@/ui/components/Chip';
 import { EmptyState } from '@/ui/components/EmptyState';
@@ -24,7 +24,7 @@ import {
   useHistoryMonth,
 } from '@/ui/historyFilterStore';
 import { shiftMonth } from '@/ui/months';
-import { colors, radius, spacing, type } from '@/ui/theme';
+import { colors, ICON, MIN_TOUCH, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
 // Riwayat: kas entries of ONE month (month switcher), a summary card (Pemasukan / Pengeluaran of that month), type chips
@@ -103,21 +103,34 @@ export default function RiwayatScreen() {
           <Text style={styles.summaryNote}>Ringkasan memuat semua catatan bulan ini. Daftar di bawah sedang difilter.</Text>
         ) : null}
       </Card>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        <Chip label="Semua" selected={filter.group === null} onPress={() => setHistoryFilter({ ...filter, group: null })} />
-        {GROUP_CHIPS.map((c) => (
-          <Chip key={c.group} label={c.label} selected={filter.group === c.group} onPress={() => setHistoryFilter({ ...filter, group: c.group })} />
-        ))}
-      </ScrollView>
       <View style={styles.filterRow}>
-        <Button
-          label={filterCount > 0 ? `Filter (${filterCount})` : 'Filter'}
-          variant="secondary"
-          compact
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={filterCount > 0 ? `Filter (${filterCount})` : 'Filter'}
           onPress={() => router.push('/filter-riwayat')}
-        />
-        {!isFilterEmpty(filter) ? <Button label="Hapus filter" variant="secondary" compact onPress={clearAll} /> : null}
+          style={({ pressed }) => [styles.filterButton, pressed && styles.filterButtonPressed]}
+        >
+          <Ionicons name="options-outline" size={ICON.sm} color={colors.brandStrong} />
+          <Text maxFontSizeMultiplier={1.3} style={styles.filterLabel}>
+            {filterCount > 0 ? `Filter (${filterCount})` : 'Filter'}
+          </Text>
+        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
+          <Chip label="Semua" selected={filter.group === null} onPress={() => setHistoryFilter({ ...filter, group: null })} />
+          {GROUP_CHIPS.map((c) => (
+            <Chip key={c.group} label={c.label} selected={filter.group === c.group} onPress={() => setHistoryFilter({ ...filter, group: c.group })} />
+          ))}
+        </ScrollView>
       </View>
+      {!isFilterEmpty(filter) ? (
+        <View style={styles.clearRow}>
+          <Pressable accessibilityRole="button" onPress={clearAll} style={styles.clearLink}>
+            <Text maxFontSizeMultiplier={1.3} style={styles.clearLabel}>
+              Hapus filter
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -182,7 +195,24 @@ const styles = StyleSheet.create({
   list: { padding: spacing.lg, paddingBottom: spacing.xl },
   controls: { gap: spacing.sm, marginBottom: spacing.md },
   chips: { gap: spacing.sm },
-  filterRow: { flexDirection: 'row', gap: spacing.sm },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  filterButton: {
+    minHeight: MIN_TOUCH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.brandStrong,
+    backgroundColor: colors.bgCard,
+  },
+  filterButtonPressed: { backgroundColor: colors.brandTint },
+  filterLabel: { ...type.label, color: colors.brandStrong },
+  chipScroll: { flex: 1 },
+  clearRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  clearLink: { minHeight: MIN_TOUCH, justifyContent: 'center', paddingLeft: spacing.sm },
+  clearLabel: { ...type.label, color: colors.brandStrong },
   summaryRow: { flexDirection: 'row', gap: spacing.lg },
   summaryCol: { flex: 1, gap: spacing.xs },
   summaryLabel: { ...type.label, color: colors.textSecondary },

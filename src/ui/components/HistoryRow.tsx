@@ -67,14 +67,14 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.icon, { backgroundColor: DIRECTION_ICON[direction].circle }]}>
+      <View style={[styles.icon, { backgroundColor: corrected ? colors.bgCard : DIRECTION_ICON[direction].circle }]}>
         <Ionicons name={TYPE_ICONS[e.type]} size={24} color={DIRECTION_ICON[direction].icon} />
       </View>
       <View style={styles.main}>
         <Text style={[styles.title, corrected && styles.strike]}>{title}</Text>
         <Text style={styles.sub}>{second}</Text>
         {note ? <Text style={styles.sub}>{note}</Text> : null}
-        {corrected ? <Badge label="Dikoreksi" tone="error" /> : null}
+        {corrected ? <Badge label="Dikoreksi" tone="error" onTint /> : null}
         {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>Peringatan: belum ada Tunai atau Debit pada catatan ini, jadi tidak dihitung di saldo</Text> : null}
       </View>
       <Money amount={e.amount} size="heading" sign={SIGN[direction]} />
@@ -94,7 +94,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
   },
-  rowFlat: { backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0, paddingHorizontal: 0 },
+  // Flat: the row grows 12dp past the text on both sides (negative margin + padding) so the pressed or corrected fill
+  // has room around the text; the card around it has 16dp padding, so the fill stays inside the card.
+  rowFlat: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: radius.md,
+    marginHorizontal: -spacing.md,
+    paddingHorizontal: spacing.md,
+  },
   rowCorrectedFlat: { backgroundColor: colors.errorTint },
   rowCorrected: { backgroundColor: colors.errorTint, borderColor: colors.error },
   pressed: { backgroundColor: colors.bgMute },

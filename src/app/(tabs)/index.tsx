@@ -341,7 +341,7 @@ export default function HomeScreen() {
             ) : (
               reminders.map((r, index) => (
                 <View key={r.key}>
-                  {index > 0 ? <View style={styles.divider} /> : null}
+                  {index > 0 ? <View style={styles.reminderDivider} /> : null}
                   <ReminderRow
                     kind={r.kind}
                     title={r.title}
@@ -488,7 +488,18 @@ const styles = StyleSheet.create({
   sideActions: { width: 128, gap: spacing.sm },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   divider: { height: 1, backgroundColor: colors.divider },
-  monthBlock: { minHeight: MIN_TOUCH, gap: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.md },
+  // Between reminders: md of air above and below the line so it does not touch the button or icon next to it.
+  reminderDivider: { height: 1, backgroundColor: colors.divider, marginVertical: spacing.md },
+  // Own inner padding: the negative margin cancels the horizontal padding, so the text does not move but the pressed
+  // fill reaches 12dp past it (the Card padding is 16dp, so the fill stays inside the card).
+  monthBlock: {
+    minHeight: MIN_TOUCH,
+    gap: spacing.sm,
+    marginHorizontal: -spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+  },
   monthPressed: { backgroundColor: colors.bgMute },
   monthTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   monthTitle: { ...type.label, color: colors.text, flexShrink: 1 },

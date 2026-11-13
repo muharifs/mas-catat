@@ -39,7 +39,6 @@ function AppStack() {
   const { dataVersion } = useDatabaseControl();
   return (
     <Stack key={dataVersion} screenOptions={{
-        headerTitle: 'Mas Catat',
         // Paper-coloured screens so white cards stand out; the header sits on the same paper.
         contentStyle: { backgroundColor: colors.bgPage },
         headerStyle: { backgroundColor: colors.bgPage },

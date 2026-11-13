@@ -215,7 +215,7 @@ export default function MembersScreen() {
       renderItem={({ item }) =>
         editingId === item.id ? (
           <View style={styles.editRow}>
-            <TextField value={editName} onChangeText={setEditName} onSubmitEditing={saveEdit} autoFocus error={editError} />
+            <TextField label="Nama anggota" value={editName} onChangeText={setEditName} onSubmitEditing={saveEdit} autoFocus error={editError} />
             <View style={styles.actions}>
               <Button label="Simpan" onPress={saveEdit} style={styles.flex} />
               <Button label="Batal" variant="secondary" onPress={stopEdit} style={styles.flex} />

@@ -7,12 +7,14 @@ interface BadgeProps {
   /** Always a word (Berlaku, Dikoreksi, Lunas, Belum lunas): the colour only supports it. */
   label: string;
   tone?: BadgeTone;
+  /** White fill instead of the tint, for a badge that sits on a tinted row (the corrected row on errorTint). */
+  onTint?: boolean;
 }
 
 // Status pill: tinted fill with matching dark text. 14sp is the minimum text size of the app, so there are no count badges.
-export function Badge({ label, tone = 'neutral' }: BadgeProps) {
+export function Badge({ label, tone = 'neutral', onTint = false }: BadgeProps) {
   return (
-    <View style={[styles.pill, pillTone[tone]]}>
+    <View style={[styles.pill, pillTone[tone], onTint && styles.pillOnTint]}>
       <Text maxFontSizeMultiplier={1.3} style={[styles.label, labelTone[tone]]}>
         {label}
       </Text>
@@ -31,6 +33,7 @@ export function Dot({ tone = 'error' }: DotProps) {
 
 const styles = StyleSheet.create({
   pill: { alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill },
+  pillOnTint: { backgroundColor: colors.bgCard },
   label: { ...type.label },
   dot: { width: 10, height: 10, borderRadius: radius.pill },
   dotError: { backgroundColor: colors.error },

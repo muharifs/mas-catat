@@ -143,4 +143,27 @@ Jika masih ada teks yang terpotong, kirim tangkapan layar dan catat layarnya (uk
 
 Menunggu tangkapan layar font normal: R1, R2, R4, R6, R7.
 
+Catatan: R1, R2, R4, R6, R7 di atas dicakup oleh daftar gabungan di bagian paling bawah file ini (lihat kolom "Mencakup").
+
 Keputusan pemilik (2026-11-13, "oke buang saja"): baris berulang "Pembayaran tuan rumah: sudah dibayar" sudah dihapus dari Jadwal periode aktif; statusnya ada pada tombol "Lihat pembayaran tuan rumah". Diputuskan pemilik ("oke"): pada periode yang sudah selesai baris itu dipertahankan karena tidak ada tombolnya. Beri tahu jika mau dihapus juga.
+
+## Cek HP gabungan (sekali jalan, font NORMAL saja, 2026-11-13)
+Satu putaran untuk R1, R2, R4, R6, R7 yang masih menunggu, ditambah 8 perbaikan desain yang baru dibangun (belum di-commit, belum pernah dilihat di HP). Nomor di kolom "Mencakup" adalah nomor R lama di bagian "Recheck" di atas. Catatan: "R2" lama = Jadwal, tidak sama dengan baris filter Riwayat di bawah.
+
+| # | Buka | Yang harus tampak | Mencakup |
+|---|---|---|---|
+| H1 | Buka tiap layar yang dibuka dengan tombol (bukan tab): detail anggota, detail periode, Jadwal, Catat kas, Bayar, Pinjaman anggota, Cadangan, Pulihkan, Anggota terarsip, dan lainnya | Setiap layar punya judul berbahasa Indonesia di header. Judul panjang tidak terpotong di sebelah panah kembali. Catatan: judul ganda pada Bayar dan detail periode belum dibereskan, jangan dihitung gagal | G1 |
+| H2 | Riwayat, Beranda, dan tempat lain yang menampilkan uang negatif (juga Menu > Komponen) | Tanda minus rapat dengan "Rp" dan setinggi tanda "+" (ambil tangkapan layar; penyebab minus terpisah masih dugaan). Dengan TalkBack aktif, angka negatif dibaca "minus" dan positif dibaca "plus" | G2 |
+| H3 | Riwayat, baris filter | Tombol "Filter (n)" dan chip muat satu baris. "Hapus filter" muncul HANYA saat ada filter aktif dan menghapusnya saat ditekan. Chip "Tuan rumah" dan "Pindah saldo" masing-masing satu baris, ringkasan bulan terbaca penuh | R4 (lama), R2 (baru, audit) |
+| H4 | Beranda dan Riwayat, baris yang sudah dikoreksi | Lingkaran ikon putih dan lencana "Dikoreksi" terlihat jelas di kedua layar | R1 (baru, audit) |
+| H5 | Kas > Catat kas, dengan daftar anggota panjang | Jumlah tampil di atas keypad. Saat keyboard catatan terbuka, blok jumlah hilang, saat tertutup muncul lagi tanpa melompat. Ingat: saat keyboard catatan terbuka, jumlah dan pesan salahnya tidak terlihat, pastikan ini nyaman | C1 |
+| H6 | Riwayat, chip "Bulan ini", lalu tekan dan tahan baris riwayat | Warna tekan "Bulan ini" dan baris datar tetap di dalam kartu, tidak meluber ke tepi | B1 |
+| H7 | Beranda > Pengingat dengan 2 pengingat atau lebih | Jarak garis pemisah antar pengingat rapi, tidak terlalu rapat atau renggang | B4 |
+| H8 | Menu > Anggota > ubah nama anggota (mode rename) | Label kolom "Nama anggota" | Ag1 |
+| H9 | Periode > Jadwal: baris dengan satu tombol, dua tombol, dan pertemuan yang sudah dibayar | Tombol di bawah teks dan selebar baris, teks tidak terpotong. Periode aktif: pertemuan terbayar tidak punya baris "Pembayaran tuan rumah: sudah dibayar", hanya tombol "Lihat pembayaran tuan rumah". Periode selesai: baris itu masih ada tanpa tombol | R2 (lama) |
+| H10 | Menu > Komponen (gallery), bagian A dan B | Judul "A. Tombol dan aksi" dan "B. Baris dan daftar" lengkap. Chip "Hari ini" dan "Bulan ini" lengkap. ReminderRow dengan label panjang: teks lebar penuh, tombol di bawah teks | R1 (lama) |
+| H11 | Menu > Cadangan dan ekspor > Pulihkan data | Judul "Salinan pengaman" satu baris. Baris "Pulihkan" tampak bisa ditekan (label tebal warna merek, tanda panah), alur tidak berubah. Pada baris tiga tombol tidak ada kata terbelah seperti "pembayar/an" | R6 (lama) |
+| H12 | Menu > Anggota > Anggota terarsip | Tombol "Aktifkan lagi" di bawah teks, tidak menekan teks | R7 (lama) |
+| H13 | Layar utama (Beranda, Riwayat, Catat kas, Menu) di layar kecil 360dp bila memungkinkan (atau pengaturan ukuran layar terkecil) | Tidak ada teks terpotong atau tombol keluar layar, termasuk header dengan judul baru dan baris Filter | G1, H3, H5 |
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). R5 dan R8 lama tidak ikut daftar ini.

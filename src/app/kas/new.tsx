@@ -284,13 +284,6 @@ export default function NewKasEntryScreen() {
 
         {memberPicker}
 
-        <View style={styles.amountBox}>
-          <AmountDisplay value={amountText} />
-          <View style={styles.helpRow} accessibilityLiveRegion="polite">
-            {amountHelp.error ? <Ionicons name="alert-circle-outline" size={ICON.sm} color={colors.error} /> : null}
-            <Text style={[styles.help, amountHelp.error && styles.helpError]}>{amountHelp.text}</Text>
-          </View>
-        </View>
         {kind === 'loan_repayment' && picked ? (
           <View style={styles.limit}>
             <Text style={styles.limitText}>
@@ -338,6 +331,15 @@ export default function NewKasEntryScreen() {
 
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
         {keyboardVisible ? null : (
+          <View style={styles.amountBox}>
+            <AmountDisplay value={amountText} />
+            <View style={styles.helpRow} accessibilityLiveRegion="polite">
+              {amountHelp.error ? <Ionicons name="alert-circle-outline" size={ICON.sm} color={colors.error} /> : null}
+              <Text style={[styles.help, amountHelp.error && styles.helpError]}>{amountHelp.text}</Text>
+            </View>
+          </View>
+        )}
+        {keyboardVisible ? null : (
           <AmountKeypad
             onKey={(key) => {
               setAmountText((current) => appendAmountDigits(current, key));
@@ -376,7 +378,8 @@ function PosChoice({ label, options, value, onChange }: { label: string; options
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: spacing.lg, gap: spacing.md },
-  amountBox: { gap: spacing.xs, paddingVertical: spacing.sm },
+  // Sits in the fixed bottom block right above the keypad, so the typed amount stays visible with a long member list.
+  amountBox: { gap: spacing.xs },
   helpRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   help: { ...type.secondary, color: colors.textSecondary, textAlign: 'center' },
   helpError: { color: colors.error },

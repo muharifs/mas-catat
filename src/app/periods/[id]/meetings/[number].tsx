@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { showDialog } from '@/ui/dialog';
 import { sortByName } from '@/domain/sort';
 import {
@@ -16,9 +16,11 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
+import { SearchField } from '@/ui/components/SearchField';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { describeDateProblem } from '@/ui/meetingDate';
 import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
@@ -49,6 +51,7 @@ export default function MeetingHostScreen() {
   const [dateInput, setDateInput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
@@ -79,6 +82,9 @@ export default function MeetingHostScreen() {
   const date = dateInput ?? (week.hostMemberId ? week.date : defaultMeetingDate(weeks, number));
   const problem = meetingDateProblem(weeks, number, date);
   const eligible = sortByName(eligibleHostIds(weeks, memberIds), (memberId) => nameOf(memberId));
+  // Search only hides rows. The picked host stays visible.
+  const searchShown = shouldShowMemberSearch(eligible.length);
+  const foundHosts = filterByQuery(eligible, (memberId) => nameOf(memberId), searchShown ? query : '', (memberId) => memberId === host);
   // The picked member may already hold another open meeting: saving then exchanges the two hosts.
   const holder = host ? weeks.find((w) => w.status === 'open' && w.number !== number && w.hostMemberId === host) : undefined;
   const canSave = !busy && host !== null && problem === null;
@@ -134,14 +140,20 @@ export default function MeetingHostScreen() {
       ) : (
         <>
           <Text style={styles.hint}>Hanya anggota yang belum pernah jadi tuan rumah di pertemuan yang sudah ditutup.</Text>
+          {searchShown ? (
+            <SearchField value={query} onChangeText={setQuery} matchCount={foundHosts.matchCount} totalCount={eligible.length} />
+          ) : null}
           <View style={styles.list}>
-            {eligible.map((memberId) => (
+            {foundHosts.items.map((memberId) => (
               <OptionRow
                 key={memberId}
                 mode="radio"
                 label={nameOf(memberId)}
                 selected={host === memberId}
-                onPress={() => setPickedHost(memberId)}
+                onPress={() => {
+                  setPickedHost(memberId);
+                  Keyboard.dismiss();
+                }}
               />
             ))}
           </View>

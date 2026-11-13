@@ -1,4 +1,4 @@
-// Section E: forms (TextField, DateField, IconChoice, CorrectionForm, MonthSwitcher, SwipeRow).
+// Section E: forms (TextField, SearchField, DateField, IconChoice, CorrectionForm, MonthSwitcher, SwipeRow).
 // React Native vs web: there is no :focus CSS and no page that scrolls itself above the keyboard. The gallery screen
 // sets keyboardShouldPersistTaps and bottom padding (see ComponentGallery) like the other form screens.
 import { useState } from 'react';
@@ -8,10 +8,13 @@ import { DateField } from '../components/DateField';
 import { IconChoice } from '../components/IconChoice';
 import { ListRow, RowText } from '../components/ListRow';
 import { MonthSwitcher } from '../components/MonthSwitcher';
+import { SearchField } from '../components/SearchField';
 import { SwipeRow } from '../components/SwipeRow';
 import { TextField } from '../components/TextField';
 import { todayIso } from '../dates';
+import { filterByQuery } from '../memberSearch';
 import { shiftMonth } from '../months';
+import { spacing } from '../theme';
 import { toast } from '../toast';
 import { FIXED_DATE, MONTH_FIRST, MONTH_LONGEST, T1_LABEL, T5_ERROR, T6_LONG, T8_MEMBER } from './fixtures';
 import { Demo, pressedToast, Row, Section } from './parts';
@@ -30,6 +33,30 @@ function FieldDemo(props: { label?: string; placeholder?: string; initial?: stri
       value={text}
       onChangeText={setText}
     />
+  );
+}
+
+// A SearchField with its own local word; `matches` and `total` are fixed numbers for the static states.
+function SearchDemo({ initial = '', matches, total }: { initial?: string; matches: number; total: number }) {
+  const [text, setText] = useState(initial);
+  return <SearchField value={text} onChangeText={setText} matchCount={matches} totalCount={total} />;
+}
+
+const SEARCH_NAMES = [
+  'Ani', 'Budi', 'Citra', 'Dewi', 'Eka', 'Fajar', 'Gita', 'Hadi', 'Indah', 'Joko', 'Siti Aminah', T8_MEMBER,
+];
+
+// Search box plus a list filtered live with the same function the screens use.
+function SearchListDemo() {
+  const [text, setText] = useState('');
+  const found = filterByQuery(SEARCH_NAMES, (n) => n, text);
+  return (
+    <View style={styles.searchList}>
+      <SearchField value={text} onChangeText={setText} matchCount={found.matchCount} totalCount={SEARCH_NAMES.length} />
+      {found.items.map((name) => (
+        <ListRow key={name} title={name} tone="alt" />
+      ))}
+    </View>
   );
 }
 
@@ -124,6 +151,32 @@ export function SectionE() {
         </Demo>
       </Section>
 
+      <Section
+        title="SearchField"
+        states="kosong (placeholder), terisi dengan hasil dan tombol hapus, tanpa hasil, fokus (ketuk), daftar yang disaring langsung (12 nama, termasuk nama panjang T8), lebar 320 dp."
+      >
+        <Demo caption="Kosong (placeholder)">
+          <SearchDemo matches={19} total={19} />
+        </Demo>
+        <Demo caption="Terisi, hasil banyak: tombol hapus dan teks '3 dari 19 anggota'">
+          <SearchDemo initial="sit" matches={3} total={19} />
+        </Demo>
+        <Demo caption="Tanpa hasil">
+          <SearchDemo initial="xyz" matches={0} total={19} />
+        </Demo>
+        <Demo caption="Fokus: ketuk kolom ini (garis menebal)">
+          <SearchDemo matches={19} total={19} />
+        </Demo>
+        <Demo caption="Interaktif: ketik 'siti', 'ani', atau 'nur abdur'. Urutan daftar tidak berubah.">
+          <SearchListDemo />
+        </Demo>
+        <Demo caption="Lebar 320 dp">
+          <View style={styles.w320}>
+            <SearchDemo initial="siti" matches={2} total={19} />
+          </View>
+        </Demo>
+      </Section>
+
       <Section title="DateField" states="nilai tetap, hari ini, tanpa error, error T5, label panjang. Menekan membuka kalender Android sungguhan.">
         <Demo caption="Nilai tetap 2026-01-04">
           <DateDemo label="Tanggal pertemuan" initial={FIXED_DATE} />
@@ -214,4 +267,5 @@ export function SectionE() {
 
 const styles = StyleSheet.create({
   w320: { width: 320, maxWidth: '100%' },
+  searchList: { gap: spacing.sm },
 });

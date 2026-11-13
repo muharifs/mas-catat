@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRepos } from '@/db/provider';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import { sortByName } from '@/domain/sort';
@@ -9,9 +9,11 @@ import { Button } from '@/ui/components/Button';
 import { Chip } from '@/ui/components/Chip';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
+import { SearchField } from '@/ui/components/SearchField';
 import type { HistoryFilter } from '@/ui/history';
 import { setHistoryFilter, useHistoryFilter } from '@/ui/historyFilterStore';
 import { TYPE_LABELS } from '@/ui/kasLabels';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -24,6 +26,8 @@ export default function FilterRiwayatScreen() {
   const repos = useRepos();
   const current = useHistoryFilter();
   const [draft, setDraft] = useState<HistoryFilter>(current);
+  // Local search word only: not part of HistoryFilter and never sent to Riwayat.
+  const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
     const [members, periods] = await Promise.all([repos.members.list(), repos.periods.list()]);
@@ -35,18 +39,31 @@ export default function FilterRiwayatScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
+  // Search only hides chips. The chosen member stays visible.
+  const searchShown = shouldShowMemberSearch(members.length);
+  const found = filterByQuery(members, (m) => m.name, searchShown ? query : '', (m) => m.id === draft.memberId);
+
   function pick<K extends 'memberId' | 'account' | 'periodId' | 'type'>(key: K, value: HistoryFilter[K]) {
     setDraft((d) => ({ ...d, [key]: d[key] === value ? null : value }));
   }
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.heading}>Anggota</Text>
+        {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={members.length} /> : null}
         <View style={styles.wrap}>
           {members.length === 0 ? <Text style={styles.muted}>Belum ada anggota.</Text> : null}
-          {members.map((m) => (
-            <Chip key={m.id} label={m.name} selected={draft.memberId === m.id} onPress={() => pick('memberId', m.id)} />
+          {found.items.map((m) => (
+            <Chip
+              key={m.id}
+              label={m.name}
+              selected={draft.memberId === m.id}
+              onPress={() => {
+                pick('memberId', m.id);
+                Keyboard.dismiss();
+              }}
+            />
           ))}
         </View>
 

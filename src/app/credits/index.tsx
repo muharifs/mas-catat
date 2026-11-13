@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { showDialog } from '@/ui/dialog';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import { sortByName } from '@/domain/sort';
@@ -12,9 +12,11 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
+import { SearchField } from '@/ui/components/SearchField';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -41,11 +43,22 @@ export default function CreditsScreen() {
   const [account, setAccount] = useState<CashPos>('tunai');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { items, members } = data;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
+
+  // Search only hides cards. The card with its refund form open stays visible.
+  const searchShown = shouldShowMemberSearch(items.length);
+  const keyOf = (item: RefundableCredit) => `${item.periodId}:${item.memberId}`;
+  const found = filterByQuery(
+    sortByName(items, (item) => nameOf(item.memberId)),
+    (item) => nameOf(item.memberId),
+    searchShown ? query : '',
+    (item) => selected !== null && keyOf(selected) === keyOf(item),
+  );
 
   async function submit(item: RefundableCredit) {
     setError(null);
@@ -99,9 +112,10 @@ export default function CreditsScreen() {
         berikutnya.
       </Text>
       {items.length === 0 ? <Text style={styles.muted}>Tidak ada anggota yang memegang titipan dari periode yang sudah berakhir. Titipan pada periode yang masih berjalan tidak ada di sini; dipakai untuk iuran periode itu.</Text> : null}
-      {sortByName(items, (item) => nameOf(item.memberId)).map((item) => {
-        const key = `${item.periodId}:${item.memberId}`;
-        const isSelected = selected !== null && `${selected.periodId}:${selected.memberId}` === key;
+      {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={items.length} /> : null}
+      {found.items.map((item) => {
+        const key = keyOf(item);
+        const isSelected = selected !== null && keyOf(selected) === key;
         return (
           <Card key={key} tone="alt">
             <Text style={styles.weekTitle}>{nameOf(item.memberId)}</Text>
@@ -138,6 +152,7 @@ export default function CreditsScreen() {
                 onPress={() => {
                   setError(null);
                   setSelected(item);
+                  Keyboard.dismiss();
                 }}
               />
             )}

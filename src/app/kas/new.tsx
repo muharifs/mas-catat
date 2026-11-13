@@ -22,11 +22,13 @@ import { IconChoice } from '@/ui/components/IconChoice';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
+import { SearchField } from '@/ui/components/SearchField';
 import { TextField } from '@/ui/components/TextField';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { KIND_LABELS } from '@/ui/kasLabels';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { toasts } from '@/ui/messages';
 import { colors, ICON, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -94,6 +96,7 @@ export default function NewKasEntryScreen() {
   const [direction, setDirection] = useState<TransferDirection>('tunai_debit');
   const [pickedId, setPickedId] = useState<string | null>(memberParam ?? null);
   const [note, setNote] = useState('');
+  const [memberQuery, setMemberQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // The system keyboard (for the note) would cover the keypad, so the keypad hides while it is visible. On the web the
@@ -260,10 +263,17 @@ export default function NewKasEntryScreen() {
         ? { text: `Terbaca: ${formatRupiah(typedAmount)}`, error: false }
         : { text: 'Ketuk angka untuk mengisi jumlah.', error: false };
 
+  // Search only hides rows to draw; `candidates` stays whole. The picked member always stays visible.
+  const searchShown = shouldShowMemberSearch(candidates.length);
+  const found = filterByQuery(candidates, (m) => m.name, searchShown ? memberQuery : '', (m) => m.id === memberId);
+
   const memberPicker = needsMember ? (
     <>
       <Text style={styles.label}>{oldLoan ? 'Anggota yang meminjam' : 'Anggota'}</Text>
-      {candidates.map((m) => (
+      {searchShown ? (
+        <SearchField value={memberQuery} onChangeText={setMemberQuery} matchCount={found.matchCount} totalCount={candidates.length} />
+      ) : null}
+      {found.items.map((m) => (
         <OptionRow
           key={m.id}
           mode="radio"
@@ -273,6 +283,7 @@ export default function NewKasEntryScreen() {
           onPress={() => {
             setPickedId(m.id);
             setError(null);
+            Keyboard.dismiss(); // bring the amount and keypad back (they hide while the keyboard is open)
           }}
         />
       ))}

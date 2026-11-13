@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { sortByName } from '@/domain/sort';
 import { useRepos } from '@/db/provider';
@@ -9,8 +9,10 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SearchField } from '@/ui/components/SearchField';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { isSettledState, MEETING_STATUS_LABELS, WEEK_STATE_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
@@ -26,6 +28,7 @@ export default function MeetingReportScreen() {
     return { meeting, members };
   }, [repos, id, number]);
   const { data, error, reload } = useLoad(load);
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
@@ -34,8 +37,12 @@ export default function MeetingReportScreen() {
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
 
+  const sortedMembers = sortByName(meeting.members, (m) => nameOf(m.memberId));
+  const searchShown = shouldShowMemberSearch(sortedMembers.length);
+  const found = filterByQuery(sortedMembers, (m) => nameOf(m.memberId), searchShown ? query : '');
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Pertemuan {meeting.week}</Text>
       <Text style={styles.hint}>
         {formatDate(meeting.date)}{SEP}{MEETING_STATUS_LABELS[meeting.status]}{SEP}tuan rumah: {nameOf(meeting.hostMemberId)}
@@ -66,7 +73,8 @@ export default function MeetingReportScreen() {
       </Card>
 
       <SectionHeader title="Status anggota" />
-      {sortByName(meeting.members, (m) => nameOf(m.memberId)).map((m) => (
+      {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={sortedMembers.length} /> : null}
+      {found.items.map((m) => (
         <ListRow
           key={m.memberId}
           title={nameOf(m.memberId)}

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { sortByName } from '@/domain/sort';
 import { useRepos } from '@/db/provider';
@@ -8,7 +8,9 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
+import { SearchField } from '@/ui/components/SearchField';
 import { formatRupiah } from '@/ui/format';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -31,10 +33,14 @@ export default function LoansScreen() {
     };
   }, [repos]);
   const { data, error, reload } = useLoad(load);
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   const { piutang, open, overpaid, unnamedOpening } = data;
+  // Search only filters the open loans. The overpaid and unnamed rows are never hidden.
+  const searchShown = shouldShowMemberSearch(open.length);
+  const found = filterByQuery(open, (l) => l.name, searchShown ? query : '');
   const nothing = open.length === 0 && overpaid.length === 0 && unnamedOpening === 0;
 
   const header = (
@@ -45,6 +51,7 @@ export default function LoansScreen() {
         <Text style={styles.hint}>Sama dengan Piutang di Catat kas. Ketuk nama untuk melihat rincian dan menerima pelunasan.</Text>
       </Card>
       {nothing ? <Text style={styles.muted}>Tidak ada pinjaman.</Text> : null}
+      {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={open.length} /> : null}
     </View>
   );
 
@@ -67,7 +74,8 @@ export default function LoansScreen() {
 
   return (
     <FlatList
-      data={open}
+      data={found.items}
+      keyboardShouldPersistTaps="handled"
       keyExtractor={(l) => l.memberId}
       ListHeaderComponent={header}
       ListFooterComponent={footer}

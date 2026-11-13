@@ -9,10 +9,12 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
+import { SearchField } from '@/ui/components/SearchField';
 import { Section } from '@/ui/components/Section';
 import { TextField } from '@/ui/components/TextField';
 import { archiveBlockText, toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -33,6 +35,7 @@ export default function MembersScreen() {
   // null = not known yet. true = the member has no data at all, so it can be deleted; false = archive instead.
   const [editCanDelete, setEditCanDelete] = useState<boolean | null>(null);
 
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -48,6 +51,7 @@ export default function MembersScreen() {
       await repos.members.create(newName);
       setNewName('');
       setAddError(null);
+      setQuery(''); // so the new member is visible right away
       await reload();
     } catch (e) {
       setAddError(toIndonesian(e));
@@ -159,9 +163,15 @@ export default function MembersScreen() {
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!members) return <Loading />;
 
+  // Search only hides rows. The row being edited stays visible. The archived list uses the same word.
+  const searchShown = shouldShowMemberSearch(members.length);
+  const activeQuery = searchShown ? query : '';
+  const found = filterByQuery(members, (m) => m.name, activeQuery, (m) => m.id === editingId);
+  const foundArchived = filterByQuery(archived, (m) => m.name, activeQuery).items;
+
   return (
     <FlatList
-      data={members}
+      data={found.items}
       keyExtractor={(m) => m.id}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.container}
@@ -186,9 +196,10 @@ export default function MembersScreen() {
           <Section title={`${members.length} anggota`}>
             {members.length > 0 ? <Text style={styles.hint}>Ketuk nama untuk mengubah nama, menghapus, atau mengarsipkan anggota.</Text> : null}
           </Section>
+          {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={members.length} /> : null}
         </View>
       }
-      ListEmptyComponent={<EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." />}
+      ListEmptyComponent={members.length === 0 ? <EmptyState title="Belum ada anggota" message="Tambahkan anggota pertama di atas." /> : undefined}
       ListFooterComponent={
         archived.length > 0 ? (
           <View style={styles.archived}>
@@ -198,7 +209,7 @@ export default function MembersScreen() {
               onPress={() => setShowArchived((v) => !v)}
             />
             {showArchived
-              ? archived.map((m) => (
+              ? foundArchived.map((m) => (
                   <ListRow
                     key={m.id}
                     title={m.name}

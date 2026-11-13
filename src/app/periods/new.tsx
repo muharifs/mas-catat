@@ -13,11 +13,13 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { OptionRow } from '@/ui/components/OptionRow';
+import { SearchField } from '@/ui/components/SearchField';
 import { TextField } from '@/ui/components/TextField';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { toasts } from '@/ui/messages';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -57,6 +59,7 @@ export default function NewPeriodScreen() {
   const [selectedInput, setSelectedInput] = useState<string[] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState(''); // local search word; selection is never touched by it
   const [carry, setCarry] = useState<MemberCarryOver[]>([]);
   const [carryError, setCarryError] = useState<string | null>(null);
 
@@ -94,6 +97,8 @@ export default function NewPeriodScreen() {
     refundable.filter((r) => !selected.includes(r.memberId)),
     (r) => nameOf(r.memberId),
   );
+  const searchShown = shouldShowMemberSearch(members.length);
+  const found = filterByQuery(members, (m) => m.name, searchShown ? query : '');
   const dateOk = isRealDate(startDate);
   const preview = dateOk ? previewMeetingDates(startDate, selected.length) : [];
   const canSave = !active && !saving && name.trim().length > 0 && dateOk && selected.length > 0;
@@ -150,11 +155,18 @@ export default function NewPeriodScreen() {
       <SectionHeader title={`Pilih anggota (${selected.length} dipilih)`} />
       <Text style={styles.hint}>Jumlah anggota tidak bisa diubah setelah periode dibuat.</Text>
       <View style={styles.bulk}>
-        <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => setSelectedInput(data.members.map((m) => m.id))} />
-        <Button label="Kosongkan" variant="secondary" style={styles.flex} onPress={() => setSelectedInput([])} />
+        <Button label="Pilih semua" variant="secondary" style={styles.flex} onPress={() => {
+          setSelectedInput(data.members.map((m) => m.id));
+          setQuery(''); // so the owner sees that everyone is selected
+        }} />
+        <Button label="Kosongkan" variant="secondary" style={styles.flex} onPress={() => {
+          setSelectedInput([]);
+          setQuery('');
+        }} />
       </View>
+      {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={members.length} /> : null}
       <View style={styles.list}>
-        {members.map((m) => (
+        {found.items.map((m) => (
           <OptionRow key={m.id} label={m.name} selected={selected.includes(m.id)} onPress={() => toggle(m.id)} />
         ))}
       </View>

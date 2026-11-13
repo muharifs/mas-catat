@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { sortByName } from '@/domain/sort';
 import { useRepos } from '@/db/provider';
@@ -9,8 +9,10 @@ import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
+import { SearchField } from '@/ui/components/SearchField';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
+import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { CORRECTED_NOT_COUNTED, MEETING_STATUS_LABELS } from '@/ui/reportLabels';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
@@ -30,6 +32,7 @@ export default function PeriodReportScreen() {
     return { report, members, periodMembers };
   }, [repos, id]);
   const { data, error, reload } = useLoad(load);
+  const [query, setQuery] = useState(''); // local search word; declared before the early returns
 
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
@@ -39,9 +42,11 @@ export default function PeriodReportScreen() {
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const sortedMembers = sortByName(periodMembers, (m) => nameOf(m.memberId));
+  const searchShown = shouldShowMemberSearch(sortedMembers.length);
+  const found = filterByQuery(sortedMembers, (m) => nameOf(m.memberId), searchShown ? query : '');
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{period.name}</Text>
       <Text style={styles.hint}>
         {period.status === 'active' ? 'Aktif' : 'Berakhir'}{SEP}{period.memberCount} anggota{SEP}mulai {formatDate(period.startDate)}
@@ -84,7 +89,8 @@ export default function PeriodReportScreen() {
       ))}
 
       <SectionHeader title="Per anggota" />
-      {sortedMembers.map((m) => (
+      {searchShown ? <SearchField value={query} onChangeText={setQuery} matchCount={found.matchCount} totalCount={sortedMembers.length} /> : null}
+      {found.items.map((m) => (
         <ListRow
           key={m.memberId}
           title={nameOf(m.memberId)}

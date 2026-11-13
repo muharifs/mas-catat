@@ -1,6 +1,6 @@
 # Spesifikasi: galeri komponen (khusus developer)
 
-Tujuan: satu layar untuk memeriksa tata letak 26 komponen di `src/ui/components` dengan teks Indonesia sangat panjang dan ukuran font sistem besar, tanpa mencari layar asli yang kebetulan memuat teks itu. Disetujui pemilik sebagai "cara A". Dasar teks: glosarium final di `docs/specs/ui-language-review.md` bagian 2.
+Tujuan: satu layar untuk memeriksa tata letak 27 komponen di `src/ui/components` dengan teks Indonesia sangat panjang dan ukuran font sistem besar, tanpa mencari layar asli yang kebetulan memuat teks itu. Disetujui pemilik sebagai "cara A". Dasar teks: glosarium final di `docs/specs/ui-language-review.md` bagian 2.
 
 Status: spek untuk dikerjakan developer. Belum ada kode. Tidak mengubah aturan bisnis, tidak menambah dependensi.
 
@@ -134,6 +134,9 @@ Urutan bagian mengikuti pengelompokan di bawah. Untuk setiap komponen, tampilkan
 
 ### Bagian D. Kartu dan pesan
 
+**Section** (`Section.tsx`)
+- Dua bagian berurutan dalam kontainer `gap: lg`: satu dengan `actionLabel`, satu dengan `contentGap: md` dan tiga baris. Judul ke isi 8 dp, antar bagian 24 dp.
+
 **Card** (`Card.tsx`)
 - Kelima `tone`: default, alt, info, warn, danger, masing-masing berisi satu judul dan satu kalimat T5.
 - Kartu berisi `ReportLine` dan `Button` (komposisi nyata).
@@ -230,7 +233,7 @@ Sebelum melapor: catat nama bagian, pengaturan font, dan tangkapan layar. Satu t
 
 ## 6. Penerimaan
 
-- Semua 26 komponen muncul di galeri, masing-masing dengan keadaan di bagian 3 (tidak boleh ada komponen yang dilewatkan; developer mencocokkan dengan daftar di `src/ui/components` saat selesai).
+- Semua 27 komponen muncul di galeri, masing-masing dengan keadaan di bagian 3 (tidak boleh ada komponen yang dilewatkan; developer mencocokkan dengan daftar di `src/ui/components` saat selesai).
 - Galeri tidak membaca database, store, atau berkas nyata.
 - Galeri tidak ada dan tidak bisa dibuka di build rilis (periksa `__DEV__`).
 - `npx tsc --noEmit` dan `npx expo lint` bersih. Tidak ada dependensi baru.

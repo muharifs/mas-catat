@@ -189,3 +189,25 @@ Untuk perubahan kartu kas Beranda, "Akhiri periode", nama "Pembayaran", dan kata
 Tambahan kecil: Langkah awal (bila masih tampil), TalkBack: tiap baris dibaca "Langkah n: ..., selesai" atau "..., belum" tanpa menyebut tanda centang. Pembayaran: di daftar pembayaran, teks bantu pembayaran kedua menyebut "Catat pembayaran" lewat halaman anggota; form Catat pembayaran tidak punya judul ganda.
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar).
+
+## Cek HP 5: batch audit "worth-it" (font NORMAL saja)
+Hanya yang tidak bisa dibuktikan tes. Belum di-commit dan belum pernah dilihat di HP. Cek HP 1-4 sudah lolos menurut pemilik (2026-11-13). Spesifikasi: `docs/specs/design-decisions-2026-11-13.md`. Perlu bantuan data: periode aktif dengan satu pertemuan sudah ditutup dan dibayar, satu pertemuan berjalan, dan satu pinjaman besar.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| D1 | Beranda, Laporan, Jadwal, Anggota | Jarak judul bagian dan panahnya rapi, tidak terlalu rapat atau renggang |
+| D2 | Beranda, kartu pertemuan | Baris aksi punya panah. Ada jarak yang cukup sebelum tombol "Tutup pertemuan" |
+| D3 | Riwayat, baris chip | Chip meluncur sampai tepi kanan layar, tidak berhenti di tengah |
+| D4 | Riwayat, TalkBack aktif, sentuh satu baris | Dibaca berurutan: judul, anggota, arah, jumlah, dan "Dikoreksi" bila ada. Ikon tidak dibaca sendiri |
+| D5 | Periode > Jadwal, pertemuan tertutup dan sudah dibayar | Seluruh kartu bisa diketuk dan membuka pembayaran tuan rumah. Ada panah. Tidak ada tombol "Lihat pembayaran tuan rumah" |
+| D6 | Periode > Jadwal, pertemuan berjalan | Hanya garis kiri 4dp yang menandai pertemuan berjalan, terlihat jelas. Lencana Terbuka dan Ditutup tampil |
+| D7 | Menu > Cadangan dan ekspor, gulir ke tombol CSV | Notice sibuk atau galat tetap terlihat saat menggulir. Bila sulit dipicu, catat saja |
+| D8 | Menu > Cadangan dan ekspor > Pulihkan data, sampai ada kartu pembanding; di 320 dan 360 dp bila ada | Satu kartu pembanding, teks tidak terpotong dan tidak keluar layar |
+| D9 | Pinjaman dan Laporan > periode, baris dengan jumlah besar | Jumlah tidak terdorong atau terpotong oleh panah |
+| D10 | Menu > Anggota > ubah anggota | Zona hapus dipisah garis, baris ubah punya sudut membulat yang rapi |
+| D11 | Kas > Catat kas, pilih pindah saldo Debit ke Tunai | Ikon berbeda dari Tunai ke Debit (panah balik) |
+| D12 | Menu, tekan lama "Versi 1.0.0" (galeri komponen) | Galeri tampil benar, semua 27 komponen terlihat tanpa teks terpotong |
+
+Tambahan kecil: Laporan tidak lagi punya tombol "Buka periode", hanya daftar. Ini perubahan sengaja (L2).
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar).

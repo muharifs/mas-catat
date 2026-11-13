@@ -324,3 +324,166 @@ HANYA DILAPORKAN ke pemilik (perlu mengubah kata, mengurangi kalimat, atau menye
 ## 10. Berkas yang disentuh (ringkas)
 
 `src/app/(tabs)/index.tsx`, `src/ui/components/Money.tsx` (+ `Money.test.tsx`), `src/ui/components/PillLink.tsx`, `src/app/(tabs)/riwayat.tsx` (+ konstanta di `src/ui/history.ts`), `src/app/(tabs)/menu.tsx`, `src/app/backup/index.tsx`, `src/app/backup/restore.tsx`, `src/ui/backupLabels.ts` (+ tes), `src/app/periods/[id]/payments.tsx` (satu kalimat), `src/app/periods/[id]/pay.tsx` (hapus judul isi), berkas baru `src/ui/separator.ts`, daftar berkas G11 di bagian 6. Dokumen: `docs/specs/ui-language-review.md`, `PROJECT.md` (catat keputusan; baris 153, 692), `docs/specs/wallet-patterns-spec.md` (baris 85, 98), `docs/qa/cek-hp-3.md` (baris R3 menyebut "Catat kas" di kartu kas Beranda; kini tidak ada).
+
+---
+
+## 11. Batch worth-it (2026-11-13)
+
+Penulis: ui-ux-designer. Status: SPESIFIKASI. Tidak ada kode diubah. Hanya UI. Tanpa perubahan aturan uang, `src/domain`, `src/db`, migrasi, CSV, `format.ts`, atau teks dialog yang dipatok tes. TEXT-NEUTRAL: tidak ada kata baru dan tidak ada kata yang berubah; hanya kata yang sudah ada dipindah, dipakai ulang, atau (satu kasus, J4) tidak lagi tampil sebagai tombol. Font NORMAL saja. A7 tidak disentuh (baris Pengingat Beranda tidak diubah, termasuk saat B6 menyentuh kartu pertemuan yang sama). Saya TIDAK melihat layar di perangkat; semua di bawah dari membaca kode pada HEAD `187ff52` (`src/app`, `src/ui/components`, `src/ui/gallery`). Yang perlu dicek di HP ada di 11.5.
+
+### 11.1 Verifikasi per temuan (kode sekarang)
+
+| ID | Status | Alasan (bukti di kode) | Putusan |
+|---|---|---|---|
+| G3 | BERLAKU | `(tabs)/index.tsx` (container `gap: lg`), `laporan.tsx` dan `periods/[id]/index.tsx` (`gap: md`), `members/index.tsx` (`form gap: md`): `SectionHeader` berjarak sama dari kartu atas dan kartunya. Cadangan sudah benar (bungkus `View gap: sm`). Commit 2b20e60..187ff52 tidak mengubah pola ini. | Bangun (11.2-1) |
+| G4 | SEBAGIAN | Menu sudah punya panah. `restore.tsx` baris keselamatan sudah punya "Pulihkan" + panah sendiri. Selebihnya `ListRow` yang punya `onPress` TIDAK punya panah: kartu pertemuan Beranda (3 baris), Laporan (periode), Cadangan ("Pulihkan dari cadangan"), Anggota, `periods/index`, `loans/index`, `reports/period/*`. | Bangun versi sempit: panah otomatis di `ListRow`, tanpa gaya baris baru (11.2-2) |
+| B6 | BERLAKU | Kartu pertemuan Beranda masih tiga `ListRow tone="alt"` berjarak 8dp (gap Card), tanpa panah; "Tutup pertemuan N" (merah) menempel di "Ubah tuan rumah / tanggal". Hanya teks tombol utama yang berubah oleh 2b20e60 ("Pembayaran"). | Bangun (11.2-3) |
+| R3 | SEBAGIAN | Setelah R2 (sudah dibangun), "Filter" ada di kiri dan `chipScroll` (`flex: 1`) berhenti di garis padding kanan layar, jadi chip terpotong di tengah layar bukan di tepi: BERLAKU untuk sisi kanan. "Label pecah dua baris": TIDAK berlaku, karena `ScrollView` horizontal mengukur anak tanpa batas lebar, sehingga label tidak membungkus. `numberOfLines` pada `Chip` justru bisa memotong label di baris `flexWrap` lain (tanggal, jumlah cepat); tidak dipasang. | Bangun hanya potong di tepi (11.2-4) |
+| R5 | BERLAKU | `HistoryRow` `Pressable role=button` tanpa `accessibilityLabel`; ikon Ionicons tanpa penanda dekorasi; tanda +/- dibaca tergantung mesin. | Bangun (11.2-5). Tanpa kata baru |
+| J1 | BERLAKU | `periods/[id]/index.tsx`: "Terbuka" (`styles.open`, teal) dan "Ditutup" (`styles.closed`, abu) masih teks biasa; `Badge` sudah ada dan punya nada `brand` dan `neutral`. | Bangun, hanya "Terbuka" dan "Ditutup" (11.2-6) |
+| J2 | SEBAGIAN | Pertemuan berjalan (`oldestOpen`) tetap tidak dibedakan. Tetapi lencana "Pertemuan berjalan" hanya ada sebagai potongan kalimat di `laporan.tsx` ("pertemuan berjalan" huruf kecil), bukan label berdiri: KATA BARU. | Bangun bagian tanpa kata (garis aksen kiri 4dp); lencana berkata: BUTUH KATA PEMILIK |
+| J3 | BERLAKU, DITUNDA | Dua kartu aksi dengan hint panjang masih mendahului/menyusul jadwal. Setiap cara memendekkan hint butuh baris ringkas baru (tidak ada kalimat pendek yang sudah disetujui untuk kartu ini). Memindah kartu "Tutup pertemuan" ke bawah daftar menyembunyikan aksi mingguan di akhir 10-12 kartu: lebih buruk. | TIDAK dibangun. BUTUH KATA PEMILIK (11.3) |
+| J4 | SEBAGIAN | Pertemuan ditutup dan sudah dibayar (periode aktif) masih membawa tombol `secondary` selebar penuh "Lihat pembayaran tuan rumah", berulang per kartu. Tombol "Bayar tuan rumah" (primer) dan "Ubah" pada pertemuan terbuka tidak diubah. | Bangun versi sempit: hanya kartu ditutup + dibayar jadi satu area ketuk (11.2-7) |
+| J5 | BERLAKU | `View` teks kartu pertemuan tanpa `gap`; `row` `padding: md` sementara kartu lain `lg`. | Bangun (11.2-6, satu berkas dengan J1) |
+| C2 | BERLAKU | `kas/new.tsx` baris 312-313: kedua `IconChoice` transfer sama-sama `arrow-forward-outline`. | Bangun (11.2-8) |
+| L2 | BERLAKU | `laporan.tsx`: tombol primer "Buka {periode}" dan baris `ListRow` untuk periode yang sama (urutan `periods.list` = `start_date DESC`, `defaultReportPeriod` memilih aktif atau terbaru, jadi hampir selalu baris pertama). | Bangun (11.2-9) |
+| Bk3 | BERLAKU, LEBIH LUAS | `backup/index.tsx`: Notice `busy` DAN Notice galat paling atas di dalam `ScrollView`; saat tombol CSV di bawah ditekan keduanya di luar layar (galat berbagi gagal juga tidak terlihat). | Bangun (11.2-10) |
+| Rs1 | (dilewati, selesai) | | |
+| Rs2 | BERLAKU | `restore.tsx` review: dua `Card` bertumpuk, nilai `Text` tanpa `TABULAR`. | Bangun versi sempit (11.2-11) |
+| Ag2 | BERLAKU | `members/index.tsx`: baris anggota tanpa panah; mode ubah: tombol merah "Hapus anggota"/"Arsipkan anggota" berjarak `sm` (8) dari Simpan/Batal. Ag1 sudah selesai (label "Nama anggota" ada). Ag3 (`radius.sm` pada `editRow`) ikut diperbaiki karena baris yang sama. | Bangun (11.2-12) |
+| Gl1 | SEBAGIAN | Sudah ada: `smallPrefix` (SectionC), `HISTORY_CORRECTED` (masuk, tidak flat), `HISTORY_FLAT`, tanda + / - / tanpa (hanya ukuran `large`). Kurang: tanda di empat ukuran, baris dikoreksi arah keluar dan versi flat, kasus ditekan, kasus baru batch ini, judul grup masih `titleM`. Kontrol filter satu baris adalah isi layar, bukan komponen: tidak masuk galeri. | Bangun (11.2-13) |
+
+Urutan pengerjaan yang disarankan (kecil dan aman dulu): C2, J5+J1, L2, Ag2, B6, R3, Bk3, R5, G4 (komponen), G3, J4, Rs2, Gl1 (galeri ikut tiap langkah).
+
+### 11.2 Spesifikasi per temuan yang dibangun
+
+Semua memakai token yang ada di `src/ui/theme.ts`. Tidak ada warna, ukuran, atau ikon baru kecuali `chevron-forward` (sudah dipakai Menu, `PillLink`, `restore.tsx`).
+
+**1. G3: pola Section (K)**
+
+- Berkas: BARU `src/ui/components/Section.tsx`; dipakai di `(tabs)/index.tsx`, `(tabs)/laporan.tsx`, `periods/[id]/index.tsx`, `members/index.tsx`.
+- `Section` props: `title: string`, `actionLabel?`, `onAction?` (diteruskan ke `SectionHeader`), `contentGap?: number` (default `spacing.sm`), `children`. Render: `View style={{ gap: spacing.sm }}` berisi `SectionHeader` lalu `View style={{ gap: contentGap }}` dengan `children`. `SectionHeader` tidak diubah.
+- Aturan: judul ke isinya `sm` (8); antar bagian = gap kontainer layar. Beranda: kontainer tetap `lg`. Laporan: kontainer `gap: md` menjadi `lg`, bagian berisi judul + `EXPECTED_SUBTITLE` (kalau ada) + kartu. Jadwal: kontainer `md` menjadi `lg`, `Section title="Jadwal" contentGap={spacing.md}` membungkus semua kartu pertemuan (jarak antar kartu tetap 12).
+- Beranda: tiga bungkus: `Pengingat` (+ Notice galat `actionError` di dalam isinya, setelah Card), judul `paidView.summary` (dengan "Lihat") + Card, "Terakhir" (dengan "Lihat semua riwayat") + Card. `visibleReminders` dan kondisi `period && week` TIDAK diubah (A7).
+- Anggota: judul "N anggota" + teks petunjuk dibungkus `Section` (isi: petunjuk). Form `gap: md` tetap di atasnya.
+- Tidak berubah: Cadangan, Pulihkan (sudah benar). Layar lain yang memakai `SectionHeader` (`kas/[entryId]`, `reports/period/*`, `periods/new`, `close`, `members/[memberId]`, `meetings/[number]`, `istilah`, `loans/[memberId]`): TIDAK disentuh batch ini; catat sebagai lanjutan.
+- Galeri: tambah demo "Section" di `SectionD`: dua bagian berurutan dalam kontainer `gap: lg`, satu dengan `actionLabel`, satu dengan `contentGap: md` dan tiga baris.
+
+**2. G4: panah otomatis pada ListRow (K, versi sempit)**
+
+- Berkas: `src/ui/components/ListRow.tsx`; pemakai yang harus diberi `chevron={false}`: baris salinan pengaman `restore.tsx` (sudah punya "Pulihkan" + panah), dan baris "Tutup pertemuan" Beranda (membuka dialog, bukan layar).
+- Prop baru: `chevron?: boolean`, default `Boolean(onPress)`. Bila true: ikon `Ionicons name="chevron-forward"` `size={ICON.sm}` (20) `color={colors.textTertiary}` setelah `right` (urutan: `main` | `right` | panah), `flexShrink: 0`, `accessibilityElementsHidden`/`importantForAccessibility="no"`. Kontras 636A7B di atas EEF0F5 kira-kira 4,8:1 (hitungan, bukan ukur), di atas FFFFFF lebih tinggi; melampaui 3:1 untuk ikon.
+- Tidak ada gaya baris baru: `tone` default/alt/danger tetap. Dua gaya yang dimaksud audit terpenuhi oleh aturan "dapat diketuk = ada panah, informasi = tanpa panah". Baris Jadwal (kartu putih) bukan `ListRow` dan tidak disatukan di sini.
+- Tinggi baris tidak berubah (`minHeight: 48`). Lebar: `right` berisi `Money` heading (kira-kira 110dp untuk Rp12.345.000) + panah 20 + gap 8 masih muat di 296dp dengan judul `flex: 1` membungkus.
+- Galeri (`SectionB`, bagian ListRow): dapat ditekan tanpa dan dengan `right` Money T8 (jumlah tidak terdorong keluar), `chevron={false}` pada baris dapat ditekan, baris tidak dapat ditekan tidak punya panah.
+- Tes: `truncation.qa.test.tsx` perlu dijalankan ulang (baris `ListRow` bertambah satu elemen).
+
+**3. B6: kartu pertemuan Beranda (U)**
+
+- Berkas: `(tabs)/index.tsx`, cabang `week.hostMemberId !== null`.
+- "Bayar tuan rumah" / "Lihat pembayaran tuan rumah" dan "Ubah tanggal" / "Ubah tuan rumah / tanggal": panah otomatis (G4). Teks, `right` ("Sudah dibayar") dan tujuan tidak berubah.
+- "Tutup pertemuan N": `chevron={false}`; bungkus dalam `View style={{ marginTop: spacing.md }}`. Jarak total ke baris di atasnya = gap Card 8 + 12 = 20dp (dua kali jarak antar baris biasa). Tanpa garis pemisah (menghindari garis ketiga di kartu). Merah (`destructive`) dan dialog konfirmasi tidak berubah.
+- Cabang `hostMemberId === null` dan tombol "Pembayaran": tidak berubah. Baris Pengingat: tidak disentuh.
+
+**4. R3: chip sampai tepi layar (E, versi sempit)**
+
+- Berkas: `(tabs)/riwayat.tsx`.
+- `chipScroll`: `{ flex: 1, marginRight: -spacing.lg }`. `chips` (contentContainerStyle): `{ gap: spacing.sm, paddingRight: spacing.lg }`. Hasil: chip bergulir sampai tepi kanan layar dan chip terakhir berhenti dengan jarak 16 dari tepi saat digulir habis. Sisi kiri tidak berubah (dibatasi tombol "Filter").
+- `FlatList` `list` padding `lg` tetap. Tidak ada perubahan `Chip`.
+
+**5. R5: label pembaca layar baris riwayat (A)**
+
+- Berkas: `src/ui/history.ts` (fungsi murni baru `historyRowLabel`) + tes di berkas tes history yang ada; `HistoryRow.tsx` (pakai).
+- `historyRowLabel(parts)` = `[title, memberName, historyFlowText(e), formatRupiah(e.amount), note, peringatanTanpaPos, 'Dikoreksi' bila corrected].filter((s) => s !== '').join(', ')`. Hanya kata yang sudah tampil di baris. Arah masuk/keluar sudah dibawa kata "Masuk ke"/"Keluar dari" di `historyFlowText`, jadi TIDAK perlu kata "masuk/keluar" baru. Jumlah tanpa tanda (`formatRupiah`, bukan `formatSigned`), agar tidak bergantung pada pembacaan "+" atau "-".
+- `HistoryRow`: `Pressable` mendapat `accessibilityLabel={historyRowLabel(...)}`; `View` ikon mendapat `importantForAccessibility="no"` dan `accessibilityElementsHidden`. Tampilan tidak berubah. Berlaku juga untuk baris "Terakhir" di Beranda (komponen sama).
+- Contoh yang diharapkan dites: `Pembayaran, Dedi, Masuk ke Tunai, Rp50.000`; baris dikoreksi: `..., Rp50.000, Dikoreksi`; entri tanpa anggota: bagian anggota dilewati (tidak ada koma ganda); transfer: `Pindah saldo, Tunai ke Debit, Rp100.000`. (Judul persisnya dari `entryTitle`; developer menulis tes dari keluaran nyata.)
+- Galeri: baris yang ada sudah mencakup 8 jenis; cukup tambah caption "Cek TalkBack: dibaca satu kalimat" pada Demo `Delapan jenis` (teks galeri, bukan teks pengguna).
+
+**6. J1 + J5: kartu pertemuan Jadwal (K, E)**
+
+- Berkas: `periods/[id]/index.tsx`.
+- J5: `View` teks (yang membungkus judul, tuan rumah, status): tambah `style={{ gap: spacing.xs }}`; `row` `padding: spacing.md` menjadi `spacing.lg`.
+- J1: ganti `<Text style={styles.open}>Terbuka</Text>` dengan `<Badge label="Terbuka" tone="brand" />` dan `<Text style={styles.closed}>Ditutup</Text>` dengan `<Badge label="Ditutup" tone="neutral" />`. Hapus style `open` dan `closed` bila tidak dipakai lagi (`closed` masih dipakai baris "Pembayaran tuan rumah: sudah dibayar"; biarkan). Baris "Pembayaran tuan rumah: sudah dibayar" tetap teks abu (lencana "Tuan rumah dibayar" = kata baru, tidak dibangun).
+- Urutan teks di kartu tidak berubah. `Badge` sudah `alignSelf: 'flex-start'`.
+
+**7. J4: kartu pertemuan ditutup dan dibayar jadi satu area ketuk (U, versi sempit)**
+
+- Berkas: `periods/[id]/index.tsx`.
+- Berlaku hanya bila `canViewPayout && w.status === 'closed'` (periode aktif, dibayar, ditutup; pertemuan terbuka yang sudah dibayar tidak berubah: masih "Ubah tanggal" + "Lihat pembayaran tuan rumah").
+- Kartu `row` menjadi `Pressable accessibilityRole="button"` dengan `onPress` ke `/periods/[id]/payout?week=N` (sama dengan tombol lama), gaya `pressed`: `backgroundColor: colors.bgMute`. Isi: teks yang ada + baris "Pembayaran tuan rumah: sudah dibayar" (kini tampil juga untuk kasus ini; kalimat yang sudah ada di kode) + panah `chevron-forward` `ICON.sm` `textTertiary` di kanan tengah (baris `flexDirection: 'row'`, teks `flex: 1`).
+- Tombol "Lihat pembayaran tuan rumah" dihapus dari kartu ini. Kata "Lihat pembayaran tuan rumah" tetap ada di `accessibilityLabel` kartu: `` `Pertemuan ${n}, ${nama tuan rumah}, Ditutup, Lihat pembayaran tuan rumah, sudah dibayar` `` (semua potongan sudah ada). Ini penghapusan tampilan sebuah tombol; mohon pemilik menyadarinya (lihat 11.3 butir 3).
+- Pertemuan yang butuh aksi ("Bayar tuan rumah" primer, "Tentukan", "Ubah") tidak berubah.
+
+**8. C2: dua arah transfer berbeda ikon (A)**
+
+- Berkas: `kas/new.tsx` baris 313: ikon "Debit ke Tunai" menjadi `arrow-back-outline` (baris 312 tetap `arrow-forward-outline`). Label dan `accessibilityLabel` tidak berubah. Pengecualian: tidak ada tes yang mengunci ikon (cek: `truncation.qa.test` hanya memakai label).
+- Galeri: `SectionE` IconChoice sudah memiliki 2 ubin; ganti ikon contoh pasangan sama agar galeri mencerminkan layar.
+
+**9. L2: periode tidak muncul dua kali (U)**
+
+- Berkas: `(tabs)/laporan.tsx`.
+- Hapus `<Button label={`Buka ${preferred.name}`} .../>` dan `preferred`/`defaultReportPeriod` bila tidak dipakai lagi (impor ikut dibuang; fungsinya di `src/domain` tidak disentuh). Daftar `ListRow` tetap (urutan sudah terbaru dulu), kini dengan panah (G4). Satu jalan masuk per periode, tidak ada tombol primer di bagian bawah tab, bagian "Laporan per periode" tampil di dalam `Section`.
+- `Notice` "Belum ada periode." tetap.
+- Keputusan: tidak menambah lencana pada baris pertama (butuh kata). Status "Aktif" hijau di `RowText` sudah menandai periode berjalan.
+
+**10. Bk3: umpan balik berjalan dan galat selalu terlihat (U)**
+
+- Berkas: `backup/index.tsx`.
+- Pindahkan `{busy ? <Notice tone="info">{busy}</Notice> : null}` dan `{error ? <Notice tone="danger">{error}</Notice> : null}` keluar dari `ScrollView`, ke blok di atasnya: `View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.sm }}`, dengan pembungkus layar `View style={{ flex: 1 }}`. Teks tidak berubah. Blok hanya ada saat salah satunya tampil (layar tidak bergeser saat idle).
+- `ScrollView` `container` padding atas tetap `lg`.
+- Catatan: `Button loading` tidak dipakai (label a11y "sedang menyimpan" akan menjadi pernyataan baru untuk ekspor CSV).
+
+**11. Rs2: satu kartu pembanding (U, versi sempit)**
+
+- Berkas: `backup/restore.tsx` (keadaan `review`).
+- Ganti `View compare` dengan SATU `Card`. Baris pertama: dua judul berdampingan (`flexDirection: 'row'`, `gap: spacing.lg`, tiap `flex: 1`): kiri "Di HP ini sekarang", kanan `isReset ? 'Setelah mulai dari nol' : 'Isi cadangan'` (teks sudah ada, `styles.heading` titleM; boleh membungkus dua baris). Lalu satu blok per butir dari `summaryRows(live)` dan `summaryRows(candidate)` (indeks sama, label sama, dicek `summaryRows` di `backupLabels.ts`): label sekali (`caption`) di atas, di bawahnya dua nilai berdampingan, kolom sama lebar seperti judul; nilai memakai `...TABULAR` pada `styles.value`. Garis `divider` (1dp) antar butir, `gap: sm`.
+- Tidak ada tinted card kedua. Angka dan label tidak berubah. `SummaryLine` boleh dipakai ulang dengan prop dua nilai atau diganti baris baru; developer memilih.
+- Cek HP 320 dan 360 dp: "Total kas (Tunai + Debit)" membungkus di label; "Rp12.345.000" bodyStrong (kira-kira 100dp) muat di kolom 140dp.
+
+**12. Ag2 (+ Ag3): baris anggota dan aksi merah (U, K)**
+
+- Berkas: `members/index.tsx`.
+- Baris anggota aktif: panah otomatis (G4). Baris arsip ("Aktifkan lagi") tidak punya `onPress` di baris, jadi tidak berubah.
+- Mode ubah: bungkus tombol "Hapus anggota"/"Arsipkan anggota" dalam `View style={{ marginTop: spacing.sm, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider }}`. Total jarak dari Simpan/Batal kira-kira 28dp plus garis. Teks, `dangerOutline`, dialog tidak berubah.
+- Ag3: `editRow` `borderRadius: radius.sm` menjadi `radius.md`.
+- Tidak menambah ikon pensil (ikon baru; panah dan petunjuk "Ketuk nama..." sudah cukup).
+
+**13. Gl1: galeri menutup kasus batch ini (K)**
+
+- Berkas: `src/ui/gallery/SectionC.tsx`, `SectionB.tsx`, `fixtures.ts`, `ComponentGallery.tsx`, `SectionD.tsx` (Section), `SectionE.tsx`.
+- SectionC (Money): demo "Tanda +, -, tanpa tanda pada empat ukuran" (`hero`, `large`, `heading`, `body`) berdampingan dalam satu `Demo`.
+- SectionB (HistoryRow): (a) dikoreksi ARAH KELUAR, (b) dikoreksi ARAH MASUK flat di dalam `Card`, (c) dikoreksi ARAH KELUAR flat. Tambah ke `fixtures.ts` satu pasangan keluar (mis. `host_payout` out dengan `reversedById`) mengikuti `item()` yang ada; `HISTORY_CORRECTED` (masuk, non flat) tetap. Caption Demo flat: "Tahan baris untuk melihat warna tekan (tanpa prop khusus galeri, supaya komponen produksi tidak berubah)."
+- SectionB (ListRow): kasus panah G4 (lihat 11.2-2).
+- `ComponentGallery.tsx`: judul grup A-F memakai `Text accessibilityRole="header"` dengan gaya baru `groupTitle: { ...type.titleL, color: colors.text }` menggantikan `SectionHeader` (titleM) agar beda tingkat dari judul komponen.
+- SectionD: demo `Section` (11.2-1). SectionE: ikon IconChoice (11.2-8).
+- Tidak ada prop `forcePressed`: tidak dipilih agar komponen produksi tidak ketambahan prop khusus galeri.
+
+### 11.3 BUTUH KATA PEMILIK
+
+Hanya bagian tanpa kata baru yang saya spesifikasikan; bagian di bawah menunggu kata.
+
+1. **J2, lencana pertemuan berjalan.** Dibangun hanya tanpa kata: pada kartu `oldestOpen` aktif, `row` diberi `borderLeftWidth: 4` dan `borderLeftColor: colors.brand` (token aksen; tidak sebagai teks, jadi aman dari batas kontras; informasi pendukung, bukan satu-satunya sinyal karena kartu itu juga satu-satunya yang punya tombol aksi pembayaran). Usul kata: lencana `Badge tone="brand"` dengan label **"Pertemuan berjalan"** di sebelah "Terbuka". Dapat diganti **"Sekarang"** (lebih pendek; muat di 296dp bersama "Terbuka").
+2. **J3, hint panjang dua kartu aksi Jadwal.** Tidak dibangun. Usul: satu baris ringkas per kartu, mis. "Tutup pertemuan: yang paling awal terbuka, harus sudah punya tuan rumah." dan "Akhiri periode: setelah semua pertemuan ditutup dan semua tuan rumah dibayar.", dengan teks panjang yang sekarang pindah ke dialog lewat tautan "Selengkapnya" (kata sudah disetujui, pola sama dengan R4). Alternatif tanpa kata baru yang bisa dibangun kapan saja: hint panjang langsung di balik "Selengkapnya" TANPA baris ringkas (judul dialog = judul kartu, tombol "Tutup"), dengan akibat penjelasan aturan tidak terlihat di kartu. Pilih salah satu.
+3. **J4, kata tombol "Lihat pembayaran tuan rumah".** Pada kartu pertemuan ditutup dan dibayar, kata itu tidak lagi tampil sebagai tombol (hanya di label pembaca layar); ketuk kartu + panah menggantikannya, kalimat "Pembayaran tuan rumah: sudah dibayar" ada di kartu. Bila pemilik ingin kata itu tetap tampil, kembalikan sebagai teks di dalam kartu (bukan tombol) tanpa tambahan kata.
+4. **J1, lencana "Tuan rumah dibayar" (usul audit).** Tidak dibangun; kalimat "Pembayaran tuan rumah: sudah dibayar" tetap. Usul bila ingin: `Badge tone="ok"` "Dibayar" (kata sudah dipakai di label "Sudah dibayar" Beranda, tetapi bentuk berbeda).
+5. **Rs2, judul kolom singkat.** Judul "Di HP ini sekarang" dan "Isi cadangan" membungkus di 140dp (dua baris). Usul audit bila pemilik ingin satu baris: "Di HP ini" dan "Di cadangan".
+6. **L2, penanda periode pilihan pertama.** Tidak ada lencana (butuh kata). Usul: "Terbaru" bila pemilik menginginkannya.
+
+Tidak butuh kata baru: R5 (label dari kata yang ada, arah dibawa "Masuk ke"/"Keluar dari"), C2, G3, G4, B6, R3, J5, Bk3, Ag2, Rs2 (selain butir 5), Gl1.
+
+### 11.4 Berkas yang disentuh (ringkas)
+
+Baru: `src/ui/components/Section.tsx`. Diubah: `src/ui/components/ListRow.tsx`, `src/ui/components/HistoryRow.tsx`, `src/ui/history.ts` (+ tesnya), `src/app/(tabs)/index.tsx`, `src/app/(tabs)/laporan.tsx`, `src/app/(tabs)/riwayat.tsx`, `src/app/periods/[id]/index.tsx`, `src/app/members/index.tsx`, `src/app/backup/index.tsx`, `src/app/backup/restore.tsx`, `src/app/kas/new.tsx`, galeri (`SectionB`, `SectionC`, `SectionD`, `SectionE`, `fixtures.ts`, `ComponentGallery.tsx`). TIDAK disentuh: `src/domain`, `src/db`, `format.ts`, `Money.tsx`, `Chip.tsx`, CSV, teks dialog, `reminders.ts`, baris Pengingat Beranda.
+
+### 11.5 Cek di HP (font normal)
+
+1. Beranda: jarak judul ke kartunya lebih rapat dari jarak antar bagian (Pengingat, Terakhir); kartu pertemuan: panah di dua baris, "Tutup pertemuan" jelas terpisah, panah tidak ada di baris itu.
+2. Riwayat: chip meluncur sampai tepi kanan; chip terakhir tidak terpotong setelah digulir habis.
+3. TalkBack baris riwayat: dibaca satu kalimat berurutan, tanpa "plus/minus" dobel dan tanpa glyph ikon.
+4. Jadwal: lencana Terbuka/Ditutup; kartu ditutup + dibayar bisa diketuk seluruhnya dan membuka halaman tuan rumah; garis aksen di pertemuan berjalan terlihat tanpa menyiratkan "dipilih".
+5. Catat kas, pindah saldo: dua ikon berbeda arah.
+6. Laporan: tidak ada tombol "Buka ..."; baris periode berpanah.
+7. Cadangan: tekan satu tombol CSV di bagian bawah; Notice "Menyiapkan berkas..." atau galat tetap terlihat di atas layar saat menggulir.
+8. Pulihkan (review) 320 dan 360 dp: dua kolom nilai tidak terpotong, angka rata.
+9. Anggota: panah di baris; mode ubah: garis dan jarak sebelum tombol merah.
+10. ListRow dengan `right` Money besar: tidak terdorong keluar oleh panah.

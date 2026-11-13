@@ -213,3 +213,24 @@ Tambahan kecil: Laporan tidak lagi punya tombol "Buka periode", hanya daftar. In
 Hasil dicatat per baris (lolos, gagal, tangkapan layar).
 
 UPDATE 2026-11-13: Cek HP 5 sudah dicek pemilik di HP ("cek hp 5 juga sudah aku cek"). Pemulihan cadangan lama (sebelum 0005) juga sudah dites sekali.
+
+## Cek HP 6: dialog dan toast dalam aplikasi (font NORMAL saja)
+Hanya yang tidak bisa dibuktikan tes. BELUM dibangun, belum di-commit, belum pernah dilihat di HP; daftar ini dipakai setelah pembangunan (decision 28) dan setelah qa-tester selesai. Spesifikasi: `docs/specs/dialog-spec.md` bagian 8. Perlu bantuan data: periode aktif dengan satu pertemuan berjalan yang sudah ada tuan rumahnya, satu pertemuan yang bisa ditutup, semua pertemuan tertutup (untuk Akhiri periode), dan satu berkas cadangan (data dummy saja untuk pulihkan).
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| E1 | Beranda atau Periode > Bayar tuan rumah, tekan "Bayar tuan rumah" | Dialog dalam aplikasi, kartu di tengah, scrim menutup header dan status bar. Font Inter (bukan font sistem MiSans): bandingkan huruf judul dan tombol dengan layar lain. Judul memuat jumlah, pesan memuat angka dan potongan tunggakan. Tombol "Bayar" (teal tua penuh = tombol utama, bukan merah) di atas, "Batal" di bawah, ditumpuk penuh lebar. "Batal" menutup tanpa mencatat apa pun |
+| E2 | Periode yang semua pertemuannya tertutup, "Akhiri periode", isi tanggal, tekan tombol akhir | Dua langkah. Dialog 1 "Akhiri periode" (Lanjut, Batal). Tekan "Lanjut": dialog 2 "Yakin ingin mengakhiri periode?" tampil tanpa kedip tutup-lalu-buka. Tombol "Ya, akhiri periode" merah. "Batal" di langkah 1 dan di langkah 2 sama-sama aman: periode tidak berakhir |
+| E3 | Menu > Cadangan dan ekspor > Pulihkan data, pilih berkas dummy, ketik frasa, tekan tombol pulihkan | Dua langkah. Dialog 1 "Ganti semua data?" (Lanjut, Batal), lalu dialog 2 "Yakin ingin mengganti semua data?" dengan tombol merah "Ya, ganti semua data". Batal di kedua langkah aman: data tidak berubah. (Jangan pernah dites di data asli.) Setelah pemulihan dummy selesai: dialog "Salinan pengaman" tampil di atas Beranda yang baru dibangun, "Bagikan" membuka share sheet, "Nanti" menutup |
+| E4 | Riwayat atau Pembayaran, ubah/koreksi satu catatan (CorrectionForm), isi alasan, tekan tombol koreksi | Dialog konfirmasi koreksi dengan judul "Koreksi ..." dan tombol merah "Koreksi" di atas, "Batal" di bawah. Bila keyboard sedang terbuka: dialog tidak setengah tertutup keyboard, dan keyboard menutup. Tekan "Koreksi": catatan koreksi tercatat sekali saja |
+| E5 | Buka salah satu konfirmasi (E1 sampai E4), tekan tombol Back Android | Back = Batal: dialog menutup, tidak ada yang dicatat. Pada dialog info satu tombol (mis. "Ringkasan bulan ini" di Riwayat > Selengkapnya), Back menutup juga |
+| E6 | Buka konfirmasi uang (E1 sampai E4), ketuk area gelap di luar kartu | TIDAK menutup (konfirmasi uang tidak hilang karena salah ketuk). Lalu buka dialog info satu tombol ("Ringkasan bulan ini"): ketuk di luar MENUTUP |
+| E7 | Dialog info satu tombol, mis. "Ringkasan bulan ini" atau galat pembayaran | Tombol berlabel "Tutup" (bukan "OK" sistem). Menutup dialog |
+| E8 | Pay (Simpan) dan Catat kas (Simpan), tekan tombol "Simpan" dua kali cepat | Hanya satu catatan tersimpan |
+| E9 | Dialog dengan pesan paling panjang (Catat kas dengan catatan panjang) | Pesan bisa digulir, judul tetap, tombol tetap terlihat di bawah |
+| E10 | TalkBack aktif, buka sebuah dialog konfirmasi | Fokus pertama ada di judul dan dibaca sebagai judul (heading); lalu pesan, lalu tombol sesuai urutan visual. Sentuhan di luar kartu tidak menjangkau layar di belakang. Tutup dialog: fokus kembali ke layar di bawah |
+| E11 | TalkBack aktif, lakukan aksi yang memunculkan toast (mis. simpan pembayaran) | Toast terbaca, tidak dua kali. Bila tidak terbaca, catat (spec menyiapkan cadangan: announceForAccessibility) |
+| E12 | Beranda dan Riwayat (ada tab bar), lakukan aksi yang memunculkan toast | Toast berupa kapsul gelap berfont Inter, tampil DI ATAS tab bar (tidak menutupinya), hilang sendiri sekitar 3 detik. Tiga ketukan cepat: pesan terakhir menggantikan, tidak menumpuk. Di layar form (tanpa tab bar) toast tidak menutupi tombol utama; catat jarak dari bawah layar |
+| E13 | Menu, tekan lama "Versi 1.0.0" (galeri) | Bagian baru "DialogHost" dan "ToastHost" ada, tiap demo membuka dialog atau toast yang benar (termasuk dua dialog beruntun, antrean, tiga tombol, dan teks sangat panjang) |
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.

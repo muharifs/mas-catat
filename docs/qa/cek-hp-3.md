@@ -123,3 +123,22 @@ Status: teks sudah masuk (commit b3b293c dan a2bc0ae) dan lolos tes otomatis. Ta
 | E15 | Pesan galat umum | Sulit dipicu di HP; sudah dites otomatis. Cukup pastikan galat yang sudah dikenal (pulihkan berkas bukan cadangan, arsipkan anggota periode aktif) tetap memakai pesan lama |
 
 Perbaikan tampilan yang masih menunggu tangkapan layar: F1, F2, F3, F6, F7. Kirim tangkapan layar layar yang bersangkutan sebelum dinyatakan selesai.
+
+## Recheck: font Inter + layout (2026-11-13)
+Status: dibuat, belum dilihat di HP. Penyebab teks terpotong (Android mengukur teks dengan font bawaan tetapi menggambar dengan font MiSans) diperbaiki dengan font Inter bawaan aplikasi, ditambah perbaikan tata letak baris Jadwal (F1) dan ReminderRow. Inter sekitar 5-8% lebih lebar dari font lama, jadi periksa juga angka besar. Lakukan SETIAP butir di bawah dua kali: sekali dengan ukuran huruf NORMAL, sekali dengan ukuran huruf TERBESAR (Pengaturan HP > Tampilan > Ukuran huruf).
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| R1 | Menu > Komponen (gallery), bagian A dan B | Judul bagian "A. Tombol dan aksi" dan "B. Baris dan daftar" terbaca lengkap. Chip "Hari ini" dan "Bulan ini" lengkap. ReminderRow dengan label aksi panjang: teks memakai lebar penuh, tombol ada di bawah teks |
+| R2 | Periode > Jadwal | Tombol ada di bawah teks dan selebar baris. Cek baris dengan satu tombol, baris dengan dua tombol, dan pertemuan yang sudah dibayar. Teks tidak terpotong |
+| R3 | Beranda | Label "Total kas" lengkap. "Akhiri periode" dan "Catat kas" masing-masing satu baris. Angka besar (hero) dan kisi uang tidak terpotong. Pengingat terbaca penuh |
+| R4 | Riwayat | Chip filter "Tuan rumah" dan "Pindah saldo" masing-masing satu baris. Ringkasan bulan terbaca penuh |
+| R5 | Menu > Cadangan dan ekspor | Teks bantu CSV "Tunai + Debit ..." membungkus ke baris berikutnya seperti biasa, tidak terpotong |
+| R6 | Menu > Cadangan dan ekspor > Pulihkan data | Judul "Salinan pengaman" satu baris. Baris "Pulihkan" tampak bisa ditekan (label tebal berwarna merek dan tanda panah), alurnya tidak berubah. Pada baris tiga tombol tidak ada kata terbelah seperti "pembayar/an" |
+| R7 | Menu > Anggota > Anggota terarsip | Tombol "Aktifkan lagi" ada di bawah teks, tidak menekan teks |
+| R8 | Semua layar | Judul header dan label tab tebal. Kolom isian: kursor dan teks contoh (placeholder) tidak terpotong. Angka uang rata di kolom |
+| R9 | Buka aplikasi dari keadaan tertutup | Layar pembuka (splash) tidak berkedip dengan font sistem sebelum font aplikasi tampil |
+
+Jika masih ada teks yang terpotong, kirim tangkapan layar dan catat layar serta ukuran hurufnya (normal atau terbesar).
+
+Keputusan terbuka untuk pemilik: baris berulang "Pembayaran tuan rumah: sudah dibayar" di atas tombol "Lihat pembayaran tuan rumah" pada Jadwal. Desainer menyarankan dihapus; sementara dipertahankan. Beri tahu jika mau dihapus.

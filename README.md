@@ -75,7 +75,7 @@ Correctness work beyond ordinary unit tests:
 
 ## Stack
 
-Expo SDK 52 (managed) · React Native 0.88 · TypeScript (strict, `noUncheckedIndexedAccess`)
+Expo SDK 58 (managed) · React Native 0.88 · TypeScript (strict, `noUncheckedIndexedAccess`)
 · expo-router · expo-sqlite (sql.js in tests) · Jest.
 
 ## Running it

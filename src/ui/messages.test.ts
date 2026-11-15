@@ -59,6 +59,8 @@ describe('toasts', () => {
   it('words each success message', () => {
     expect(toasts.payment(30_000, 'Budi')).toBe('Pembayaran Rp30.000 dari Budi tersimpan');
     expect(toasts.weekClosed(3)).toBe('Pertemuan 3 ditutup');
+    expect(toasts.weekSkipped(19)).toBe('Pertemuan 19 dilewati. Periode sudah bisa diakhiri.');
+    expect(toasts.skipCancelled(19)).toBe('Pelewatan pertemuan 19 dibatalkan');
     expect(toasts.host(3, 'Budi')).toBe('Tuan rumah pertemuan 3 disimpan: Budi');
     expect(toasts.payout(100_000, 'Budi')).toBe('Pembayaran tuan rumah Rp100.000 untuk Budi tersimpan');
     expect(toasts.kas('Saldo awal', 500_000)).toBe('Saldo awal Rp500.000 tersimpan');

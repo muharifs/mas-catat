@@ -21,6 +21,11 @@ export interface Allocation {
   amount: Rupiah;
   /** Date the payment was actually made (not the date of the week). */
   paymentDate: IsoDate;
+  /**
+   * Set by the repository when the allocation targets a skipped meeting: the row stays (append-only) but it no longer
+   * counts, its amount is member credit. Absent for a normal allocation.
+   */
+  skipped?: boolean;
 }
 
 /** Portion of a weekly due already settled by a host payout offset. */
@@ -40,6 +45,11 @@ export interface WeekStatus {
   offset: Rupiah;
   credited: Rupiah;
   outstanding: Rupiah;
+  /**
+   * True for the meeting that is skipped (decision 33): nothing is due, so due, paid, offset, credited and
+   * outstanding are all 0. Absent means a normal meeting.
+   */
+  skipped?: boolean;
 }
 
 export interface UnpaidWeek {

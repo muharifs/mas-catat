@@ -25,7 +25,7 @@ import type { Account, LedgerEntry, LedgerEntryType } from '@/domain/types';
 import type { Db, Queryable } from './db';
 import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
-import { loadCurrentWeek, loadWeekStatuses } from './weeks';
+import { loadCurrentWeek, loadSkippedWeekNumbers, loadWeekStatuses } from './weeks';
 
 /** Types the app knows today. No SQL CHECK on type on purpose (see migration 0001); this list is the guard. */
 const KNOWN_TYPES: readonly LedgerEntryType[] = [
@@ -281,6 +281,10 @@ async function preparePayout(
     [periodId, week],
   );
   if (!weekRow) throw new RepositoryError(`week ${week} not found in period ${periodId}`);
+  // A skipped meeting has no host payout (checked before the host: its stored host is not a payee).
+  if ((await loadSkippedWeekNumbers(db, periodId)).includes(week)) {
+    throw new RepositoryError(`week ${week} is skipped; it has no host payout`);
+  }
   if (!weekRow.host_member_id) throw new RepositoryError(`week ${week} has no host; pick a host first`);
   const hostMemberId = weekRow.host_member_id;
 

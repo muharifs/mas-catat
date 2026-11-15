@@ -21,6 +21,7 @@ import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { toasts } from '@/ui/messages';
+import { skippedTurnNewPeriodNotice } from '@/ui/skipMeeting';
 import { colors, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
@@ -34,11 +35,12 @@ const NO_IDS: string[] = [];
 export default function NewPeriodScreen() {
   const repos = useRepos();
   const load = useCallback(async () => {
-    const [members, active, refundable, periods] = await Promise.all([
+    const [members, active, refundable, periods, skippedTurn] = await Promise.all([
       repos.members.listActive(), // archived members cannot join a new period
       repos.periods.getActive(),
       repos.credits.listRefundable(),
       repos.periods.list(),
+      repos.weeks.skippedTurn(), // member who lost a turn to host when the last meeting of the previous period was skipped
     ]);
     // periods.list() is newest first. The members of the latest period are pre-selected (the owner can change that).
     const latest = periods[0];
@@ -49,6 +51,7 @@ export default function NewPeriodScreen() {
       refundable,
       defaultName: `Periode ${periods.length + 1}`,
       defaultSelected: latestMembers.map((m) => m.memberId),
+      skippedTurn,
     };
   }, [repos]);
   const { data, error: loadError, reload } = useLoad(load);
@@ -97,6 +100,8 @@ export default function NewPeriodScreen() {
     refundable.filter((r) => !selected.includes(r.memberId)),
     (r) => nameOf(r.memberId),
   );
+  // The hint needs the member's name; an archived member is not in the active list, so there is nothing to say.
+  const skippedTurnName = data.skippedTurn ? (members.find((m) => m.id === data.skippedTurn?.memberId)?.name ?? null) : null;
   const searchShown = shouldShowMemberSearch(members.length);
   const found = filterByQuery(members, (m) => m.name, searchShown ? query : '');
   const dateOk = isRealDate(startDate);
@@ -188,6 +193,12 @@ export default function NewPeriodScreen() {
       ) : (
         <Text style={styles.hint}>Pilih minimal satu anggota untuk melihat perkiraan tanggal.</Text>
       )}
+
+      {skippedTurnName && data.skippedTurn ? (
+        <Notice tone="info">
+          {skippedTurnNewPeriodNotice(skippedTurnName, data.skippedTurn.periodName, data.skippedTurn.week, selected.includes(data.skippedTurn.memberId))}
+        </Notice>
+      ) : null}
 
       {shownCarry.length > 0 ? (
         <>

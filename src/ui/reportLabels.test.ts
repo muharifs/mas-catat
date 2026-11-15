@@ -9,9 +9,11 @@ import {
   eventLines,
   isSettledState,
   LOAN_LABELS,
+  MEETING_STATUS_LABELS,
   settledText,
   unpaidPayoutText,
   WEEK_STATE_LABELS,
+  weekStateTone,
 } from './reportLabels';
 
 const event = (p: Partial<HistoryEvent> & Pick<HistoryEvent, 'kind'>): HistoryEvent => ({
@@ -21,6 +23,7 @@ const event = (p: Partial<HistoryEvent> & Pick<HistoryEvent, 'kind'>): HistoryEv
   reversalReason: null,
   settled: [],
   credit: 0,
+  releasedBySkip: 0,
   week: null,
   otherPeriodName: null,
   account: null,
@@ -101,5 +104,44 @@ describe('report labels', () => {
   it('words the unpaid payout info row', () => {
     expect(unpaidPayoutText(0)).toBe('Semua pertemuan yang ditutup sudah dibayar.');
     expect(unpaidPayoutText(2)).toContain('2 pertemuan');
+  });
+});
+
+describe('report labels: a skipped meeting (decision 33)', () => {
+  it('words the state and the meeting status "Dilewati"', () => {
+    expect(WEEK_STATE_LABELS.skipped).toBe('Dilewati');
+    expect(MEETING_STATUS_LABELS.skipped).toBe('Dilewati');
+  });
+
+  it('colours a skipped state neutral: not settled (green) and not arrears (red)', () => {
+    expect(isSettledState('skipped')).toBe(false);
+    expect(weekStateTone('skipped')).toBe('neutral');
+    expect(weekStateTone('paid')).toBe('ok');
+    expect(weekStateTone('offset')).toBe('ok');
+    expect(weekStateTone('credited')).toBe('ok');
+    for (const s of ['unpaid', 'partial', 'partial_offset', 'partial_credited'] as const) expect(weekStateTone(s)).toBe('bad');
+  });
+
+  it('a payment that used to settle the skipped meeting shows the titipan and never lists the skipped meeting', () => {
+    // The domain already left the skipped meeting out of `settled` and counted it in `credit`.
+    const lines = eventLines(event({ kind: 'payment', amount: 45_000, settled: [{ week: 1, amount: 30_000 }], credit: 15_000, releasedBySkip: 15_000 }));
+    expect(lines).toEqual(['Melunasi: pertemuan 1 (Rp30.000)', 'Menjadi titipan: Rp15.000']);
+    expect(lines.join(' ')).not.toContain('pertemuan 19');
+  });
+
+  it('a host offset that fell on the skipped meeting becomes titipan of the host', () => {
+    expect(eventLines(event({ kind: 'host_offset', week: 5, amount: 30_000, settled: [{ week: 3, amount: 15_000 }], releasedBySkip: 15_000 }))).toEqual([
+      'Pertemuan 5',
+      'Melunasi: pertemuan 3 (Rp15.000)',
+      'Menjadi titipan: Rp15.000',
+    ]);
+  });
+
+  it('carried-in titipan released by the skip is titipan again', () => {
+    expect(eventLines(event({ kind: 'titipan_carry_in', otherPeriodName: 'Lama', amount: 15_000, settled: [{ week: 1, amount: 15_000 }], releasedBySkip: 5_000 }))).toEqual([
+      'Dari Lama',
+      'Melunasi: pertemuan 1 (Rp15.000)',
+      'Menjadi titipan: Rp5.000',
+    ]);
   });
 });

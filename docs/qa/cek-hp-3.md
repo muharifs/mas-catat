@@ -294,3 +294,37 @@ Keputusan pemilik 2026-11-13 (B1) dan laporan HP (label "Pembayaran" terpotong).
 | H7 | (Tambahan, boleh dilewati) Huruf HP dibesarkan | Tombol tersusun 2 per baris dan "Pembayaran" tetap utuh |
 
 Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.
+
+## Cek HP 10: Lewati pertemuan terakhir (font NORMAL saja)
+Keputusan 33 (pemilik 2026-11-15). Pakai data DUMMY, jangan data asli. Siapkan periode dengan 4 anggota (periode kecil supaya cepat). Tutup pertemuan 1 sampai 3 dan bayar tuan rumahnya, sehingga pertemuan 4 (terakhir) menjadi pertemuan terbuka tertua. Belum pernah dilihat di HP. Migrasi 0006 juga baru pertama kali berjalan di HP: pastikan aplikasi terbuka normal dan data lama masih ada (anggota, periode, kas) setelah pembaruan.
+
+| # | Buka | Yang harus tampak |
+|---|---|---|
+| J1 | Buka aplikasi setelah pembaruan | Aplikasi terbuka tanpa galat; data periode, anggota, dan saldo kas sama seperti sebelum pembaruan |
+| J2 | Jadwal, pada pertemuan 1 sampai 3 (selagi terbuka tertua) | Tidak ada kartu "Lewati pertemuan" |
+| J3 | Jadwal, saat pertemuan terakhir (4) belum jadi pertemuan terbuka tertua atau ada tuan rumah sebelumnya yang belum dibayar | Kartu tidak ada, atau tombol nonaktif dengan alasan yang terbaca ("Bayar dulu tuan rumah pertemuan ...") |
+| J4 | Sebelum melewati: catat satu pembayaran di muka 15.000 untuk satu anggota yang sudah mencakup pertemuan 4 (bayar lebih dari tunggakan). Catat angka Kas akhir (Tunai+Debit) | Angka kas dicatat sebagai pembanding |
+| J5 | Jadwal, pertemuan 4 terbuka tertua: kartu "Lewati pertemuan 4" | Kartu tampil, tombol aktif (bukan merah) |
+| J6 | Ketuk "Lewati pertemuan 4" | Dialog menyebut: tidak ada iuran dan tidak ada pembayaran tuan rumah, iuran di muka menjadi titipan (dengan angka Rp dan jumlah anggota), periode bisa diakhiri, bisa dibatalkan sampai periode berakhir. Ada isian alasan dengan teks bawaan; papan ketik tidak menutupi dialog |
+| J7 | Kosongkan alasan, konfirmasi | Ditolak dengan "Alasan wajib diisi." |
+| J8 | Isi alasan, konfirmasi | Toast sukses; pertemuan 4 bertanda "Dilewati" (abu-abu, bukan merah atau kuning); tidak ada nama tuan rumah yang terbaca seperti sudah dibayar |
+| J9 | Kas (saldo Tunai, Debit, Kas akhir) | Sama persis dengan angka di J4; tidak ada baris baru di Riwayat kas |
+| J10 | Anggota yang bayar di muka (J4): layar anggota di periode, dan Laporan > Riwayat anggota | Pertemuan 4 "Dilewati", "Tidak ada iuran"; kata "Melunasi" TIDAK menyebut pertemuan 4; Rp15.000 tampil sebagai "Menjadi titipan"; Titipan anggota di Laporan naik 15.000 |
+| J11 | Layar pertemuan 4 | Hanya penjelasan dan tombol "Batalkan pelewatan"; tidak ada isian tuan rumah atau tanggal |
+| J12 | Pembayaran | Ada baris "Pertemuan 4 dilewati: tidak ada iuran."; tidak ada anggota yang tercatat menunggak untuk pertemuan 4 |
+| J13 | Laporan periode dan Laporan pertemuan 4 | Pertemuan 4 berlabel "Dilewati"; tidak ada angka iuran atau pembayaran tuan rumah untuk pertemuan itu; Total iuran memperhitungkan 3 pertemuan |
+| J14 | Beranda | Tidak ada pengingat "Tutup pertemuan 4"; muncul pengingat bahwa semua pertemuan sudah ditutup atau dilewati dan periode siap diakhiri; ubin "Bayar tuan rumah" tidak menawarkan pertemuan 4 |
+| J15 | Batalkan pelewatan: ketuk, biarkan alasan kosong, konfirmasi | Ditolak: alasan pembatalan wajib |
+| J16 | Batalkan pelewatan dengan alasan | Toast; pertemuan 4 terbuka lagi dan iuran dihitung lagi; layar pertemuan kembali biasa; kas tetap sama dengan J4; di layar pertemuan ada catatan "Pernah dilewati, dibatalkan: ..." |
+| J17 | Lewati lagi (ulangi J5 sampai J8) | Berhasil lagi |
+| J18 | Akhiri periode (langkah pratinjau) | Ada catatan pertemuan yang dilewati; tidak ada "pertemuan terbuka" atau "tuan rumah belum dibayar" untuk pertemuan 4; tombol Akhiri periode aktif. Dialog langkah 2 menyebut pelewatan tidak bisa dibatalkan lagi |
+| J19 | Selesaikan Akhiri periode | Periode berakhir; sisa utang anggota (jika ada) ditulis-off seperti biasa; tidak ada write-off untuk pertemuan 4 |
+| J20 | Periode berakhir: Jadwal pertemuan 4 | Tetap "Dilewati"; tidak ada tombol Batalkan pelewatan; periode berakhir dibaca sebagai selesai |
+| J21 | Periode baru: pilih anggota yang sama sebagai peserta | Titipan 15.000 dari J4 muncul sebagai iuran di muka periode baru (pertemuan 1 terhitung terbayar sebagian atau penuh sesuai jumlah); ada petunjuk bahwa anggota tuan rumah pertemuan 4 belum sempat jadi tuan rumah (pada Periode baru dan Pilih tuan rumah) |
+| J22 | Pilih anggota itu sebagai tuan rumah pertemuan 1 periode baru | Bisa dipilih; tidak diblokir |
+| J23 | (Tambahan) Huruf HP dibesarkan ke 1.3x, buka dialog Lewati dan layar Jadwal | Teks dialog terbaca utuh dan bisa digulir; tombol "Lewati pertemuan 4" tidak terpotong |
+| J24 | (Tambahan) TalkBack pada baris Dilewati dan tombol Batalkan pelewatan | Status dibaca sebagai kata "Dilewati"; tombol dibaca dengan nomor pertemuan |
+
+Fokus risiko: J1 (migrasi 0006 pertama kali di HP), J6 sampai J7 (isian alasan di dalam dialog dan papan ketik), J9 (kas tidak berubah), J10 (tidak ada hitung ganda "Melunasi" dan "Titipan"), J21 (carry-over).
+
+Hasil dicatat per baris (lolos, gagal, tangkapan layar). Semua baris BELUM dicek.

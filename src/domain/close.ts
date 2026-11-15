@@ -11,13 +11,34 @@ import { assertIsoDate, assertPositiveInt, assertRupiah, DomainError, WEEKLY_DUE
 import { isRealDate } from './schedule';
 import type { Account, IsoDate, LedgerEntry, Rupiah, WeekCredit, WeekStatus } from './types';
 
-/** Credit still held for one member from ONE source period: received - allocated - already applied - refunded. */
-export function availableCredit(parts: { received: Rupiah; allocated: Rupiah; applied: Rupiah; refunded: Rupiah }): Rupiah {
+export interface CreditParts {
+  received: Rupiah;
+  /** Allocations to meetings that are NOT skipped (an allocation to a skipped meeting is released to credit). */
+  allocated: Rupiah;
+  /** Applications out of this period's credit to meetings that are NOT skipped. */
+  applied: Rupiah;
+  refunded: Rupiah;
+  /**
+   * Host offsets of this period (no reversal) that settle a skipped meeting: nothing is owed there, so the amount
+   * becomes credit of the host. 0 when absent.
+   */
+  releasedOffset?: Rupiah;
+}
+
+/** received - allocated - applied - refunded + released offset, WITHOUT the non-negative check (undo uses it). */
+export function creditBalance(parts: CreditParts): Rupiah {
   assertRupiah(parts.received, 'received');
   assertRupiah(parts.allocated, 'allocated');
   assertRupiah(parts.applied, 'applied');
   assertRupiah(parts.refunded, 'refunded');
-  const credit = parts.received - parts.allocated - parts.applied - parts.refunded;
+  const released = parts.releasedOffset ?? 0;
+  assertRupiah(released, 'releasedOffset');
+  return parts.received - parts.allocated - parts.applied - parts.refunded + released;
+}
+
+/** Credit still held for one member from ONE source period: received - allocated - already applied - refunded + released offset. */
+export function availableCredit(parts: CreditParts): Rupiah {
+  const credit = creditBalance(parts);
   if (credit < 0) throw new DomainError(`member credit would be negative (${credit}); data is inconsistent`);
   return credit;
 }
@@ -125,7 +146,10 @@ export function planCarryOver(params: {
 
 export interface CloseWeekInfo {
   number: number;
+  /** Stored status. A skipped meeting is still 'open' here (it is closed together with its period). */
   status: 'open' | 'closed';
+  /** The meeting is skipped: it neither blocks closing nor needs a host payout, and owes nothing. */
+  skipped?: boolean;
   /** True when the week has a host payout in force (a corrected payout does not count). */
   hasActivePayout: boolean;
 }
@@ -152,8 +176,10 @@ export interface MemberClosePlan {
 }
 
 export interface PeriodClosePreview {
-  /** Meetings that are still open: they block closing. */
+  /** Meetings that are still open (a skipped meeting is not): they block closing. */
   openWeeks: number[];
+  /** Skipped meetings: closed together with the period, no dues, no payout. */
+  skippedWeeks: number[];
   /** Closed meetings whose host payout is missing or was corrected: they block closing. */
   unpaidHostWeeks: number[];
   canClose: boolean;
@@ -178,9 +204,12 @@ export interface PeriodClosePreview {
  * once closing is possible).
  */
 export function previewPeriodClose(params: { weeks: readonly CloseWeekInfo[]; members: readonly CloseMemberInput[] }): PeriodClosePreview {
-  const openWeeks = params.weeks.filter((w) => w.status === 'open').map((w) => w.number);
+  const skippedWeeks = params.weeks.filter((w) => w.skipped === true).map((w) => w.number);
+  const openWeeks = params.weeks.filter((w) => w.status === 'open' && w.skipped !== true).map((w) => w.number);
   const closedNumbers = new Set(params.weeks.filter((w) => w.status === 'closed').map((w) => w.number));
-  const unpaidHostWeeks = params.weeks.filter((w) => w.status === 'closed' && !w.hasActivePayout).map((w) => w.number);
+  const unpaidHostWeeks = params.weeks
+    .filter((w) => w.status === 'closed' && w.skipped !== true && !w.hasActivePayout)
+    .map((w) => w.number);
 
   const plans: MemberClosePlan[] = [];
   const afterNetting: { memberId: string; statuses: readonly WeekStatus[] }[] = [];
@@ -203,6 +232,7 @@ export function previewPeriodClose(params: { weeks: readonly CloseWeekInfo[]; me
   const sum = (pick: (p: MemberClosePlan) => Rupiah) => plans.reduce((total, p) => total + pick(p), 0);
   return {
     openWeeks,
+    skippedWeeks,
     unpaidHostWeeks,
     canClose: openWeeks.length === 0 && unpaidHostWeeks.length === 0,
     members: plans,

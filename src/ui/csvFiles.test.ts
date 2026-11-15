@@ -243,3 +243,12 @@ describe('buildCsvFor', () => {
     expect(text).toBe(`${CSV_BOM}${LEDGER_HEADER.join(';')}\r\n`);
   });
 });
+
+describe('iuran-per-pertemuan: a skipped meeting', () => {
+  it('is written as Dilewati with nothing due', () => {
+    const table = parse(
+      meetingDuesCsv([{ periodName: 'P', week: 3, date: '2026-01-20', hostName: null, meetingStatus: 'skipped', memberName: 'A', due: 0, paid: 0, offset: 0, credited: 0, outstanding: 0 }]),
+    );
+    expect(table[1]?.slice(4, 11)).toEqual(['Dilewati', 'A', '0', '0', '0', '0', '0']);
+  });
+});

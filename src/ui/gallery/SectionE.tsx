@@ -14,6 +14,7 @@ import { TextField } from '../components/TextField';
 import { todayIso } from '../dates';
 import { filterByQuery } from '../memberSearch';
 import { shiftMonth } from '../months';
+import { unskipDialogMessage, unskipFormTexts, unskipTitle } from '../skipMeeting';
 import { spacing } from '../theme';
 import { toast } from '../toast';
 import { FIXED_DATE, MONTH_FIRST, MONTH_LONGEST, T1_LABEL, T5_ERROR, T6_LONG, T8_MEMBER } from './fixtures';
@@ -215,6 +216,17 @@ export function SectionE() {
           <CorrectionForm
             title="Koreksi pembayaran Rp12.345.000 oleh Siti Nurhaliza Rahmawati"
             message={T6_LONG}
+            onSubmit={() => new Promise<void>((resolve) => setTimeout(resolve, 1000))}
+            onCancel={() => toast('Ditekan: CorrectionForm Batal')}
+          />
+        </Demo>
+        <Demo caption="Teks lain lewat prop opsional (Batalkan pelewatan pertemuan 19): penjelasan, label, contoh isi, galat kosong">
+          <CorrectionForm
+            title={unskipTitle(19)}
+            message={unskipDialogMessage(19)}
+            submitLabel="Batalkan pelewatan"
+            {...unskipFormTexts(19)}
+            errorContext="unskip_week"
             onSubmit={() => new Promise<void>((resolve) => setTimeout(resolve, 1000))}
             onCancel={() => toast('Ditekan: CorrectionForm Batal')}
           />

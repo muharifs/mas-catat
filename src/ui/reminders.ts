@@ -6,7 +6,8 @@ import { formatDate } from './dates';
 
 export interface ReminderWeek {
   number: number;
-  status: 'open' | 'closed';
+  /** 'skipped' (decision 33) is neither open nor closed: it never asks to be closed or paid out. */
+  status: 'open' | 'closed' | 'skipped';
   /** ISO date of the meeting. */
   date: string;
   hostMemberId: string | null;
@@ -19,6 +20,8 @@ export interface HomeReminderInput {
   hasActivePeriod: boolean;
   /** Every meeting of the active period (any order). */
   weeks: readonly ReminderWeek[];
+  /** Number of the last meeting (= member count). Its "Tentukan" hint mentions that it can be skipped (decision 33). */
+  lastMeetingNumber: number;
   /** Meetings whose host payout is in force (repos.ledger.getWeekPayout is not null). */
   paidPayoutWeeks: ReadonlySet<number>;
   /** Name of the host of the oldest open meeting, or null. */
@@ -51,14 +54,16 @@ export interface Reminder {
  *  3. the oldest open meeting without a host;
  *  4. the oldest open meeting with a host, date today or past: ready to close;
  *  5. the next meeting without a host, once the current one has a host;
- *  6. every meeting closed: end the period;
+ *  6. every meeting closed or skipped: end the period;
  *  7. backup due.
  */
 export function homeReminders(input: HomeReminderInput): Reminder[] {
   const rows: Reminder[] = [];
   if (input.hasActivePeriod) {
     const weeks = [...input.weeks].sort((a, b) => a.number - b.number);
+    // A skipped meeting is not open and not closed: it never gets a pay_host or close_week row (decision 33).
     const open = weeks.filter((w) => w.status === 'open');
+    const anySkipped = weeks.some((w) => w.status === 'skipped');
     const current = open[0];
     const next = open[1];
 
@@ -95,7 +100,10 @@ export function homeReminders(input: HomeReminderInput): Reminder[] {
           kind: 'choose_host',
           week: current.number,
           title: `Tuan rumah pertemuan ${current.number} belum ditentukan`,
-          detail: 'Tanpa tuan rumah, pertemuan tidak bisa ditutup.',
+          detail:
+            current.number === input.lastMeetingNumber && input.lastMeetingNumber >= 2
+              ? 'Tanpa tuan rumah, pertemuan tidak bisa ditutup. Jika tuan rumahnya tidak bisa menerima tamu, pertemuan ini bisa dilewati.'
+              : 'Tanpa tuan rumah, pertemuan tidak bisa ditutup.',
           actionLabel: 'Tentukan',
           urgent: true,
         });
@@ -126,7 +134,7 @@ export function homeReminders(input: HomeReminderInput): Reminder[] {
       rows.push({
         key: 'close_period',
         kind: 'close_period',
-        title: 'Semua pertemuan sudah ditutup',
+        title: anySkipped ? 'Semua pertemuan sudah ditutup atau dilewati' : 'Semua pertemuan sudah ditutup',
         detail: 'Periode siap diakhiri.',
         actionLabel: 'Akhiri periode',
         urgent: false,

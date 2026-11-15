@@ -1,10 +1,11 @@
-import { MigrationError, RepositoryError } from '@/db/errors';
+import { MigrationError, RepositoryError, SkipUndoBlockedError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
 import { LoanError } from '@/domain/loans';
 import { DomainError } from '@/domain/money';
 import { PaymentHostPayoutStandsError } from '@/domain/payment-correction';
 import { HostPayoutStandsError } from '@/domain/schedule';
-import { archiveBlockText, BACKUP_ERROR_TEXT, CONTEXT_ERROR_TEXT, GENERIC_LOAD_ERROR, restoreErrorNeedsReload, type ErrorContext, toIndonesian } from './errors';
+import { WeekSkipError } from '@/domain/week-skip';
+import { archiveBlockText, BACKUP_ERROR_TEXT, CONTEXT_ERROR_TEXT, GENERIC_LOAD_ERROR, restoreErrorNeedsReload, SKIP_PAYOUT_STANDS_TEXT, type ErrorContext, toIndonesian } from './errors';
 
 describe('toIndonesian', () => {
   it.each([
@@ -193,5 +194,51 @@ describe('restoreErrorNeedsReload', () => {
   it('the restore_failed text names the safety copy and holds no path', () => {
     expect(BACKUP_ERROR_TEXT.restore_failed).toContain('Salinan pengaman');
     expect(BACKUP_ERROR_TEXT.restore_failed).not.toMatch(/[\/]/);
+  });
+});
+
+describe('toIndonesian: skip the last meeting (decision 33)', () => {
+  const cases: [string, string, string][] = [
+    ['only the last meeting can be skipped', 'Hanya pertemuan terakhir yang bisa dilewati.', 'skip_week'],
+    ['week 19 is not the oldest open meeting; it cannot be skipped', 'Pertemuan 19 belum bisa dilewati. Tutup dulu pertemuan sebelumnya.', 'skip_week'],
+    ['cannot skip: closed meetings have no host payout in force', 'Belum bisa dilewati: masih ada tuan rumah yang belum dibayar. Bayar dulu semuanya.', 'skip_week'],
+    ['week 19 has a standing host payout; it cannot be skipped', SKIP_PAYOUT_STANDS_TEXT, 'skip_week'],
+    ['week 19 is already skipped', 'Pertemuan ini sudah dilewati.', 'skip_week'],
+    ['week 19 is not skipped', 'Pertemuan ini tidak sedang dilewati.', 'unskip_week'],
+    ['period p1 has ended; a skip cannot be changed', 'Periode sudah berakhir. Pelewatan tidak bisa diubah lagi.', 'unskip_week'],
+    ['skip cancel reason is required', 'Alasan pembatalan wajib diisi.', 'unskip_week'],
+    ['skip reason is required', 'Alasan melewati pertemuan wajib diisi.', 'skip_week'],
+    ['week 19 is skipped; its host and date cannot be changed', 'Pertemuan yang dilewati tidak bisa diubah tuan rumah atau tanggalnya. Batalkan dulu pelewatannya.', 'save'],
+    ['week 19 is skipped; it has no host payout', 'Pertemuan yang dilewati tidak ada pembayaran tuan rumah.', 'save'],
+    ['week 19 is skipped; it cannot be closed', 'Pertemuan yang dilewati tidak perlu ditutup.', 'close_week'],
+    ['week 19 is closed; it cannot be skipped', 'Pertemuan yang sudah ditutup tidak bisa dilewati atau dibuka lagi.', 'skip_week'],
+    ['a period needs at least 2 members to skip its last meeting', 'Periode dengan satu anggota tidak bisa melewati pertemuan.', 'skip_week'],
+    ['skip cannot be undone: member m1 would hold negative credit from period p1 (-15000); the released credit was refunded', 'Pelewatan belum bisa dibatalkan: titipan yang dilepas dari pertemuan ini sudah dikembalikan kepada anggota.', 'unskip_week'],
+  ];
+
+  it.each(cases)('%s', (message, text, context) => {
+    expect(toIndonesian(new RepositoryError(message), context as ErrorContext)).toBe(text);
+    expect(toIndonesian(new DomainError(message), context as ErrorContext)).toBe(text);
+    expect(text).not.toMatch(/Anda|Kalau|file/);
+  });
+
+  it('maps a WeekSkipError and a SkipUndoBlockedError by message', () => {
+    expect(toIndonesian(new WeekSkipError('not_last', 'only the last meeting can be skipped'))).toBe('Hanya pertemuan terakhir yang bisa dilewati.');
+    expect(toIndonesian(new SkipUndoBlockedError('skip cannot be undone: member m would hold negative credit from period p (-1)'))).toContain('sudah dikembalikan');
+  });
+
+  it('is not taken by the general period-close rule', () => {
+    expect(toIndonesian(new RepositoryError('weeks 2, 3 have no host payout in force; pay the hosts before closing the period'))).toContain('Periode belum bisa diakhiri');
+  });
+
+  it('maps the trigger messages of migration 0006 (plain driver errors)', () => {
+    expect(toIndonesian(new Error('a meeting with a host payout in force cannot be skipped'))).toBe(SKIP_PAYOUT_STANDS_TEXT);
+    expect(toIndonesian(new Error('Error code 19: a skipped meeting has no dues to pay'))).toContain('Pertemuan yang dilewati');
+    expect(toIndonesian(new Error('this meeting is already skipped'))).toBe('Pertemuan ini sudah dilewati.');
+  });
+
+  it('has its own unknown-error text for both contexts', () => {
+    expect(CONTEXT_ERROR_TEXT.skip_week).toBe('Pertemuan belum dilewati. Tidak ada data yang berubah. Coba lagi.');
+    expect(CONTEXT_ERROR_TEXT.unskip_week).toBe('Pelewatan belum dibatalkan. Tidak ada data yang berubah. Coba lagi.');
   });
 });

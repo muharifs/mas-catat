@@ -197,6 +197,18 @@ Sudah sesuai dan tidak perlu diubah (hasil Grep): `Pindah saldo`, `Pelunasan pin
 
 USULAN BARU tambahan: N6 `Sudah dibayar` menjadi `Sudah dikembalikan` pada baris pinjaman (lihat tabel di atas).
 
+### 2.3 Kata baru: Lewati pertemuan terakhir (usulan 2026-11-15, butuh persetujuan pemilik)
+
+Spesifikasi lengkap: `docs/specs/skip-last-meeting.md` (bagian 6). Ringkas:
+
+| Kata | Arti satu kalimat | Tindakan |
+|---|---|---|
+| **Dilewati** | Pertemuan terakhir yang tidak diadakan di periode ini: tidak ada iuran dan tidak ada pembayaran tuan rumah. | USULAN BARU. Alternatif: `Tidak diadakan` (menghindari kemiripan dengan `sudah lewat 3 hari`). |
+| **Lewati pertemuan** | Aksi menandai pertemuan terakhir sebagai dilewati. | Disetujui sebagai fitur; kata baru. |
+| **Batalkan pelewatan** | Membuka kembali pertemuan yang dilewati, hanya sampai periode berakhir, wajib alasan. | USULAN BARU. |
+| **Alasan pembatalan** | Label kolom alasan saat membatalkan pelewatan. | USULAN BARU (padanan `Alasan koreksi`). |
+| **Libur** vs **Dilewati** | Libur: pertemuan tetap terbuka dan tanggal diubah. Dilewati: tidak diadakan sama sekali di periode ini. | Bedakan di Bantuan Jadwal. |
+
 ## 3. Tabel temuan
 
 Penanda: [UANG] = usulan menyangkut kalimat soal uang; makna harus dipastikan pemilik sebelum diubah. Semua usulan hanya mengganti teks, bukan aturan.

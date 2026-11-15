@@ -25,6 +25,8 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   { group: 'Iuran dan tuan rumah', term: 'Iuran', meaning: 'Rp15.000 yang dibayar setiap anggota di setiap pertemuan, termasuk tuan rumah.' },
   { group: 'Iuran dan tuan rumah', term: 'Kelipatan Rp15.000', meaning: 'Pembayaran harus Rp15.000, Rp30.000, Rp45.000, dan seterusnya. Pembayaran sebagian tidak diterima.' },
   { group: 'Iuran dan tuan rumah', term: 'Tunggakan', meaning: 'Iuran pertemuan yang belum dibayar anggota.' },
+  { group: 'Iuran dan tuan rumah', term: 'Dilewati', meaning: 'Pertemuan terakhir yang tidak diadakan di periode ini. Tidak ada iuran dan tidak ada bayaran tuan rumah. Iuran yang sudah dibayar di muka menjadi titipan untuk periode berikutnya.' },
+  { group: 'Iuran dan tuan rumah', term: 'Lewati pertemuan', meaning: 'Melewati pertemuan terakhir periode, misalnya karena tuan rumahnya tidak bisa menerima tamu, supaya periode bisa diakhiri. Bisa dibatalkan selama periode belum diakhiri.' },
   { group: 'Iuran dan tuan rumah', term: 'Dibayar di muka', meaning: 'Iuran pertemuan yang belum berjalan tetapi sudah dibayar.' },
   { group: 'Iuran dan tuan rumah', term: 'Titipan', meaning: 'Kelebihan pembayaran anggota di atas iuran periode. Dipakai otomatis untuk iuran periode berikutnya, atau dikembalikan bila anggota tidak ikut.' },
   { group: 'Iuran dan tuan rumah', term: 'Pengembalian titipan', meaning: 'Titipan dikembalikan ke anggota yang tidak ikut periode berikutnya. Tidak bisa dikoreksi.' },

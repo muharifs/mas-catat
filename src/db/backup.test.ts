@@ -153,7 +153,9 @@ describe('healthCheck', () => {
       await db.run("INSERT INTO allocations (payment_id, period_id, member_id, week, amount, payment_date) VALUES ('bad', ?, ?, 2, 15000, '2026-01-06')", [periodId, ids[3] as string]);
       await db.run("INSERT INTO credit_applications (kind, from_period_id, member_id, to_period_id, week, amount, created_at) VALUES ('settle_debt', ?, ?, ?, 2, 5000, 'x')", [periodId, ids[3] as string, periodId]);
     });
-    expect(problems).toEqual(['invariant:week_paid_above_due']);
+    // The settle_debt application above also takes more credit out of the pool than the payment put in, so the new
+    // credit invariant (migration 0006) fires too: 15.000 received - 15.000 allocated - 5.000 applied < 0.
+    expect(problems).toEqual(['invariant:week_paid_above_due', 'invariant:member_credit_negative']);
   });
 
   it('flags two host payouts in force for one week', async () => {
@@ -322,7 +324,7 @@ describe('prepareRestore: files that are refused', () => {
 
 describe('prepareRestore: old backups are migrated as a copy', () => {
   /** A database at schema version `version` holding one small, valid history written with plain SQL. */
-  async function legacyBytes(version: number): Promise<Uint8Array> {
+  async function legacyBytes(version: number, extraSql = ''): Promise<Uint8Array> {
     const env = await createSqlJsEnv({ migrated: false });
     await migrate(env.db, MIGRATIONS.slice(0, version));
     const t = 'x';
@@ -336,10 +338,11 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
       INSERT INTO ledger_entries (id, period_id, date, amount, direction, type, member_id, week, note, created_at)
         VALUES ('led1', 'p1', '2026-01-06', 15000, 'in', 'member_payment', 'm1', NULL, '', '${t}');
     `);
+    if (extraSql) await env.db.exec(extraSql);
     return env.liveBytes();
   }
 
-  it.each([1, 2, 3, 4, 5])('a version %i backup is accepted, migrated and matches the fingerprint', async (version) => {
+  it.each([1, 2, 3, 4, 5, 6])('a version %i backup is accepted, migrated and matches the fingerprint', async (version) => {
     const live = await seededEnv();
     const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: await legacyBytes(version) });
     try {
@@ -357,12 +360,12 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
     expect(live.openMemoryCount()).toBe(0);
   });
 
-  it('a version 4 backup restores to version 5 with archived_at NULL and no schema difference', async () => {
+  it('a version 4 backup restores to the latest version with archived_at NULL and no schema difference', async () => {
     const live = await seededEnv();
     const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: await legacyBytes(4) });
     try {
       expect(prepared.originalVersion).toBe(4);
-      expect(prepared.candidate.userVersion).toBe(5);
+      expect(prepared.candidate.userVersion).toBe(LATEST_VERSION);
       const rows = await prepared.memory.db.getAll<{ archived_at: string | null }>('SELECT archived_at FROM members');
       expect(rows).toEqual([{ archived_at: null }]);
       expect(diffSchema(prepared.referenceSchema, await readSchema(prepared.memory.db))).toEqual([]);
@@ -372,10 +375,9 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
   });
 
   it('a version 5 backup with an archived member round-trips', async () => {
-    const source = await seededEnv('r');
-    await source.db.run("INSERT INTO members (id, name, created_at, archived_at) VALUES ('arch', 'Diarsipkan', 'x', '2026-11-01T00:00:00.000Z')");
+    const bytes = await legacyBytes(5, "INSERT INTO members (id, name, created_at, archived_at) VALUES ('arch', 'Diarsipkan', 'x', '2026-11-01T00:00:00.000Z')");
     const live = await createSqlJsEnv();
-    const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: source.liveBytes() });
+    const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes });
     try {
       expect(prepared.originalVersion).toBe(5);
       const row = await prepared.memory.db.getFirst<{ archived_at: string | null }>("SELECT archived_at FROM members WHERE id = 'arch'");
@@ -385,9 +387,9 @@ describe('prepareRestore: old backups are migrated as a copy', () => {
     }
   });
 
-  it('a version 6 backup is refused as version_newer', async () => {
+  it('a backup newer than the latest version is refused as version_newer', async () => {
     const source = await seededEnv('s');
-    await source.db.exec('PRAGMA user_version = 6');
+    await source.db.exec(`PRAGMA user_version = ${LATEST_VERSION + 1}`);
     const live = await seededEnv('l');
     expect(await codeOfAsync(prepareRestore(live.bridge, live.db, { kind: 'file', bytes: source.liveBytes() }))).toBe('version_newer');
   });

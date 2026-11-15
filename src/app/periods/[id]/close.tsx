@@ -17,6 +17,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { toasts } from '@/ui/messages';
+import { skippedCloseDialogTail, skippedCloseNotice } from '@/ui/skipMeeting';
 import { colors, fonts, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
@@ -70,6 +71,8 @@ export default function ClosePeriodScreen() {
   const hostOf = (week: number) => nameOf(weeks.find((w) => w.number === week)?.hostMemberId ?? null);
   const problem = endDateProblem(endDate, period.startDate, todayIso());
   const canClose = preview.canClose && problem === null && !busy;
+  const skippedNumbers = preview.skippedWeeks;
+  const skippedNotice = skippedCloseNotice(skippedNumbers);
   const shown = sortByName(
     preview.members.filter((m) => m.arrearsBefore > 0 || m.credit > 0),
     (m) => nameOf(m.memberId),
@@ -102,7 +105,7 @@ export default function ClosePeriodScreen() {
           onPress: () =>
             showDialog({
               title: 'Yakin ingin mengakhiri periode?',
-              message: 'Ini tidak bisa dibatalkan. Setelah periode berakhir, pembayaran, pertemuan dan pembayaran tuan rumah periode ini tidak bisa diubah lagi.',
+              message: `Ini tidak bisa dibatalkan. Setelah periode berakhir, pembayaran, pertemuan dan pembayaran tuan rumah periode ini tidak bisa diubah lagi.${skippedCloseDialogTail(skippedNumbers)}`,
               buttons: [
                 { label: 'Batal', role: 'cancel' },
                 { label: 'Ya, akhiri periode', role: 'destructive', onPress: () => void performClose() },
@@ -116,6 +119,7 @@ export default function ClosePeriodScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Akhiri {period.name}</Text>
+      {skippedNotice ? <Notice tone="info">{skippedNotice}</Notice> : null}
 
       {!preview.canClose ? (
         <Card tone="danger">

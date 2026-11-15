@@ -3,7 +3,7 @@ import { GLOSSARY, glossaryGroups } from './glossary';
 describe('glossary (Istilah page)', () => {
   it('has the four groups and 46 terms from the spec', () => {
     expect(glossaryGroups().map((g) => g.group)).toEqual(['Kas dan uang', 'Iuran dan tuan rumah', 'Periode dan anggota', 'Catatan dan cadangan']);
-    expect(GLOSSARY).toHaveLength(46);
+    expect(GLOSSARY).toHaveLength(48);
   });
 
   it('gives every term a non-empty meaning and lists no term twice', () => {

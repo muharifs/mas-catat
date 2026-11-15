@@ -30,6 +30,7 @@ import { paidTodayView } from '@/ui/paidToday';
 import { quickActionReasons } from '@/ui/quickActions';
 import { homeReminders, type Reminder } from '@/ui/reminders';
 import { SEP } from '@/ui/separator';
+import { skippedSentence } from '@/ui/skipMeeting';
 import { readLastShared } from '@/ui/shareFile';
 import { colors, fonts, ICON, MIN_TOUCH, radius, spacing, TABULAR, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -129,6 +130,7 @@ export default function HomeScreen() {
     today,
     hasActivePeriod: period !== null,
     weeks,
+    lastMeetingNumber: period?.memberCount ?? 0,
     paidPayoutWeeks,
     currentHostName: week?.hostMemberId != null ? (names.get(week.hostMemberId) ?? null) : null,
     membersInArrears: arrears?.membersInArrears ?? 0,
@@ -136,7 +138,8 @@ export default function HomeScreen() {
   });
   // "Akhiri periode" lives on the period card (once per screen), so its reminder row is not shown here.
   const visibleReminders = reminders.filter((r) => r.kind !== 'close_period');
-  const reasons = quickActionReasons({ hasActivePeriod: period !== null, hasAnyPeriod, currentWeek: week });
+  const skippedNumbers = weeks.filter((w) => w.status === 'skipped').map((w) => w.number);
+  const reasons = quickActionReasons({ hasActivePeriod: period !== null, hasAnyPeriod, currentWeek: week, anySkipped: skippedNumbers.length > 0 });
   const paidView = paidTodayView(
     paidTodayIds.map((id) => ({ id, name: names.get(id) ?? '-' })),
     period?.memberCount ?? 0,
@@ -390,7 +393,10 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.title}>Semua pertemuan sudah ditutup</Text>
+              <Text style={styles.title}>
+                {skippedNumbers.length > 0 ? 'Semua pertemuan sudah ditutup atau dilewati' : 'Semua pertemuan sudah ditutup'}
+              </Text>
+              {skippedNumbers.length > 0 ? <Text style={styles.body}>{skippedSentence(skippedNumbers)}</Text> : null}
               <Button
                 label="Akhiri periode"
                 variant="dangerOutline"

@@ -44,7 +44,8 @@ export interface MeetingDueExportRow {
   week: number;
   date: string;
   hostName: string | null;
-  meetingStatus: 'open' | 'closed';
+  /** 'skipped' = the meeting is skipped (decision 33): nothing is due, due 0 on every row. */
+  meetingStatus: 'open' | 'closed' | 'skipped';
   memberName: string;
   due: number;
   paid: number;
@@ -136,7 +137,7 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
               amount: p.amount,
               weeks: p.reversed
                 ? []
-                : allocations.filter((a) => a.paymentId === p.id).map((a) => a.week).sort((a, b) => a - b),
+                : allocations.filter((a) => a.paymentId === p.id && a.skipped !== true).map((a) => a.week).sort((a, b) => a - b),
               credit: p.credit,
               corrected: p.reversed,
               correctionReason: p.reversalReason,
@@ -163,7 +164,7 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
               week: meeting.week,
               date: meeting.date,
               hostName: meeting.hostMemberId === null ? null : (names.get(meeting.hostMemberId) ?? ''),
-              meetingStatus: meeting.status,
+              meetingStatus: meeting.skipped ? 'skipped' : meeting.status,
               memberName: names.get(row.memberId) ?? '',
               due: row.status.due,
               paid: row.status.paid,

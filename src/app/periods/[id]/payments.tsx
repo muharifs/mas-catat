@@ -16,6 +16,7 @@ import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { swipePaymentToast } from '@/ui/messages';
+import { skippedPaymentsLine } from '@/ui/skipMeeting';
 import { colors, MIN_TOUCH, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
@@ -36,15 +37,16 @@ export default function PeriodPaymentsScreen() {
   const paidTodayRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
-    const [period, balances, members, paidIds] = await Promise.all([
+    const [period, balances, members, paidIds, weeks] = await Promise.all([
       repos.periods.getById(id),
       repos.payments.listBalances(id),
       repos.members.list(),
       repos.payments.listMemberIdsPaidOn(id, todayIso()),
+      repos.weeks.listByPeriod(id),
     ]);
     const paidToday = new Set(paidIds);
     paidTodayRef.current = paidToday;
-    return { period, balances, members, paidToday };
+    return { period, balances, members, paidToday, skippedNumbers: weeks.filter((w) => w.status === 'skipped').map((w) => w.number) };
   }, [repos, id]);
   const { data, error, reload } = useLoad(load);
   const sortedBalances = useMemo(() => {
@@ -57,7 +59,7 @@ export default function PeriodPaymentsScreen() {
   if (!data) return <Loading />;
   if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
-  const { balances, members, period, paidToday } = data;
+  const { balances, members, period, paidToday, skippedNumbers } = data;
   const paidTodayCount = balances.filter((b) => paidToday.has(b.memberId)).length;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
   const throughWeek = balances[0]?.throughWeek;
@@ -99,6 +101,9 @@ export default function PeriodPaymentsScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>{period.name}</Text>
             {throughWeek ? <Text style={styles.muted}>Tunggakan dihitung sampai pertemuan {throughWeek}.</Text> : null}
+            {throughWeek && skippedPaymentsLine(throughWeek, skippedNumbers) ? (
+              <Text style={styles.muted}>{skippedPaymentsLine(throughWeek, skippedNumbers)}</Text>
+            ) : null}
             {periodActive ? (
               <>
                 <Text style={styles.summary}>

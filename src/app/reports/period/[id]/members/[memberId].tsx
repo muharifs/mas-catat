@@ -15,9 +15,10 @@ import {
   correctionText,
   EVENT_LABELS,
   eventLines,
-  isSettledState,
   LOAN_LABELS,
+  SKIPPED_NO_DUES_TEXT,
   WEEK_STATE_LABELS,
+  weekStateTone,
 } from '@/ui/reportLabels';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
@@ -65,8 +66,9 @@ export default function MemberHistoryScreen() {
               Pertemuan {w.week}
               {w.date ? `${SEP}${formatDate(w.date)}` : ''}
             </Text>
-            <Text style={isSettledState(w.state) ? styles.ok : styles.bad}>{WEEK_STATE_LABELS[w.state]}</Text>
+            <Text style={styles[weekStateTone(w.state)]}>{WEEK_STATE_LABELS[w.state]}</Text>
           </View>
+          {w.state === 'skipped' ? <Text style={styles.hint}>{SKIPPED_NO_DUES_TEXT}</Text> : null}
           {w.status.outstanding > 0 ? <Text style={styles.hint}>Sisa {formatRupiah(w.status.outstanding)}</Text> : null}
         </View>
       ))}
@@ -130,4 +132,6 @@ const styles = StyleSheet.create({
   rowTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
   bad: { ...type.label, color: colors.error, flexShrink: 1, textAlign: 'right' },
+  // Skipped meeting: neither settled nor in arrears, so neither green nor red.
+  neutral: { ...type.label, color: colors.textSecondary, flexShrink: 1, textAlign: 'right' },
 });

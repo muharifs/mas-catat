@@ -105,7 +105,7 @@ export function meetingDuesCsv(rows: readonly MeetingDueExportRow[]): string {
       r.week,
       r.date,
       r.hostName ?? 'Belum ditentukan',
-      r.meetingStatus === 'closed' ? 'Ditutup' : 'Terbuka',
+      r.meetingStatus === 'closed' ? 'Ditutup' : r.meetingStatus === 'skipped' ? 'Dilewati' : 'Terbuka',
       r.memberName,
       r.due,
       r.paid,

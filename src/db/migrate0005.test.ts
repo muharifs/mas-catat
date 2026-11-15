@@ -24,7 +24,7 @@ describe('migration 0005 (member archive)', () => {
     expect(await userVersion(db)).toBe(4);
     const before = await db.getAll<{ id: string; name: string; created_at: string }>('SELECT id, name, created_at FROM members ORDER BY id');
 
-    expect(await migrate(db)).toEqual({ from: 4, to: 5 });
+    expect(await migrate(db, MIGRATIONS.slice(0, 5))).toEqual({ from: 4, to: 5 });
     expect(await userVersion(db)).toBe(5);
 
     expect(await db.getAll('SELECT id, name, created_at FROM members ORDER BY id')).toEqual(before);
@@ -36,9 +36,9 @@ describe('migration 0005 (member archive)', () => {
 
   it('a fresh version 5 schema equals a version 4 database migrated to 5 (no fingerprint drift, debt L2)', async () => {
     const fresh = await createSqlJsDb();
-    await migrate(fresh);
+    await migrate(fresh, MIGRATIONS.slice(0, 5));
     const upgraded = await v4WithData();
-    await migrate(upgraded);
+    await migrate(upgraded, MIGRATIONS.slice(0, 5));
     expect(diffSchema(await schemaOf(fresh), await schemaOf(upgraded))).toEqual([]);
     expect(await schemaOf(upgraded)).toEqual(await schemaOf(fresh));
   });

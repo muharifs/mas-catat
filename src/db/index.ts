@@ -13,11 +13,11 @@ import { createReportsRepo } from './reports';
 import { createWeeksRepo } from './weeks';
 
 export type { Db } from './db';
-export { RepositoryError, MigrationError } from './errors';
+export { RepositoryError, MigrationError, SkipUndoBlockedError } from './errors';
 export type { RepoDeps } from './deps';
 export type { Member } from './members';
 export type { Period, PeriodMember, CreatePeriodInput } from './periods';
-export type { Week } from './weeks';
+export type { Week, WeekSkipRecord, SkippedTurn } from './weeks';
 export type { RecordPaymentInput, RecordedPayment } from './payments';
 export type { StoredLedgerEntry, AppendEntryInput, SettledHost } from './ledger';
 export type { RefundableCredit, MemberCarryOver } from './credits';

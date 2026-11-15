@@ -14,6 +14,10 @@ export const HOST_PAYOUT_STANDS_TEXT = 'Tuan rumah sudah dibayar. Koreksi pembay
 /** Shown when a payment correction is refused because that member's own host payout stands (also the reason on the disabled button). */
 export const PAYMENT_HOST_PAYOUT_STANDS_TEXT = 'Pembayaran tuan rumah untuk anggota ini sudah dicatat. Koreksi pembayaran tuan rumah dulu.';
 
+/** Shown when a skip is refused because the host payout of that meeting stands (decision 33). */
+export const SKIP_PAYOUT_STANDS_TEXT =
+  'Pembayaran tuan rumah pertemuan ini sudah dicatat. Koreksi pembayarannya dulu, lalu lewati pertemuan.';
+
 /** Unknown error while reading data (a screen could not load). Reading never changes data, so it says so. */
 export const GENERIC_LOAD_ERROR =
   'Terjadi kesalahan yang tidak dikenal. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi. Data tidak berubah.';
@@ -28,6 +32,8 @@ export type ErrorContext =
   | 'delete_member'
   | 'close_week'
   | 'close_period'
+  | 'skip_week'
+  | 'unskip_week'
   | 'correct'
   | 'refund'
   | 'share'
@@ -48,6 +54,8 @@ export const CONTEXT_ERROR_TEXT: Record<ErrorContext, string> = {
   delete_member: 'Anggota belum dihapus. Tidak ada data yang berubah. Coba lagi.',
   close_week: 'Pertemuan belum ditutup. Tidak ada data yang berubah. Coba lagi.',
   close_period: 'Periode belum diakhiri. Tidak ada data yang berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
+  skip_week: 'Pertemuan belum dilewati. Tidak ada data yang berubah. Coba lagi.',
+  unskip_week: 'Pelewatan belum dibatalkan. Tidak ada data yang berubah. Coba lagi.',
   correct: 'Koreksi belum tersimpan. Catatan asli tidak berubah. Coba lagi.',
   refund: 'Pengembalian belum tersimpan. Tidak ada uang yang dicatat keluar. Coba lagi.',
   share: 'Berkas belum bisa dibagikan. Data di HP ini tidak berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
@@ -59,6 +67,23 @@ export const CONTEXT_ERROR_TEXT: Record<ErrorContext, string> = {
 
 // First match wins. Patterns match the English messages thrown in src/db and src/domain.
 const RULES: readonly { pattern: RegExp; text: string | ((match: RegExpMatchArray) => string) }[] = [
+  // Skip the last meeting (decision 33). Before the general rules below: "have no host payout in force", "week N not
+  // found", "is already closed" and "has ended; ..." would otherwise take these messages first.
+  { pattern: /only the last meeting can be skipped/, text: 'Hanya pertemuan terakhir yang bisa dilewati.' },
+  { pattern: /week (\d+) is not the oldest open meeting; it cannot be skipped/, text: (m) => `Pertemuan ${m[1]} belum bisa dilewati. Tutup dulu pertemuan sebelumnya.` },
+  { pattern: /cannot skip: closed meetings have no host payout in force/, text: 'Belum bisa dilewati: masih ada tuan rumah yang belum dibayar. Bayar dulu semuanya.' },
+  { pattern: /week \d+ has a standing host payout; it cannot be skipped/, text: SKIP_PAYOUT_STANDS_TEXT },
+  { pattern: /week \d+ is already skipped/, text: 'Pertemuan ini sudah dilewati.' },
+  { pattern: /week \d+ is not skipped/, text: 'Pertemuan ini tidak sedang dilewati.' },
+  { pattern: /period .* has ended; a skip cannot be changed/, text: 'Periode sudah berakhir. Pelewatan tidak bisa diubah lagi.' },
+  { pattern: /skip cancel reason is required/, text: 'Alasan pembatalan wajib diisi.' },
+  { pattern: /skip reason is required/, text: 'Alasan melewati pertemuan wajib diisi.' },
+  { pattern: /week \d+ is skipped; its host and date cannot be changed/, text: 'Pertemuan yang dilewati tidak bisa diubah tuan rumah atau tanggalnya. Batalkan dulu pelewatannya.' },
+  { pattern: /week \d+ is skipped; it has no host payout/, text: 'Pertemuan yang dilewati tidak ada pembayaran tuan rumah.' },
+  { pattern: /week \d+ is skipped; it cannot be closed/, text: 'Pertemuan yang dilewati tidak perlu ditutup.' },
+  { pattern: /week \d+ is closed; it cannot be skipped|week \d+ is closed; its skip cannot be undone/, text: 'Pertemuan yang sudah ditutup tidak bisa dilewati atau dibuka lagi.' },
+  { pattern: /needs at least \d+ members to skip/, text: 'Periode dengan satu anggota tidak bisa melewati pertemuan.' },
+  { pattern: /skip cannot be undone: member .* negative credit/, text: 'Pelewatan belum bisa dibatalkan: titipan yang dilepas dari pertemuan ini sudah dikembalikan kepada anggota.' },
   { pattern: /member name must not be empty/, text: 'Nama anggota tidak boleh kosong.' },
   { pattern: /member name already exists/, text: 'Nama ini sudah dipakai (mungkin oleh anggota yang diarsipkan). Gunakan nama lain.' },
   { pattern: /period name must not be empty/, text: 'Nama periode tidak boleh kosong.' },
@@ -149,9 +174,15 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   share_unavailable: 'Fitur berbagi tidak tersedia di HP ini, jadi berkas tidak bisa dikirim.',
 };
 
-// Messages raised by the database triggers of migration 0005. They are the last line of defence and should be
+// Messages raised by the database triggers of migrations 0005 and 0006. They are the last line of defence and should be
 // unreachable (the domain and repository check first), but when one fires the driver throws a plain Error.
 const TRIGGER_RULES: readonly { pattern: RegExp; text: string }[] = [
+  { pattern: /only a meeting of the active period can be skipped|a skip can only be undone while the period is active/, text: 'Periode sudah berakhir. Pelewatan tidak bisa diubah lagi.' },
+  { pattern: /only the last meeting can be skipped/, text: 'Hanya pertemuan terakhir yang bisa dilewati.' },
+  { pattern: /every earlier meeting must be closed before the last one is skipped/, text: 'Tutup dulu pertemuan sebelumnya sebelum melewati pertemuan terakhir.' },
+  { pattern: /a meeting with a host payout in force cannot be skipped/, text: SKIP_PAYOUT_STANDS_TEXT },
+  { pattern: /this meeting is already skipped/, text: 'Pertemuan ini sudah dilewati.' },
+  { pattern: /a skipped meeting has no|host and date of a skipped meeting cannot change/, text: 'Pertemuan yang dilewati tidak bisa diubah. Batalkan dulu pelewatannya.' },
   { pattern: /member of the active period cannot be archived/, text: 'Anggota masih ikut periode aktif, jadi belum bisa diarsipkan.' },
   { pattern: /archived member cannot join a period/, text: 'Anggota yang diarsipkan tidak bisa ikut periode. Aktifkan lagi dulu di halaman Anggota.' },
 ];

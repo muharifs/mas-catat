@@ -117,7 +117,7 @@ export default function KasEntryScreen() {
                 <Money amount={row.amount} size="body" tone="neutral" style={paid.reversed ? styles.strike : undefined} />
               </View>
             ))}
-            {paid.allocations.length === 0 && !paid.reversed ? <Text style={styles.flow}>Tidak ada pertemuan yang dibayar.</Text> : null}
+            {paidMeetingRows(paid.allocations).length === 0 && !paid.reversed ? <Text style={styles.flow}>Tidak ada pertemuan yang dibayar.</Text> : null}
             {paid.credit > 0 ? (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Menjadi titipan</Text>

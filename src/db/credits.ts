@@ -1,35 +1,18 @@
 // Member credit: what a member holds from a source period, applications of it (settle at close, carry over into a
 // new period) and the refund. The arithmetic lives in src/domain/close.ts; this file loads rows and writes them.
 import { assertEntryDate, type KasBalances } from '@/domain/kas';
-import { availableCredit, planCarryOver, previewCreditRefund, type CarryOverPlan, type CreditRefundPreview } from '@/domain/close';
+import { planCarryOver, previewCreditRefund, type CarryOverPlan, type CreditRefundPreview } from '@/domain/close';
 import type { Account } from '@/domain/types';
 import type { Db, Queryable } from './db';
+import { loadAvailableCredit } from './creditBalance';
 import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
 import { insertEntry, loadKasBalances, type StoredLedgerEntry } from './ledger';
 
 export type CreditApplicationKind = 'settle_debt' | 'carry_over';
 
-/** Credit a member still holds from ONE source period: payments - allocations - applications - refunds. */
-export async function loadAvailableCredit(db: Queryable, periodId: string, memberId: string): Promise<number> {
-  const row = await db.getFirst<{ received: number; allocated: number; applied: number; refunded: number }>(
-    `SELECT
-       COALESCE((SELECT SUM(p.amount) FROM payments p
-                  WHERE p.period_id = ? AND p.member_id = ? AND p.id NOT IN (SELECT payment_id FROM payment_reversals)), 0) AS received,
-       COALESCE((SELECT SUM(a.amount) FROM allocations a
-                  WHERE a.period_id = ? AND a.member_id = ? AND a.payment_id NOT IN (SELECT payment_id FROM payment_reversals)), 0) AS allocated,
-       COALESCE((SELECT SUM(c.amount) FROM credit_applications c WHERE c.from_period_id = ? AND c.member_id = ?), 0) AS applied,
-       COALESCE((SELECT SUM(e.amount) FROM ledger_entries e
-                  WHERE e.type = 'credit_refund' AND e.period_id = ? AND e.member_id = ?), 0) AS refunded`,
-    [periodId, memberId, periodId, memberId, periodId, memberId, periodId, memberId],
-  );
-  return availableCredit({
-    received: row?.received ?? 0,
-    allocated: row?.allocated ?? 0,
-    applied: row?.applied ?? 0,
-    refunded: row?.refunded ?? 0,
-  });
-}
+// Re-exported: the one place that computes the credit of a source period lives in creditBalance.ts.
+export { loadAvailableCredit };
 
 /** Unused credit of a member in every CLOSED period they were in, oldest period first (only amounts above 0). */
 export async function loadClosedCreditSources(

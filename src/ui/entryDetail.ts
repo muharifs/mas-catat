@@ -33,9 +33,10 @@ export function loanMemberOf(e: LoanProbe, original: LoanProbe | null): string |
   return e.memberId ?? source.memberId;
 }
 
-/** "Pertemuan 3" lines of a payment: one per allocation, oldest week first. */
+/** "Pertemuan 3" lines of a payment: one per allocation, oldest week first. Skipped meetings are left out (their money is credit). */
 export function paidMeetingRows(allocations: readonly Allocation[]): { week: number; amount: number; label: string }[] {
-  return [...allocations]
+  return allocations
+    .filter((a) => a.skipped !== true)
     .sort((a, b) => a.week - b.week)
     .map((a) => ({ week: a.week, amount: a.amount, label: `Pertemuan ${a.week}` }));
 }

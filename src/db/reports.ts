@@ -22,7 +22,7 @@ import { createLedgerRepo } from './ledger';
 import { loadAvailableCredit } from './credits';
 import { createPaymentsRepo } from './payments';
 import { createPeriodsRepo, type Period } from './periods';
-import { createWeeksRepo } from './weeks';
+import { createWeeksRepo, loadSkippedWeekNumbers, type Week } from './weeks';
 
 export interface KasReport {
   /** Same numbers as the Kas screen (computeKasBalances over every entry of every period). */
@@ -34,6 +34,12 @@ export interface PeriodReport {
   period: Period;
   summary: PeriodSummary;
   meetings: MeetingSummary[];
+}
+
+/** open/closed of a meeting for the report layer; a skipped meeting is closed once its period was closed. */
+function storedStatus(w: Week): 'open' | 'closed' {
+  if (w.status === 'skipped') return w.closedAt !== null ? 'closed' : 'open';
+  return w.status;
 }
 
 export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
@@ -63,7 +69,8 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           week: w.number,
           date: w.date,
           hostMemberId: w.hostMemberId,
-          status: w.status,
+          status: storedStatus(w),
+          skipped: w.skipped,
           members: members.map((m) => {
             const status = statusesByMember.get(m.memberId)?.find((s) => s.week === w.number);
             if (!status) throw new RepositoryError(`week ${w.number} has no status for member ${m.memberId}`);
@@ -110,7 +117,8 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       const carried = await db.getAll<{ amount: number }>(
         `SELECT ca.amount FROM credit_applications ca
            JOIN weeks w ON w.period_id = ca.to_period_id AND w.number = ca.week
-          WHERE ca.kind = 'carry_over' AND w.status = 'open'`,
+          WHERE ca.kind = 'carry_over' AND w.status = 'open'
+            AND NOT EXISTS (SELECT 1 FROM skipped_weeks k WHERE k.period_id = ca.to_period_id AND k.week = ca.week)`,
       );
 
       const unpaidPayouts: number[] = [];
@@ -140,7 +148,11 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       const entries = await ledger.listByPeriod(periodId);
       return {
         period,
-        summary: summarizePeriod({ memberCount: period.memberCount, entries }),
+        summary: summarizePeriod({
+          memberCount: period.memberCount,
+          entries,
+          skippedCount: (await weeks.listByPeriod(periodId)).filter((w) => w.skipped).length,
+        }),
         meetings: await loadMeetings(period),
       };
     },
@@ -204,6 +216,10 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           ORDER BY ca.rowid`,
         [memberId, periodId, periodId],
       );
+      const skippedByPeriod = new Map<string, Set<number>>();
+      for (const id of new Set(applicationRows.map((r) => r.to_period_id))) {
+        skippedByPeriod.set(id, new Set(await loadSkippedWeekNumbers(db, id)));
+      }
       const applications: HistoryApplicationInput[] = applicationRows.map((r) => ({
         kind: r.kind,
         fromPeriodId: r.from_period_id,
@@ -213,19 +229,21 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         week: r.week,
         amount: r.amount,
         date: r.kind === 'settle_debt' && r.from_end ? r.from_end : r.created_at.slice(0, 10),
+        skipped: skippedByPeriod.get(r.to_period_id)?.has(r.week) === true,
       }));
 
+      const skippedWeekSet = new Set(weekList.filter((w) => w.skipped).map((w) => w.number));
       const offsetCredits = (
         await db.getAll<{ ledger_entry_id: string; week: number; amount: number }>(
           'SELECT ledger_entry_id, week, amount FROM offset_credits WHERE period_id = ? AND member_id = ? ORDER BY week, rowid',
           [period.id, memberId],
         )
-      ).map((r): HistoryOffsetCredit => ({ ledgerEntryId: r.ledger_entry_id, week: r.week, amount: r.amount }));
+      ).map((r): HistoryOffsetCredit => ({ ledgerEntryId: r.ledger_entry_id, week: r.week, amount: r.amount, skipped: skippedWeekSet.has(r.week) }));
 
       return buildMemberHistory({
         periodId,
         statuses,
-        weeks: weekList.map((w) => ({ number: w.number, date: w.date, hostMemberId: w.hostMemberId, status: w.status })),
+        weeks: weekList.map((w) => ({ number: w.number, date: w.date, hostMemberId: w.hostMemberId, status: storedStatus(w), skipped: w.skipped })),
         payments: paymentList.map((p) => ({
           id: p.id,
           date: p.date,
@@ -233,7 +251,9 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           credit: p.credit,
           reversed: p.reversed,
           reversalReason: p.reversalReason,
-          settled: allocations.filter((a) => a.paymentId === p.id).map((a) => ({ week: a.week, amount: a.amount })),
+          settled: allocations
+            .filter((a) => a.paymentId === p.id)
+            .map((a) => ({ week: a.week, amount: a.amount, skipped: a.skipped === true })),
         })),
         entries,
         applications,

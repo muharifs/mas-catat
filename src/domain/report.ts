@@ -83,6 +83,8 @@ export interface MeetingSummaryInput {
   date: IsoDate;
   hostMemberId: string | null;
   status: 'open' | 'closed';
+  /** The meeting is skipped (decision 33): no dues, no payout, no kas contribution. */
+  skipped?: boolean;
   /** Every member's status for THIS week (exactly N rows). */
   members: readonly { memberId: string; status: WeekStatus }[];
   /** Host payout in force for this week (amount), or null when not paid out (or corrected). */
@@ -102,13 +104,15 @@ export interface MeetingSummary {
   date: IsoDate;
   hostMemberId: string | null;
   status: 'open' | 'closed';
-  /** 15.000 x N. */
+  /** The meeting is skipped: totalDues, hostPayoutDue and kasContribution are 0 and nothing is covered. */
+  skipped: boolean;
+  /** 15.000 x N (0 for a skipped meeting). */
   totalDues: Rupiah;
   coveredByPayments: Rupiah;
   coveredByOffset: Rupiah;
   coveredByTitipan: Rupiah;
   unpaid: Rupiah;
-  /** Every member's due of this meeting is covered (unpaid = 0). */
+  /** Every member's due of this meeting is covered (unpaid = 0). Always false for a skipped meeting (nothing was due). */
   fullyCovered: boolean;
   /** 10.000 x N, what the host receives. */
   hostPayoutDue: Rupiah;
@@ -116,7 +120,7 @@ export interface MeetingSummary {
   hostPayout: Rupiah | null;
   /** Offset recorded against the host's debt (0 if none). */
   hostOffset: Rupiah;
-  /** 5.000 x N once the meeting is fully covered, else null (not realised yet). */
+  /** 5.000 x N once the meeting is fully covered, else null (not realised yet); 0 for a skipped meeting. */
   kasContribution: Rupiah | null;
   members: MeetingMemberRow[];
 }
@@ -129,6 +133,32 @@ export interface MeetingSummary {
 export function summarizeMeeting(input: MeetingSummaryInput): MeetingSummary {
   if (input.members.length !== input.memberCount) {
     throw new DomainError(`meeting ${input.week} needs ${input.memberCount} member rows, got ${input.members.length}`);
+  }
+  if (input.skipped === true) {
+    for (const m of input.members) {
+      const s = m.status;
+      if (s.due + s.paid + s.offset + s.credited + s.outstanding !== 0) {
+        throw new DomainError(`meeting ${input.week} is skipped but member ${m.memberId} has amounts; data is inconsistent`);
+      }
+    }
+    return {
+      week: input.week,
+      date: input.date,
+      hostMemberId: input.hostMemberId,
+      status: input.status,
+      skipped: true,
+      totalDues: 0,
+      coveredByPayments: 0,
+      coveredByOffset: 0,
+      coveredByTitipan: 0,
+      unpaid: 0,
+      fullyCovered: false,
+      hostPayoutDue: 0,
+      hostPayout: null,
+      hostOffset: 0,
+      kasContribution: 0,
+      members: input.members.map((m) => ({ memberId: m.memberId, status: m.status, state: weekState(m.status) })),
+    };
   }
   const totalDues = weeklyTotalCollected(input.memberCount);
   let coveredByPayments = 0;
@@ -150,6 +180,7 @@ export function summarizeMeeting(input: MeetingSummaryInput): MeetingSummary {
     date: input.date,
     hostMemberId: input.hostMemberId,
     status: input.status,
+    skipped: false,
     totalDues,
     coveredByPayments,
     coveredByOffset,
@@ -186,8 +217,8 @@ export interface HistoryPaymentInput {
   credit: Rupiah;
   reversed: boolean;
   reversalReason: string | null;
-  /** Meetings this payment settled (stored allocations). */
-  settled: readonly WeekCredit[];
+  /** Meetings this payment settled (stored allocations). Rows with skipped true were released to credit and are not listed. */
+  settled: readonly (WeekCredit & { skipped?: boolean })[];
 }
 
 /** A stored ledger entry of the member, as the repository loads it (reversal entries included). */
@@ -214,19 +245,23 @@ export interface HistoryApplicationInput {
   amount: Rupiah;
   /** Day the application belongs to (carry-over: when the new period was made; settle: the end date). */
   date: IsoDate;
+  /** It targets a skipped meeting: not in force, the amount went back to the source period's credit. */
+  skipped?: boolean;
 }
 
 export interface HistoryOffsetCredit {
   ledgerEntryId: string;
   week: number;
   amount: Rupiah;
+  /** It settles a skipped meeting: released to the host's credit. */
+  skipped?: boolean;
 }
 
 export interface MemberHistoryInput {
   periodId: string;
   /** Per-week status of the member, weeks 1..N. */
   statuses: readonly WeekStatus[];
-  weeks: readonly { number: number; date: IsoDate; hostMemberId: string | null; status: 'open' | 'closed' }[];
+  weeks: readonly { number: number; date: IsoDate; hostMemberId: string | null; status: 'open' | 'closed'; skipped?: boolean }[];
   payments: readonly HistoryPaymentInput[];
   /** Ledger entries of this member over ALL periods (events use this period only; loans use every period). */
   entries: readonly HistoryEntryInput[];
@@ -244,6 +279,8 @@ export interface HistoryEvent {
   settled: WeekCredit[];
   /** Payment only: part that became titipan. */
   credit: Rupiah;
+  /** Amount of this event that settled a skipped meeting and was released to titipan (payment, offset, carry-in). */
+  releasedBySkip: Rupiah;
   /** Meeting number for a host payout or offset. */
   week: number | null;
   /** Carry events: the other period. */
@@ -262,7 +299,7 @@ export interface HistoryLoan {
 }
 
 export interface MemberHistory {
-  weeks: { week: number; date: IsoDate; hostMemberId: string | null; meetingStatus: 'open' | 'closed'; status: WeekStatus; state: WeekState }[];
+  weeks: { week: number; date: IsoDate; hostMemberId: string | null; meetingStatus: 'open' | 'closed'; skipped: boolean; status: WeekStatus; state: WeekState }[];
   /** Oldest first; same-day events keep a fixed order (see EVENT_RANK). */
   events: HistoryEvent[];
   loans: HistoryLoan[];
@@ -316,8 +353,9 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       amount: p.amount,
       reversed: p.reversed,
       reversalReason: p.reversalReason,
-      settled: p.settled.map((s) => ({ ...s })),
+      settled: p.settled.filter((s) => s.skipped !== true).map((s) => ({ week: s.week, amount: s.amount })),
       credit: p.reversed ? 0 : p.credit,
+      releasedBySkip: p.reversed ? 0 : p.settled.filter((s) => s.skipped === true).reduce((t, s) => t + s.amount, 0),
       week: null,
       otherPeriodName: null,
       account: null,
@@ -334,8 +372,15 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       amount: e.amount,
       reversed: isReversed(e.id),
       reversalReason: reasonByOriginal.get(e.id) ?? null,
-      settled: e.type === 'host_offset' ? input.offsetCredits.filter((c) => c.ledgerEntryId === e.id).map((c) => ({ week: c.week, amount: c.amount })) : [],
+      settled:
+        e.type === 'host_offset'
+          ? input.offsetCredits.filter((c) => c.ledgerEntryId === e.id && c.skipped !== true).map((c) => ({ week: c.week, amount: c.amount }))
+          : [],
       credit: 0,
+      releasedBySkip:
+        e.type === 'host_offset' && !isReversed(e.id)
+          ? input.offsetCredits.filter((c) => c.ledgerEntryId === e.id && c.skipped === true).reduce((t, c) => t + c.amount, 0)
+          : 0,
       week: e.week,
       otherPeriodName: null,
       account: e.account,
@@ -359,6 +404,26 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
     if (a.toPeriodId !== input.periodId && a.fromPeriodId !== input.periodId) continue;
     const key = `${kind}|${a.fromPeriodId}|${a.toPeriodId}`;
     const existing = groups.get(key);
+    if (a.skipped === true) {
+      // Released by a skip: not in force. Remember the amount on the group, which is dropped below if nothing is left.
+      if (existing) existing.releasedBySkip += a.amount;
+      else {
+        groups.set(key, {
+          kind,
+          date: a.date,
+          amount: 0,
+          reversed: false,
+          reversalReason: null,
+          settled: [],
+          credit: 0,
+          releasedBySkip: a.amount,
+          week: null,
+          otherPeriodName: other,
+          account: null,
+        });
+      }
+      continue;
+    }
     if (existing) {
       existing.amount += a.amount;
       existing.settled.push({ week: a.week, amount: a.amount });
@@ -371,13 +436,15 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
         reversalReason: null,
         settled: [{ week: a.week, amount: a.amount }],
         credit: 0,
+        releasedBySkip: 0,
         week: null,
         otherPeriodName: other,
         account: null,
       });
     }
   }
-  events.push(...groups.values());
+  // A titipan group whose every application was released by a skip has nothing in force: no event.
+  events.push(...[...groups.values()].filter((g) => g.amount > 0));
 
   // Stable sort: date, then fixed rank; equal items keep their input order.
   const ordered = events
@@ -412,6 +479,7 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       date: w?.date ?? '',
       hostMemberId: w?.hostMemberId ?? null,
       meetingStatus: w?.status ?? ('open' as const),
+      skipped: w?.skipped === true || s.skipped === true,
       status: s,
       state: weekState(s),
     };
@@ -470,7 +538,12 @@ export interface PeriodSummary {
 }
 
 /** Totals of one period from its ledger entries. Corrected entries and the reversal entries are both left out. */
-export function summarizePeriod(input: { memberCount: number; entries: readonly PeriodSummaryEntry[] }): PeriodSummary {
+export function summarizePeriod(input: {
+  memberCount: number;
+  entries: readonly PeriodSummaryEntry[];
+  /** Number of skipped meetings (0 or 1): they carry no dues. */
+  skippedCount?: number;
+}): PeriodSummary {
   const reversedIds = new Set<string>();
   for (const e of input.entries) if (e.type === 'reversal' && e.reversesEntryId) reversedIds.add(e.reversesEntryId);
   const inForce = input.entries.filter((e) => e.type !== 'reversal' && !reversedIds.has(e.id));
@@ -483,7 +556,7 @@ export function summarizePeriod(input: { memberCount: number; entries: readonly 
     netKasChange += effects.tunai + effects.debit;
   }
   return {
-    totalDues: weeklyTotalCollected(input.memberCount) * input.memberCount,
+    totalDues: weeklyTotalCollected(input.memberCount) * Math.max(0, input.memberCount - (input.skippedCount ?? 0)),
     collected: total('member_payment'),
     payouts: total('host_payout'),
     offsets: total('host_offset'),

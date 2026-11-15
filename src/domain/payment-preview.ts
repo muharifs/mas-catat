@@ -42,7 +42,8 @@ export function previewPayment(payment: Payment, statuses: readonly WeekStatus[]
   assertDuesMultiple(payment.amount, 'payment amount');
   const credits: WeekCredit[] = statuses.map((s) => ({ week: s.week, amount: s.paid + s.offset }));
   const credited: WeekCredit[] = statuses.filter((s) => s.credited > 0).map((s) => ({ week: s.week, amount: s.credited }));
-  const result = allocatePayments([payment], statuses.length, credits, credited);
+  const skippedWeeks = statuses.filter((s) => s.skipped === true).map((s) => s.week);
+  const result = allocatePayments([payment], statuses.length, credits, credited, skippedWeeks);
 
   const touched = new Set(result.allocations.map((a) => a.week));
   const settledWeeks: number[] = [];
@@ -64,14 +65,15 @@ export function previewPayment(payment: Payment, statuses: readonly WeekStatus[]
 }
 
 /** Display state of one week of one member. */
-export type WeekState = 'paid' | 'offset' | 'credited' | 'partial_offset' | 'partial_credited' | 'partial' | 'unpaid';
+export type WeekState = 'paid' | 'offset' | 'credited' | 'partial_offset' | 'partial_credited' | 'partial' | 'unpaid' | 'skipped';
 
 /**
  * paid = settled by payments; offset = settled completely by the host payout offset; credited = settled completely
  * by member credit (carry-over or close); partial_* = that kind plus something still open; partial = some payment
- * but still open; unpaid = nothing.
+ * but still open; unpaid = nothing; skipped = the meeting is skipped (nothing is due).
  */
 export function weekState(s: WeekStatus): WeekState {
+  if (s.skipped === true) return 'skipped';
   if (s.outstanding === 0) {
     if (s.paid > 0) return 'paid';
     if (s.offset > 0) return 'offset';

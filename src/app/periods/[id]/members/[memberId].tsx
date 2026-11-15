@@ -15,7 +15,7 @@ import { formatDate } from '@/ui/dates';
 import { PAYMENT_HOST_PAYOUT_STANDS_TEXT } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
-import { WEEK_STATE_LABELS } from '@/ui/reportLabels';
+import { SKIPPED_NO_DUES_TEXT, WEEK_STATE_LABELS, weekStateTone } from '@/ui/reportLabels';
 import { useLoad } from '@/ui/useLoad';
 import { SEP } from '@/ui/separator';
 
@@ -99,8 +99,9 @@ export default function MemberInPeriodScreen() {
                 Pertemuan {s.week}
                 {week ? `${SEP}${formatDate(week.date)}` : ''}
               </Text>
-              <Text style={state === 'paid' || state === 'offset' || state === 'credited' ? styles.ok : styles.bad}>{WEEK_STATE_LABELS[state]}</Text>
+              <Text style={styles[weekStateTone(state)]}>{WEEK_STATE_LABELS[state]}</Text>
             </View>
+            {state === 'skipped' ? <Text style={styles.muted}>{SKIPPED_NO_DUES_TEXT}</Text> : null}
             {weekDetail(s) ? <Text style={styles.muted}>{weekDetail(s)}</Text> : null}
           </View>
         );
@@ -109,7 +110,8 @@ export default function MemberInPeriodScreen() {
       <SectionHeader title="Riwayat pembayaran" />
       {payments.length === 0 ? <Text style={styles.muted}>Belum ada pembayaran.</Text> : null}
       {payments.map((p) => {
-        const own = allocations.filter((a) => a.paymentId === p.id);
+        // An allocation on a skipped meeting no longer counts (its amount is titipan, shown below): never list it as "Melunasi".
+        const own = allocations.filter((a) => a.paymentId === p.id && a.skipped !== true);
         return (
           <View key={p.id} style={p.reversed ? [styles.row, styles.reversedRow] : styles.row}>
             <Text style={[styles.weekTitle, p.reversed ? styles.strike : null]}>
@@ -162,5 +164,7 @@ const styles = StyleSheet.create({
   weekTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   ok: { ...type.label, color: colors.moneyIn, flexShrink: 1, textAlign: 'right' },
   bad: { ...type.label, color: colors.error, flexShrink: 1, textAlign: 'right' },
+  // Skipped meeting: neither settled nor in arrears, so neither green nor red.
+  neutral: { ...type.label, color: colors.textSecondary, flexShrink: 1, textAlign: 'right' },
   muted: { ...type.secondary, color: colors.textSecondary },
 });

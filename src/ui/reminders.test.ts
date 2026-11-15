@@ -1,6 +1,6 @@
 import { homeReminders, type HomeReminderInput, type ReminderWeek } from './reminders';
 
-const week = (number: number, status: 'open' | 'closed', date: string, host: string | null = 'h'): ReminderWeek => ({
+const week = (number: number, status: 'open' | 'closed' | 'skipped', date: string, host: string | null = 'h'): ReminderWeek => ({
   number,
   status,
   date,
@@ -11,6 +11,7 @@ const base: HomeReminderInput = {
   today: '2026-11-10',
   hasActivePeriod: true,
   weeks: [],
+  lastMeetingNumber: 19,
   paidPayoutWeeks: new Set(),
   currentHostName: 'Budi',
   membersInArrears: 0,
@@ -121,5 +122,50 @@ describe('homeReminders', () => {
     const rows = homeReminders({ ...base, weeks, backup: { due: true, daysSince: 8 } });
     expect(rows.map((r) => r.kind)).toEqual(['pay_host', 'pay_host', 'close_week', 'choose_host', 'backup']);
     expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+  });
+});
+
+describe('homeReminders: a skipped last meeting (decision 33)', () => {
+  const closedThrough18 = Array.from({ length: 18 }, (_, i) => week(i + 1, 'closed', '2026-05-05'));
+  const allPaid = new Set(Array.from({ length: 18 }, (_, i) => i + 1));
+
+  it('never asks to pay the host or close a skipped meeting, even with a host and a past date', () => {
+    const weeks = [...closedThrough18, week(19, 'skipped', '2026-11-03', 'h19')];
+    expect(kinds({ weeks, paidPayoutWeeks: allPaid })).toEqual(['close_period:-']);
+  });
+
+  it('says "ditutup atau dilewati" when something was skipped, and keeps the old words otherwise', () => {
+    const skipped = homeReminders({ ...base, weeks: [...closedThrough18, week(19, 'skipped', '2026-11-03')], paidPayoutWeeks: allPaid });
+    expect(skipped[0]).toMatchObject({
+      kind: 'close_period',
+      title: 'Semua pertemuan sudah ditutup atau dilewati',
+      detail: 'Periode siap diakhiri.',
+      actionLabel: 'Akhiri periode',
+    });
+    const plain = homeReminders({ ...base, weeks: [...closedThrough18, week(19, 'closed', '2026-11-03')], paidPayoutWeeks: new Set([...allPaid, 19]) });
+    expect(plain[0]?.title).toBe('Semua pertemuan sudah ditutup');
+  });
+
+  it('a closed meeting before the skipped one still asks for its payout', () => {
+    const weeks = [...closedThrough18, week(19, 'skipped', '2026-11-03')];
+    expect(kinds({ weeks, paidPayoutWeeks: new Set([...allPaid].filter((n) => n !== 7)) })).toEqual(['pay_host:7', 'close_period:-']);
+  });
+
+  it('the last meeting without a host mentions that it can be skipped; earlier meetings do not', () => {
+    const last = homeReminders({ ...base, weeks: [...closedThrough18, week(19, 'open', '2026-11-03', null)], paidPayoutWeeks: allPaid });
+    expect(last).toHaveLength(1);
+    expect(last[0]).toMatchObject({
+      kind: 'choose_host',
+      week: 19,
+      actionLabel: 'Tentukan',
+      detail: 'Tanpa tuan rumah, pertemuan tidak bisa ditutup. Jika tuan rumahnya tidak bisa menerima tamu, pertemuan ini bisa dilewati.',
+    });
+    const earlier = homeReminders({ ...base, weeks: [week(5, 'open', '2026-11-03', null), week(6, 'open', '2026-11-10', null)] });
+    expect(earlier[0]?.detail).toBe('Tanpa tuan rumah, pertemuan tidak bisa ditutup.');
+  });
+
+  it('a one-member period is never offered a skip hint', () => {
+    const rows = homeReminders({ ...base, lastMeetingNumber: 1, weeks: [week(1, 'open', '2026-11-03', null)] });
+    expect(rows[0]?.detail).toBe('Tanpa tuan rumah, pertemuan tidak bisa ditutup.');
   });
 });

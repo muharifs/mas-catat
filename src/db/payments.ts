@@ -13,7 +13,7 @@ import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
 import { loadAvailableCredit } from './credits';
 import { insertEntry, loadEntry, requireActivePeriod, type StoredLedgerEntry } from './ledger';
-import { loadCurrentWeek, loadStandingPayoutWeeksOfHost, loadWeekStatuses } from './weeks';
+import { loadCurrentWeek, loadSkippedWeekNumbers, loadStandingPayoutWeeksOfHost, loadWeekStatuses } from './weeks';
 
 export { loadWeekAmounts, loadWeekStatuses } from './weeks';
 
@@ -97,6 +97,16 @@ export interface ArrearsSummary {
   throughWeek: number;
   membersInArrears: number;
   totalArrears: number;
+}
+
+/** An allocation to a skipped meeting does not count: its amount is member credit (decision 33). */
+const NOT_SKIPPED = 'NOT EXISTS (SELECT 1 FROM skipped_weeks k WHERE k.period_id = a.period_id AND k.week = a.week)';
+
+/** Marks the allocations that target a skipped meeting. The rows are kept (append-only) but no longer count. */
+async function flagSkipped(db: Queryable, periodId: string, allocations: Allocation[]): Promise<Allocation[]> {
+  const skipped = new Set(await loadSkippedWeekNumbers(db, periodId));
+  if (skipped.size === 0) return allocations;
+  return allocations.map((a) => (skipped.has(a.week) ? { ...a, skipped: true } : a));
 }
 
 /** Shared by preview and record, so both reject exactly the same things. Reads through the given handle. */
@@ -237,7 +247,7 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         'SELECT payment_id, member_id, week, amount, payment_date FROM allocations WHERE period_id = ? AND member_id = ? ORDER BY rowid',
         [periodId, memberId],
       );
-      return rows.map(toAllocation);
+      return flagSkipped(db, periodId, rows.map(toAllocation));
     },
 
     /** Allocations of a single payment (what weeks it paid, with the original payment date). */
@@ -246,7 +256,8 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         'SELECT payment_id, member_id, week, amount, payment_date FROM allocations WHERE payment_id = ? ORDER BY week',
         [paymentId],
       );
-      return rows.map(toAllocation);
+      const period = await db.getFirst<{ period_id: string }>('SELECT period_id FROM payments WHERE id = ?', [paymentId]);
+      return period ? flagSkipped(db, period.period_id, rows.map(toAllocation)) : rows.map(toAllocation);
     },
 
     /**
@@ -257,7 +268,7 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
     async getByLedgerEntry(ledgerEntryId: string): Promise<PaymentOfEntry | null> {
       const row = await db.getFirst<PaymentRow & { reversal_reason: string | null; allocated: number }>(
         `SELECT p.id, p.member_id, p.date, p.amount, pr.reason AS reversal_reason,
-                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id), 0) AS allocated
+                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id AND ${NOT_SKIPPED}), 0) AS allocated
            FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
           WHERE p.ledger_entry_id = ?`,
         [ledgerEntryId],
@@ -279,7 +290,7 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
     async listWithCredit(periodId: string, memberId: string): Promise<PaymentWithCredit[]> {
       const rows = await db.getAll<PaymentRow & { allocated: number; reversal_reason: string | null }>(
         `SELECT p.id, p.member_id, p.date, p.amount, pr.reason AS reversal_reason,
-                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id), 0) AS allocated
+                COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id AND ${NOT_SKIPPED}), 0) AS allocated
            FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
           WHERE p.period_id = ? AND p.member_id = ? ORDER BY p.date, p.rowid`,
         [periodId, memberId],

@@ -9,7 +9,7 @@ import type { Db, Queryable } from './db';
 import { defaultDeps, todayOf, type RepoDeps } from './deps';
 import { RepositoryError } from './errors';
 import { insertEntry, loadWeekPayout } from './ledger';
-import { loadWeekStatuses } from './weeks';
+import { loadSkippedWeekNumbers, loadWeekStatuses } from './weeks';
 
 export type PeriodStatus = 'active' | 'closed';
 
@@ -67,9 +67,15 @@ async function loadClosePreview(db: Queryable, periodId: string): Promise<Period
     'SELECT number, status FROM weeks WHERE period_id = ? ORDER BY number',
     [periodId],
   );
+  const skipped = new Set(await loadSkippedWeekNumbers(db, periodId));
   const weeks = [];
   for (const w of weekRows) {
-    weeks.push({ number: w.number, status: w.status, hasActivePayout: (await loadWeekPayout(db, periodId, w.number)) !== null });
+    weeks.push({
+      number: w.number,
+      status: w.status,
+      skipped: skipped.has(w.number),
+      hasActivePayout: (await loadWeekPayout(db, periodId, w.number)) !== null,
+    });
   }
   const memberRows = await db.getAll<{ member_id: string }>(
     'SELECT member_id FROM period_members WHERE period_id = ? ORDER BY initial_order',
@@ -216,7 +222,7 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
      *    credit_applications, no ledger entry);
      *  - then ONE debt_writeoff entry per member still in arrears (out, no pos, no week, dated the end date, amount
      *    = remaining arrears). Write-offs never change a kas balance; a unique index blocks a second one;
-     *  - finally status closed and end_date.
+     *  - finally status closed and end_date; a skipped meeting (no dues, no payout, never written off) is closed with it.
      * Leftover credit stays available for carry-over (periods.create) or a refund (credits.refund).
      */
     async close(periodId: string, endDate: string): Promise<void> {
@@ -268,6 +274,16 @@ export function createPeriodsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           });
         }
         await tx.run("UPDATE periods SET status = 'closed', end_date = ? WHERE id = ?", [endDate, periodId]);
+        // A skipped meeting stays 'open' while its period is active (so "closed period with open meeting" stays an
+        // invariant violation). It is closed here, AFTER the period itself: the trigger on weeks only allows this
+        // once the period is no longer active.
+        for (const number of preview.skippedWeeks) {
+          await tx.run("UPDATE weeks SET status = 'closed', closed_at = ? WHERE period_id = ? AND number = ? AND status = 'open'", [
+            deps.now(),
+            periodId,
+            number,
+          ]);
+        }
       });
     },
 

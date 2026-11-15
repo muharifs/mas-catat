@@ -14,6 +14,7 @@ import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { CORRECTED_NOT_COUNTED, MEETING_STATUS_LABELS } from '@/ui/reportLabels';
+import { totalDuesHint } from '@/ui/skipMeeting';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 import { SEP } from '@/ui/separator';
@@ -55,7 +56,7 @@ export default function PeriodReportScreen() {
 
       <SectionHeader title="Ringkasan periode" />
       <Card>
-        <ReportLine label="Total iuran periode" amount={summary.totalDues} hint="Rp15.000 x anggota x pertemuan" />
+        <ReportLine label="Total iuran periode" amount={summary.totalDues} hint={totalDuesHint(meetings.some((m) => m.skipped))} />
         <ReportLine label="Terkumpul dari anggota" amount={summary.collected} />
         <ReportLine label="Pembayaran tuan rumah" amount={summary.payouts} />
         <ReportLine label="Dipotong dari bayaran tuan rumah" amount={summary.offsets} />
@@ -79,12 +80,17 @@ export default function PeriodReportScreen() {
           title={`Pertemuan ${m.week}${SEP}${formatDate(m.date)}`}
           tone="alt"
           onPress={() => router.push({ pathname: '/reports/period/[id]/meetings/[number]', params: { id, number: String(m.week) } })}
-          right={<Money amount={m.unpaid} size="heading" tone={m.unpaid > 0 ? 'negative' : 'neutral'} />}
+          // A skipped meeting shows no amount: Rp0 would read as "paid in full".
+          right={m.skipped ? undefined : <Money amount={m.unpaid} size="heading" tone={m.unpaid > 0 ? 'negative' : 'neutral'} />}
         >
-          <RowText>Tuan rumah: {nameOf(m.hostMemberId)}</RowText>
-          <RowText tone={m.fullyCovered ? 'ok' : 'warn'}>
-            {MEETING_STATUS_LABELS[m.status]}{SEP}{m.fullyCovered ? 'iuran lengkap' : 'ada yang belum bayar'}
-          </RowText>
+          <RowText>Tuan rumah: {m.skipped ? 'tidak ada' : nameOf(m.hostMemberId)}</RowText>
+          {m.skipped ? (
+            <RowText>{MEETING_STATUS_LABELS.skipped}{SEP}tidak ada iuran</RowText>
+          ) : (
+            <RowText tone={m.fullyCovered ? 'ok' : 'warn'}>
+              {MEETING_STATUS_LABELS[m.status]}{SEP}{m.fullyCovered ? 'iuran lengkap' : 'ada yang belum bayar'}
+            </RowText>
+          )}
         </ListRow>
       ))}
 

@@ -30,3 +30,11 @@ describe('quickActionReasons', () => {
     expect(quickActionReasons({ hasActivePeriod: true, hasAnyPeriod: true, currentWeek: null }).tuanRumah).toBe('Semua pertemuan sudah ditutup.');
   });
 });
+
+describe('quickActionReasons: skipped meeting', () => {
+  it('says "ditutup atau dilewati" only when a meeting was skipped', () => {
+    const input = { hasActivePeriod: true, hasAnyPeriod: true, currentWeek: null };
+    expect(quickActionReasons({ ...input, anySkipped: true }).tuanRumah).toBe('Semua pertemuan sudah ditutup atau dilewati.');
+    expect(quickActionReasons({ ...input, anySkipped: false }).tuanRumah).toBe('Semua pertemuan sudah ditutup.');
+  });
+});

@@ -7,6 +7,8 @@ export interface QuickActionInput {
   hasAnyPeriod: boolean;
   /** Oldest open meeting of the active period, or null when none is open (or no period). */
   currentWeek: { hostMemberId: string | null } | null;
+  /** A meeting of the active period is skipped (decision 33): the "no open meeting" reason says so. Default false. */
+  anySkipped?: boolean;
 }
 
 export interface QuickActionReasons {
@@ -25,7 +27,9 @@ export function quickActionReasons(input: QuickActionInput): QuickActionReasons 
     tuanRumah: !input.hasActivePeriod
       ? NO_ACTIVE
       : !input.currentWeek
-        ? 'Semua pertemuan sudah ditutup.'
+        ? input.anySkipped
+          ? 'Semua pertemuan sudah ditutup atau dilewati.'
+          : 'Semua pertemuan sudah ditutup.'
         : input.currentWeek.hostMemberId === null
           ? 'Tentukan tuan rumah dulu.'
           : null,

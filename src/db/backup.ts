@@ -92,11 +92,16 @@ export async function buildReferenceSchema(bridge: NativeBridge, version: number
   }
 }
 
-/** Ids of all ledger entries and payments (prefixed, so the two kinds never collide). */
+/**
+ * Ids of all ledger entries, payments, skips (S:) and skip undos (U:, by skip id), prefixed so the kinds never collide.
+ * Skips and undos MUST be here: without them a backup from before a skip would look "the same" as the live data.
+ */
 export async function loadRecordIds(q: Queryable): Promise<Set<string>> {
   const ids = new Set<string>();
   for (const r of await q.getAll<{ id: string }>('SELECT id FROM ledger_entries')) ids.add(`L:${r.id}`);
   for (const r of await q.getAll<{ id: string }>('SELECT id FROM payments')) ids.add(`P:${r.id}`);
+  for (const r of await q.getAll<{ id: string }>('SELECT id FROM week_skips')) ids.add(`S:${r.id}`);
+  for (const r of await q.getAll<{ skip_id: string }>('SELECT skip_id FROM week_skip_undos')) ids.add(`U:${r.skip_id}`);
   return ids;
 }
 
@@ -196,6 +201,58 @@ const INVARIANTS: readonly Invariant[] = [
   {
     id: 'meeting_count_differs_from_member_count',
     sql: `SELECT p.id FROM periods p WHERE (SELECT COUNT(*) FROM weeks w WHERE w.period_id = p.id) <> p.member_count`,
+  },
+  {
+    id: 'two_skips_in_force_for_one_week',
+    sql: 'SELECT period_id, week FROM skipped_weeks GROUP BY period_id, week HAVING COUNT(*) > 1',
+  },
+  {
+    id: 'skip_not_last_meeting',
+    sql: 'SELECT s.id FROM week_skips s JOIN periods p ON p.id = s.period_id WHERE s.week <> p.member_count',
+  },
+  {
+    id: 'skip_with_open_earlier_meeting',
+    sql: `SELECT k.skip_id FROM skipped_weeks k
+           WHERE EXISTS (SELECT 1 FROM weeks w WHERE w.period_id = k.period_id AND w.number < k.week AND w.status <> 'closed')`,
+  },
+  {
+    id: 'skip_with_host_payout_in_force',
+    sql: `SELECT k.skip_id FROM skipped_weeks k
+           WHERE EXISTS (SELECT 1 FROM ledger_entries e
+                          WHERE e.period_id = k.period_id AND e.week = k.week AND e.type IN ('host_payout', 'host_offset')
+                            AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.reverses_entry_id = e.id))`,
+  },
+  {
+    id: 'skipped_week_closed_in_active_period',
+    sql: `SELECT k.skip_id FROM skipped_weeks k
+            JOIN periods p ON p.id = k.period_id
+            JOIN weeks w ON w.period_id = k.period_id AND w.number = k.week
+           WHERE p.status = 'active' AND w.status = 'closed'`,
+  },
+  {
+    // Same arithmetic as loadAvailableCredit (src/db/creditBalance.ts): received - allocated - applied - refunded + released offsets.
+    id: 'member_credit_negative',
+    sql: `SELECT period_id, member_id FROM (
+            SELECT pm.period_id, pm.member_id,
+              COALESCE((SELECT SUM(p.amount) FROM payments p
+                         WHERE p.period_id = pm.period_id AND p.member_id = pm.member_id
+                           AND p.id NOT IN (SELECT payment_id FROM payment_reversals)), 0)
+              - COALESCE((SELECT SUM(a.amount) FROM allocations a
+                           WHERE a.period_id = pm.period_id AND a.member_id = pm.member_id
+                             AND a.payment_id NOT IN (SELECT payment_id FROM payment_reversals)
+                             AND NOT EXISTS (SELECT 1 FROM skipped_weeks k WHERE k.period_id = a.period_id AND k.week = a.week)), 0)
+              - COALESCE((SELECT SUM(c.amount) FROM credit_applications c
+                           WHERE c.from_period_id = pm.period_id AND c.member_id = pm.member_id
+                             AND NOT EXISTS (SELECT 1 FROM skipped_weeks k WHERE k.period_id = c.to_period_id AND k.week = c.week)), 0)
+              - COALESCE((SELECT SUM(e.amount) FROM ledger_entries e
+                           WHERE e.type = 'credit_refund' AND e.period_id = pm.period_id AND e.member_id = pm.member_id), 0)
+              + COALESCE((SELECT SUM(o.amount) FROM offset_credits o
+                           WHERE o.period_id = pm.period_id AND o.member_id = pm.member_id
+                             AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.reverses_entry_id = o.ledger_entry_id)
+                             AND EXISTS (SELECT 1 FROM skipped_weeks k WHERE k.period_id = o.period_id AND k.week = o.week)), 0)
+              AS credit
+            FROM period_members pm
+          ) WHERE credit < 0`,
   },
   {
     id: 'archived_member_in_active_period',

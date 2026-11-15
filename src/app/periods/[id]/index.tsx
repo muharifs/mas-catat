@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { showDialog } from '@/ui/dialog';
 import { selectableWeekNumbers } from '@/domain/schedule';
+import { skippedTurnMember } from '@/domain/week-skip';
 import { useRepos } from '@/db/provider';
 import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
@@ -15,9 +16,18 @@ import { Section } from '@/ui/components/Section';
 import { formatDate } from '@/ui/dates';
 import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
 import { closeWeekMessage, toasts } from '@/ui/messages';
+import {
+  shouldLoadSkipPreview,
+  SKIP_CARD_HELP,
+  skipCard,
+  skipCardTitle,
+  skippedClosePrefix,
+  skippedRowHelp,
+} from '@/ui/skipMeeting';
 import { colors, ICON, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
+import { useSkipMeeting } from '@/ui/useSkipMeeting';
 import { SEP } from '@/ui/separator';
 
 // Period detail: meeting schedule (host and date per meeting), payments entry, "Tutup pertemuan" and the way to the
@@ -27,10 +37,11 @@ export default function PeriodDetailScreen() {
   const repos = useRepos();
 
   const load = useCallback(async () => {
-    const [period, weeks, members] = await Promise.all([
+    const [period, weeks, members, periodMembers] = await Promise.all([
       repos.periods.getById(id),
       repos.weeks.listByPeriod(id),
       repos.members.list(),
+      repos.periods.getMembers(id),
     ]);
     // Which meetings already have a host payout in force (a corrected payout does not count).
     const paidWeeks = new Set<number>();
@@ -39,17 +50,24 @@ export default function PeriodDetailScreen() {
     }
     // Arrears through the current meeting, for the warning in the "Tutup pertemuan" dialog.
     const arrears = period && period.status === 'active' ? await repos.payments.getArrearsSummary(id) : null;
-    return { period, weeks, members, paidWeeks, arrears };
+    // The skip card only exists while the LAST meeting is the oldest open one; previewSkip gives its numbers and blocker.
+    const oldestOpenNumber = weeks.find((w) => w.status === 'open')?.number ?? null;
+    const skipPreview =
+      period && shouldLoadSkipPreview({ periodActive: period.status === 'active', memberCount: period.memberCount, oldestOpenNumber })
+        ? await repos.weeks.previewSkip(id)
+        : null;
+    return { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview };
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const skip = useSkipMeeting(id);
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
   if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
-  const { period, weeks, members, paidWeeks, arrears } = data;
+  const { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview } = data;
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const selectable = selectableWeekNumbers(weeks);
@@ -57,6 +75,14 @@ export default function PeriodDetailScreen() {
   const openWeeks = weeks.filter((w) => w.status === 'open').length;
 
   const oldestOpen = weeks.find((w) => w.status === 'open');
+  const skippedNumbers = weeks.filter((w) => w.status === 'skipped').map((w) => w.number);
+  const skipView = skipCard(skipPreview);
+  // Name of the member whose turn moved to the next period (null when it cannot be told: the generic sentence is used).
+  const turnId = skippedTurnMember(
+    periodMembers.map((m) => m.memberId),
+    weeks.map((w) => ({ hostMemberId: w.hostMemberId, skipped: w.status === 'skipped' })),
+  );
+  const turnName = turnId ? (members.find((m) => m.id === turnId)?.name ?? null) : null;
 
   function confirmCloseWeek() {
     if (!oldestOpen) return;
@@ -112,19 +138,41 @@ export default function PeriodDetailScreen() {
             onPress={confirmCloseWeek}
           />
           {oldestOpen.hostMemberId === null ? (
-            <Text style={styles.hint}>Tentukan tuan rumah pertemuan {oldestOpen.number} dulu.</Text>
+            <Text style={styles.hint}>
+              Tentukan tuan rumah pertemuan {oldestOpen.number} dulu{skipView ? ', atau lewati pertemuan ini' : ''}.
+            </Text>
           ) : null}
+        </Card>
+      ) : null}
+
+      {isActive && skipView ? (
+        <Card tone="alt">
+          <Text style={styles.cardTitle}>{skipCardTitle(skipView.number)}</Text>
+          <Text style={styles.hint}>{SKIP_CARD_HELP}</Text>
+          <Button
+            label={skipCardTitle(skipView.number)}
+            variant="secondary"
+            disabled={!skipView.enabled}
+            loading={skip.busy}
+            disabledReason={skipView.reason ?? undefined}
+            onPress={() => {
+              if (skipPreview) skip.ask({ number: skipView.number, preview: skipPreview, onSkipped: reload });
+            }}
+          />
+          {skip.error ? <Notice tone="danger">{skip.error}</Notice> : null}
         </Card>
       ) : null}
 
       <Section title="Jadwal" contentGap={spacing.md}>
       {weeks.map((w) => {
+        // A skipped meeting (status 'skipped') is neither open nor closed: no host, date, payout or close actions.
+        const isSkipped = w.status === 'skipped';
         const canPick = isActive && w.status === 'open' && selectable.includes(w.number);
         const isPaid = paidWeeks.has(w.number);
         // Same rule as the repository: a host payout is possible for the current meeting or a closed one.
-        const canPay = isActive && !isPaid && w.hostMemberId !== null && (w.status === 'closed' || w.number === oldestOpen?.number);
+        const canPay = isActive && !isPaid && w.hostMemberId !== null && !isSkipped && (w.status === 'closed' || w.number === oldestOpen?.number);
         const canViewPayout = isPaid && isActive;
-        const hasActions = canPick || canPay || canViewPayout;
+        const hasActions = canPick || canPay || canViewPayout || (isSkipped && isActive);
         // J4: a closed and paid meeting of the active period is one tap area (no extra button) with a chevron.
         const wholeCardTap = canViewPayout && w.status === 'closed';
         const openPayout = () =>
@@ -137,8 +185,18 @@ export default function PeriodDetailScreen() {
               Pertemuan {w.number}{SEP}{formatDate(w.date)}
               {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
             </Text>
-            <Text style={w.hostMemberId ? styles.body : styles.hint}>Tuan rumah: {nameOf(w.hostMemberId)}</Text>
-            {w.status === 'open' ? <Badge label="Terbuka" tone="brand" /> : <Badge label="Ditutup" tone="neutral" />}
+            {/* A skipped meeting shows no host: a name there would read as if a payout happened. */}
+            <Text style={w.hostMemberId && !isSkipped ? styles.body : styles.hint}>
+              Tuan rumah: {isSkipped ? 'tidak ada' : nameOf(w.hostMemberId)}
+            </Text>
+            {w.status === 'open' ? (
+              <Badge label="Terbuka" tone="brand" />
+            ) : isSkipped ? (
+              <Badge label="Dilewati" tone="neutral" />
+            ) : (
+              <Badge label="Ditutup" tone="neutral" />
+            )}
+            {isSkipped ? <Text style={styles.hint}>{skippedRowHelp(turnName)}</Text> : null}
             {/* With the "Lihat pembayaran tuan rumah" button (open meeting, active period) the paid state is obvious;
                 otherwise the status line stays. */}
             {isPaid && (!canViewPayout || wholeCardTap) ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
@@ -183,6 +241,16 @@ export default function PeriodDetailScreen() {
                   onPress={() => router.push({ pathname: '/periods/[id]/payout', params: { id: period.id, week: String(w.number) } })}
                 />
               ) : null}
+              {isSkipped && isActive ? (
+                <Button
+                  label="Batalkan pelewatan"
+                  accessibilityLabel={`Batalkan pelewatan pertemuan ${w.number}`}
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({ pathname: '/periods/[id]/meetings/[number]', params: { id: period.id, number: String(w.number) } })
+                  }
+                />
+              ) : null}
               {canViewPayout ? (
                 <Button
                   label="Lihat pembayaran tuan rumah"
@@ -202,7 +270,7 @@ export default function PeriodDetailScreen() {
         <Card tone="alt">
           <Text style={styles.cardTitle}>Akhiri periode</Text>
           <Text style={styles.hint}>
-            Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
+            {skippedClosePrefix(skippedNumbers)}Periode bisa diakhiri setelah semua pertemuan ditutup dan semua tuan rumah dibayar ({openWeeks} pertemuan
             masih terbuka). Halaman berikutnya menunjukkan tunggakan yang akan dihapus dan titipan anggota sebelum periode
             benar-benar diakhiri.
           </Text>

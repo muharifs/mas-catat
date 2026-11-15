@@ -31,6 +31,7 @@ export const WEEK_STATE_LABELS: Record<WeekState, string> = {
   partial_credited: 'Sebagian lewat titipan',
   partial: 'Baru sebagian',
   unpaid: 'Belum bayar',
+  skipped: 'Dilewati',
 };
 
 /** True for a week state that counts as settled (shown in the "ok" colour). */
@@ -38,7 +39,19 @@ export function isSettledState(state: WeekState): boolean {
   return state === 'paid' || state === 'offset' || state === 'credited';
 }
 
-export const MEETING_STATUS_LABELS = { open: 'Terbuka', closed: 'Ditutup' } as const;
+/**
+ * Colour family of a week state text: ok (settled, green), neutral (skipped: nothing is due, so neither settled nor
+ * in arrears) and bad (everything else, red). The word always carries the meaning too.
+ */
+export function weekStateTone(state: WeekState): 'ok' | 'bad' | 'neutral' {
+  if (state === 'skipped') return 'neutral';
+  return isSettledState(state) ? 'ok' : 'bad';
+}
+
+/** Second line of a skipped meeting in a member's list of meetings. */
+export const SKIPPED_NO_DUES_TEXT = 'Tidak ada iuran.';
+
+export const MEETING_STATUS_LABELS = { open: 'Terbuka', closed: 'Ditutup', skipped: 'Dilewati' } as const;
 
 /** "pertemuan 1 (Rp15.000), pertemuan 2 (Rp5.000)". Empty text for no meetings. */
 export function settledText(settled: readonly WeekCredit[]): string {
@@ -61,10 +74,13 @@ export function eventLines(e: HistoryEvent): string[] {
     case 'host_offset':
       if (e.week !== null) lines.push(`Pertemuan ${e.week}`);
       if (e.settled.length > 0) lines.push(`Melunasi: ${settledText(e.settled)}`);
+      // The part that fell on a skipped meeting owes nothing there: it is the host's titipan (decision 33).
+      if (e.releasedBySkip > 0) lines.push(`Menjadi titipan: ${formatRupiah(e.releasedBySkip)}`);
       break;
     case 'titipan_carry_in':
       if (e.otherPeriodName) lines.push(`Dari ${e.otherPeriodName}`);
       if (e.settled.length > 0) lines.push(`Melunasi: ${settledText(e.settled)}`);
+      if (e.releasedBySkip > 0) lines.push(`Menjadi titipan: ${formatRupiah(e.releasedBySkip)}`);
       break;
     case 'titipan_carry_out':
       if (e.otherPeriodName) lines.push(`Ke ${e.otherPeriodName}`);

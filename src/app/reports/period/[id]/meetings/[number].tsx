@@ -8,15 +8,19 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { ListRow, RowText } from '@/ui/components/ListRow';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
+import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
 import { SearchField } from '@/ui/components/SearchField';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import { formatDate } from '@/ui/dates';
 import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
-import { isSettledState, MEETING_STATUS_LABELS, WEEK_STATE_LABELS } from '@/ui/reportLabels';
+import { MEETING_STATUS_LABELS, WEEK_STATE_LABELS, weekStateTone } from '@/ui/reportLabels';
+import { SKIPPED_REPORT_NOTICE } from '@/ui/skipMeeting';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 import { SEP } from '@/ui/separator';
+
+const TONE_OF = { ok: 'ok', bad: 'danger', neutral: 'muted' } as const;
 
 // Report of one meeting: dues and how they were covered, the host payout and offset, kas contribution, and every member's state.
 export default function MeetingReportScreen() {
@@ -40,6 +44,19 @@ export default function MeetingReportScreen() {
   const sortedMembers = sortByName(meeting.members, (m) => nameOf(m.memberId));
   const searchShown = shouldShowMemberSearch(sortedMembers.length);
   const found = filterByQuery(sortedMembers, (m) => nameOf(m.memberId), searchShown ? query : '');
+
+  if (meeting.skipped) {
+    // No dues, no host and no payout to report: one sentence instead of the three sections (decision 33).
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Pertemuan {meeting.week}</Text>
+        <Text style={styles.hint}>
+          {formatDate(meeting.date)}{SEP}{MEETING_STATUS_LABELS.skipped}
+        </Text>
+        <Notice tone="info">{SKIPPED_REPORT_NOTICE}</Notice>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -82,7 +99,7 @@ export default function MeetingReportScreen() {
           onPress={() => router.push({ pathname: '/reports/period/[id]/members/[memberId]', params: { id, memberId: m.memberId } })}
           right={m.status.outstanding > 0 ? <Money amount={m.status.outstanding} size="body" tone="negative" /> : undefined}
         >
-          <RowText tone={isSettledState(m.state) ? 'ok' : 'danger'}>{WEEK_STATE_LABELS[m.state]}</RowText>
+          <RowText tone={TONE_OF[weekStateTone(m.state)]}>{WEEK_STATE_LABELS[m.state]}</RowText>
         </ListRow>
       ))}
     </ScrollView>

@@ -77,7 +77,8 @@ export interface ScheduleWeek {
   date: IsoDate;
   /** NULL = "Belum ditentukan". */
   hostMemberId: string | null;
-  status: 'open' | 'closed';
+  /** 'skipped' = the last meeting is skipped (decision 33): not open for a host, a date or closing. */
+  status: 'open' | 'closed' | 'skipped';
   /**
    * True while a host payout of this meeting stands (recorded and not corrected; same meaning as the close rule).
    * Optional: missing means no payout. The host of such a meeting cannot be changed (owner decision 2026-11-10).
@@ -236,6 +237,9 @@ export function planAssignment(input: AssignmentInput): WeekChange[] {
   const target = weeks.find((w) => w.number === number);
   if (!target) throw new DomainError(`week ${number} not found`);
   if (target.status === 'closed') throw new DomainError(`week ${number} is closed; its host cannot be changed`);
+  if (target.status === 'skipped') {
+    throw new DomainError(`week ${number} is skipped; its host and date cannot be changed`);
+  }
   if (!selectableWeekNumbers(weeks).includes(number)) {
     throw new DomainError(`week ${number} is outside the selectable window (the current and the next week only)`);
   }

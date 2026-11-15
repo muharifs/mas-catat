@@ -16,6 +16,7 @@ import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { toasts } from '@/ui/messages';
+import { SKIPPED_PAYOUT_TEXT } from '@/ui/skipMeeting';
 import { colors, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
 import { useLoad } from '@/ui/useLoad';
@@ -65,7 +66,9 @@ export default function PayoutScreen() {
   const [correcting, setCorrecting] = useState(false);
 
   const alreadyPaid = Boolean(data?.paid);
-  const loaded = data !== null;
+  // A skipped meeting has no host payout (decision 33): no preview is asked for it.
+  const skipped = data?.meeting?.status === 'skipped';
+  const loaded = data !== null && !skipped;
 
   // Recompute the preview whenever the date or pos changes. useEffect is the React hook you know from the web;
   // here the "server" is the local SQLite file, so the call is just an async function.
@@ -93,6 +96,16 @@ export default function PayoutScreen() {
   if (!data) return <Loading />;
   const { period, meeting, members, paid } = data;
   if (!period || !meeting) return <ErrorState title="Data tidak ditemukan" message="Pertemuan tidak ditemukan. Kembali lalu pilih lagi." />;
+  if (meeting.status === 'skipped') {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Bayar tuan rumah</Text>
+        <Text style={styles.name}>Pertemuan {meeting.number} ({formatDate(meeting.date)})</Text>
+        <Text style={styles.muted}>{SKIPPED_PAYOUT_TEXT}</Text>
+        <Button label="Kembali" variant="secondary" onPress={() => router.back()} />
+      </ScrollView>
+    );
+  }
   const hostName = members.find((m) => m.id === meeting.hostMemberId)?.name ?? 'Belum ditentukan';
   const active = period.status === 'active';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { showDialog } from '../dialog';
-import { toIndonesian } from '../errors';
+import { toIndonesian, type ErrorContext } from '../errors';
 import { colors, radius, spacing, type } from '../theme';
 import { Button } from './Button';
 import { TextField } from './TextField';
@@ -14,18 +14,41 @@ interface CorrectionFormProps {
   submitLabel?: string;
   onSubmit: (reason: string) => Promise<void>;
   onCancel: () => void;
+  /** Sentence at the top of the box. Default: what a payment or payout correction does. */
+  explain?: string;
+  /** Label of the reason field. Default: "Alasan koreksi (wajib)". */
+  reasonLabel?: string;
+  /** Placeholder of the reason field. */
+  placeholder?: string;
+  /** Shown under the field when the reason is empty. Default: "Alasan koreksi wajib diisi." */
+  requiredText?: string;
+  /** Context for the text of an unexpected error. Default 'correct'. */
+  errorContext?: ErrorContext;
 }
+
+const DEFAULT_EXPLAIN = 'Koreksi membatalkan catatan ini. Catatan lama tetap terlihat, ditandai Dikoreksi, dan tidak dihitung.';
 
 // Reason + confirmation for a correction. The reason is a normal multiline TextInput because Alert.prompt only
 // exists on iOS (this app runs on Android). The reason is required; the repository checks it again.
-export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubmit, onCancel }: CorrectionFormProps) {
+export function CorrectionForm({
+  title,
+  message,
+  submitLabel = 'Koreksi',
+  onSubmit,
+  onCancel,
+  explain = DEFAULT_EXPLAIN,
+  reasonLabel = 'Alasan koreksi (wajib)',
+  placeholder = 'Contoh: salah memilih anggota',
+  requiredText = 'Alasan koreksi wajib diisi.',
+  errorContext = 'correct',
+}: CorrectionFormProps) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   function ask() {
     if (reason.trim().length === 0) {
-      setError('Alasan koreksi wajib diisi.');
+      setError(requiredText);
       return;
     }
     setError(null);
@@ -42,7 +65,7 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
             try {
               await onSubmit(reason.trim());
             } catch (e) {
-              setError(toIndonesian(e, 'correct'));
+              setError(toIndonesian(e, errorContext));
               setBusy(false);
             }
           },
@@ -53,8 +76,8 @@ export function CorrectionForm({ title, message, submitLabel = 'Koreksi', onSubm
 
   return (
     <View style={styles.box}>
-      <Text style={styles.explain}>Koreksi membatalkan catatan ini. Catatan lama tetap terlihat, ditandai Dikoreksi, dan tidak dihitung.</Text>
-      <TextField label="Alasan koreksi (wajib)" value={reason} onChangeText={setReason} multiline numberOfLines={3} placeholder="Contoh: salah memilih anggota" />
+      <Text style={styles.explain}>{explain}</Text>
+      <TextField label={reasonLabel} value={reason} onChangeText={setReason} multiline numberOfLines={3} placeholder={placeholder} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label={submitLabel} variant="danger" disabled={busy} onPress={ask} />
       <Button label="Batal" variant="secondary" disabled={busy} onPress={onCancel} />

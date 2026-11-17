@@ -236,8 +236,24 @@ describe('backup and restore with cash counts', () => {
     await s.repos.cashCounts.save({ periodId: s.periodId, week: 2, tunai: 15_000, debit: 0 });
     expect([...(await loadRecordIds(s.env.db))].filter((id) => id.startsWith('C:'))).toHaveLength(2);
     const prepared = await prepareRestore(s.env.bridge, s.env.db, { kind: 'file', bytes: before });
-    expect(prepared.classification).toMatchObject({ kind: 'older', added: 0 });
-    expect(prepared.classification.lost).toBe(2);
+    // two rows (Tunai + Debit) of ONE count: one hitungan, never 2 "catatan"
+    expect(prepared.classification).toEqual({ kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0 });
+    expect(prepared.live.cashCountBatches).toBe(1);
+    expect(prepared.live.tableCounts.cash_counts).toBe(2);
+    expect(prepared.candidate.cashCountBatches).toBe(0);
+    await discardRestore(prepared);
+  });
+
+  it('the reverse: a backup with a count restored onto a phone without it is "newer", counted per batch', async () => {
+    const s = await scenario();
+    await s.repos.cashCounts.save({ periodId: s.periodId, week: 2, tunai: 15_000, debit: 0 });
+    await s.repos.cashCounts.save({ periodId: s.periodId, week: 2, tunai: 16_000, debit: null });
+    const live = await createSqlJsEnv();
+    const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes: s.env.liveBytes() });
+    expect(prepared.classification.cashCountsAdded).toBe(2);
+    expect(prepared.classification.cashCountsLost).toBe(0);
+    expect(prepared.candidate.cashCountBatches).toBe(2);
+    expect(prepared.candidate.tableCounts.cash_counts).toBe(3);
     await discardRestore(prepared);
   });
 

@@ -144,6 +144,8 @@ export default function HomeScreen() {
   // "Akhiri periode" lives on the period card (once per screen), so its reminder row is not shown here.
   const visibleReminders = reminders.filter((r) => r.kind !== 'close_period');
   const skippedNumbers = weeks.filter((w) => w.status === 'skipped').map((w) => w.number);
+  // A count of a skipped meeting is left out of the status, like in the Cek kas history.
+  const countStatus = latestCountStatus(countLines, skippedNumbers);
   const reasons = quickActionReasons({ hasActivePeriod: period !== null, hasAnyPeriod, currentWeek: week, anySkipped: skippedNumbers.length > 0 });
   const paidView = paidTodayView(
     paidTodayIds.map((id) => ({ id, name: names.get(id) ?? '-' })),
@@ -397,8 +399,8 @@ ${countWarning}` : ''),
                   <ListRow
                     title="Cek kas"
                     tone="alt"
-                    accessibilityLabel={homeCountSpoken(latestCountStatus(countLines))}
-                    right={<Badge label={homeCountBadge(latestCountStatus(countLines), week.number).label} tone={homeCountBadge(latestCountStatus(countLines), week.number).tone} />}
+                    accessibilityLabel={homeCountSpoken(countStatus)}
+                    right={<Badge label={homeCountBadge(countStatus, week.number).label} tone={homeCountBadge(countStatus, week.number).tone} />}
                     onPress={() => router.push('/cek-kas')}
                   />
                   {/* Set apart from the rows above (8 gap + 12 margin = 20dp); no chevron because it opens a dialog, not a screen. */}

@@ -447,7 +447,8 @@ describe('QA cek kas: backup, restore, health check', () => {
     await s.repos.cashCounts.save({ periodId: s.periodId, week: 1, tunai: 1, debit: null });
     const prepared = await prepareRestore(s.env.bridge, s.env.db, { kind: 'file', bytes: before });
     expect(prepared.classification.kind).toBe('older');
-    expect(prepared.classification.lost).toBe(1);
+    expect(prepared.classification.lost).toBe(0); // a count is never a "catatan"
+    expect(prepared.classification.cashCountsLost).toBe(1);
     await discardRestore(prepared);
   });
 

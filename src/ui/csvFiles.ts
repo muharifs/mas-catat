@@ -1,7 +1,8 @@
 // The four CSV files of the export (M7): column names and Indonesian labels, built on the pure CSV core in
 // src/domain/csv.ts. Display only: every amount comes from the repositories as a plain integer.
 // A CSV is for reading in a spreadsheet. It is NOT a backup and is never used to restore data.
-import type { ExportsRepo, LedgerExportRow, MeetingDueExportRow, PaymentExportRow, PeriodExportRow } from '@/db/exports';
+import type { CashCountExportRow, ExportsRepo, LedgerExportRow, MeetingDueExportRow, PaymentExportRow, PeriodExportRow } from '@/db/exports';
+import { effectiveLines, type StoredCountLine } from '@/domain/cash-count';
 import { buildCsv, csvFileName, type CsvCell, type CsvKind } from '@/domain/csv';
 import { csvAmountColumns } from '@/domain/flow';
 import { ACCOUNT_LABELS } from '@/domain/kas';
@@ -153,6 +154,53 @@ export function periodSummaryCsv(rows: readonly PeriodExportRow[]): string {
   );
 }
 
+export const CASH_COUNT_HEADER = [
+  'Tanggal hitung',
+  'Periode',
+  'Pertemuan',
+  'Tempat uang',
+  'Tercatat (Rp)',
+  'Dihitung (Rp)',
+  'Selisih (Rp)',
+  'Catatan',
+  'Status',
+] as const;
+
+/**
+ * Cek kas: one row per counted place (a count with Debit gives two rows; a skipped Debit has no Debit row). Selisih =
+ * dihitung - tercatat as stored. "Berlaku" = the latest line per (period, meeting, place), the one the app uses;
+ * every other line is "Diganti" and stays as history.
+ */
+export function cashCountsCsv(rows: readonly CashCountExportRow[]): string {
+  const asLines: StoredCountLine[] = rows.map((r) => ({
+    seq: r.seq,
+    batchId: '',
+    periodId: r.periodId,
+    week: r.week,
+    account: r.account,
+    date: r.date,
+    expected: r.expected,
+    counted: r.counted,
+    difference: r.difference,
+    note: r.note ?? '',
+  }));
+  const inForce = new Set(effectiveLines(asLines).map((l) => l.seq));
+  return buildCsv(
+    CASH_COUNT_HEADER,
+    rows.map((r): CsvCell[] => [
+      r.date,
+      r.periodName,
+      r.week,
+      ACCOUNT_LABELS[r.account],
+      r.expected,
+      r.counted,
+      r.difference,
+      r.note,
+      inForce.has(r.seq) ? 'Berlaku' : 'Diganti',
+    ]),
+  );
+}
+
 export interface CsvFileSpec {
   kind: CsvKind;
   /** Button text. */
@@ -168,6 +216,12 @@ export const CSV_FILES: readonly CsvFileSpec[] = [
   { kind: 'pembayaran', label: 'Pembayaran', hint: 'Setiap pembayaran iuran anggota.' },
   { kind: 'iuran-per-pertemuan', label: 'Iuran per pertemuan', hint: 'Status iuran tiap anggota di tiap pertemuan.' },
   { kind: 'ringkasan-periode', label: 'Ringkasan periode', hint: 'Total tiap periode.' },
+  {
+    kind: 'cek-kas',
+    label: 'Cek kas',
+    hint: 'Hitungan uang fisik tiap pertemuan, termasuk hitungan lama.',
+    detail: 'Selisih = dihitung - tercatat. Hanya hitungan berstatus Berlaku yang dipakai di aplikasi; hitungan yang sudah diganti tetap ada sebagai riwayat.',
+  },
 ];
 
 export { csvFileName };
@@ -183,5 +237,7 @@ export async function buildCsvFor(kind: CsvKind, repos: { exports: ExportsRepo }
       return meetingDuesCsv(await repos.exports.listMeetingDues());
     case 'ringkasan-periode':
       return periodSummaryCsv(await repos.exports.listPeriodSummaries());
+    case 'cek-kas':
+      return cashCountsCsv(await repos.exports.listCashCounts());
   }
 }

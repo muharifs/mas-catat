@@ -5,6 +5,7 @@ const summary: DbSummary = {
   userVersion: 4,
   ledgerCount: 12,
   paymentCount: 5,
+  cashCountBatches: 3,
   memberCount: 19,
   periodCount: 2,
   lastEntryDate: '2026-01-09',
@@ -28,10 +29,11 @@ describe('backup labels', () => {
     expect(CSV_LEDGER_HINT).toContain('pelunasan di Masuk');
   });
 
-  it('summary rows show the five numbers the owner compares', () => {
+  it('summary rows show the numbers the owner compares', () => {
     expect(summaryRows(summary)).toEqual([
       { label: 'Tanggal catatan kas terakhir', value: '9 Jan 2026' },
       { label: 'Jumlah catatan kas', value: '12' },
+      { label: 'Jumlah hitungan Cek kas', value: '3' },
       { label: 'Anggota', value: '19' },
       { label: 'Periode', value: '2' },
       { label: 'Total kas (Tunai + Debit)', value: 'Rp150.000' },
@@ -40,24 +42,56 @@ describe('backup labels', () => {
   });
 
   it('describes each classification, with the number of lost records for older and diverged', () => {
-    expect(classificationText({ kind: 'same', lost: 0, added: 0 })).toMatch(/sama/);
-    expect(classificationText({ kind: 'newer', lost: 0, added: 4 })).toContain('4 catatan');
-    expect(classificationText({ kind: 'older', lost: 7, added: 0 })).toContain('7 catatan');
-    expect(classificationText({ kind: 'older', lost: 7, added: 0 })).toBe(
+    expect(classificationText({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toMatch(/sama/);
+    expect(classificationText({ kind: 'newer', lost: 0, added: 4, cashCountsLost: 0, cashCountsAdded: 0 })).toContain('4 catatan');
+    expect(classificationText({ kind: 'older', lost: 7, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toContain('7 catatan');
+    expect(classificationText({ kind: 'older', lost: 7, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(
       'Cadangan ini lebih lama. 7 catatan di HP ini tidak ada di cadangan dan akan hilang.',
     );
-    const diverged = classificationText({ kind: 'diverged', lost: 3, added: 2 });
+    const diverged = classificationText({ kind: 'diverged', lost: 3, added: 2, cashCountsLost: 0, cashCountsAdded: 0 });
     expect(diverged).toContain('3 catatan');
     expect(diverged).toContain('2 catatan');
     expect(diverged).not.toContain('BERBEDA');
   });
 
   it('emphasises data loss with a title, never with capital letters', () => {
-    expect(classificationTitle({ kind: 'older', lost: 7, added: 0 })).toBe('Sebagian catatan di HP ini akan hilang');
-    expect(classificationTitle({ kind: 'diverged', lost: 3, added: 2 })).toBeDefined();
-    expect(classificationTitle({ kind: 'newer', lost: 0, added: 4 })).toBeUndefined();
-    expect(classificationTitle({ kind: 'same', lost: 0, added: 0 })).toBeUndefined();
-    expect(classificationText({ kind: 'diverged', lost: 3, added: 2 })).not.toMatch(/HILANG|LEBIH/);
+    expect(classificationTitle({ kind: 'older', lost: 7, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe('Sebagian catatan di HP ini akan hilang');
+    expect(classificationTitle({ kind: 'diverged', lost: 3, added: 2, cashCountsLost: 0, cashCountsAdded: 0 })).toBeDefined();
+    expect(classificationTitle({ kind: 'newer', lost: 0, added: 4, cashCountsLost: 0, cashCountsAdded: 0 })).toBeUndefined();
+    expect(classificationTitle({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBeUndefined();
+    expect(classificationText({ kind: 'diverged', lost: 3, added: 2, cashCountsLost: 0, cashCountsAdded: 0 })).not.toMatch(/HILANG|LEBIH/);
+  });
+
+  const cls = (kind: 'same' | 'older' | 'newer' | 'diverged', lost: number, added: number, cashCountsLost: number, cashCountsAdded: number) => ({
+    kind, lost, added, cashCountsLost, cashCountsAdded,
+  });
+
+  it('a version 6 backup shows 0 hitungan Cek kas', () => {
+    expect(summaryRows({ ...summary, cashCountBatches: 0 })[2]).toEqual({ label: 'Jumlah hitungan Cek kas', value: '0' });
+  });
+
+  it('names Cek kas counts apart and never shows 0 catatan', () => {
+    expect(classificationText(cls('older', 0, 0, 2, 0))).toBe('Cadangan ini lebih lama. 2 hitungan Cek kas di HP ini tidak ada di cadangan dan akan hilang.');
+    expect(classificationText(cls('newer', 0, 0, 0, 3))).toBe('Cadangan ini lebih baru. Cadangan ini punya 3 hitungan Cek kas yang belum ada di HP ini.');
+    expect(classificationText(cls('diverged', 0, 0, 1, 2))).toContain('1 hitungan Cek kas di HP ini akan hilang, dan HP ini akan memakai 2 hitungan dari cadangan.');
+    expect(classificationText(cls('older', 7, 0, 1, 0))).toBe(
+      'Cadangan ini lebih lama. 7 catatan di HP ini tidak ada di cadangan dan akan hilang. 1 hitungan Cek kas di HP ini tidak ada di cadangan dan akan hilang.',
+    );
+    expect(classificationText(cls('newer', 0, 4, 0, 1))).toBe(
+      'Cadangan ini lebih baru: 4 catatan lebih banyak daripada data di HP ini. Cadangan ini punya 1 hitungan Cek kas yang belum ada di HP ini.',
+    );
+    for (const c of [cls('older', 0, 0, 2, 0), cls('newer', 0, 0, 0, 3), cls('diverged', 0, 0, 1, 2), cls('diverged', 0, 2, 1, 0)]) {
+      expect(classificationText(c)).not.toMatch(/0 catatan/);
+    }
+  });
+
+  it('the loss title also appears when only Cek kas counts are lost', () => {
+    expect(classificationTitle(cls('older', 0, 0, 2, 0))).toBe('Sebagian catatan di HP ini akan hilang');
+    expect(classificationTitle(cls('newer', 0, 0, 0, 2))).toBeUndefined();
+  });
+
+  it('the reset warning names the Cek kas counts', () => {
+    expect(restoreTexts.resetWarning).toContain('anggota, periode, pembayaran, kas, dan hitungan Cek kas. Aplikasi mulai dari kosong.');
   });
 
   it('last shared and the reminder', () => {

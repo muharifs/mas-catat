@@ -2,7 +2,8 @@ import { createRepositories } from '@/db';
 import { seedClosedPeriodHistory, seedSampleData } from '@/db/testing/backupFixtures';
 import { createMigratedTestDb } from '@/db/testing/sqlJsDriver';
 import { CSV_BOM } from '@/domain/csv';
-import { buildCsvFor, ledgerCsv, LEDGER_HEADER, meetingDuesCsv, MEETING_HEADER, paymentsCsv, PAYMENT_HEADER, periodSummaryCsv, PERIOD_HEADER } from './csvFiles';
+import type { CashCountExportRow } from '@/db/exports';
+import { buildCsvFor, cashCountsCsv, CASH_COUNT_HEADER, CSV_FILES, csvFileName, ledgerCsv, LEDGER_HEADER, meetingDuesCsv, MEETING_HEADER, paymentsCsv, PAYMENT_HEADER, periodSummaryCsv, PERIOD_HEADER } from './csvFiles';
 
 /** Splits a file we built into records (our own quoting only: quotes double, quoted cells may hold CR/LF). */
 function parse(text: string): string[][] {
@@ -229,7 +230,7 @@ describe('ringkasan-periode', () => {
 });
 
 describe('buildCsvFor', () => {
-  it.each(['buku-kas', 'pembayaran', 'iuran-per-pertemuan', 'ringkasan-periode'] as const)('builds %s with a BOM and CRLF', async (kind) => {
+  it.each(['buku-kas', 'pembayaran', 'iuran-per-pertemuan', 'ringkasan-periode', 'cek-kas'] as const)('builds %s with a BOM and CRLF', async (kind) => {
     const { repos } = await history();
     const text = await buildCsvFor(kind, repos);
     expect(text.startsWith(CSV_BOM)).toBe(true);
@@ -250,5 +251,58 @@ describe('iuran-per-pertemuan: a skipped meeting', () => {
       meetingDuesCsv([{ periodName: 'P', week: 3, date: '2026-01-20', hostName: null, meetingStatus: 'skipped', memberName: 'A', due: 0, paid: 0, offset: 0, credited: 0, outstanding: 0 }]),
     );
     expect(table[1]?.slice(4, 11)).toEqual(['Dilewati', 'A', '0', '0', '0', '0', '0']);
+  });
+});
+
+describe('cek-kas', () => {
+  const row = (o: Partial<CashCountExportRow>): CashCountExportRow => ({
+    date: '2026-01-13', periodName: 'P', week: 2, account: 'tunai', expected: 100_000, counted: 100_000, difference: 0, note: null, seq: 1, periodId: 'p1', ...o,
+  });
+
+  it('is the fifth file, with the agreed label, hint, detail and file name', () => {
+    expect(CSV_FILES.map((f) => f.kind)).toEqual(['buku-kas', 'pembayaran', 'iuran-per-pertemuan', 'ringkasan-periode', 'cek-kas']);
+    const spec = CSV_FILES[4];
+    expect(spec?.label).toBe('Cek kas');
+    expect(spec?.hint).toBe('Hitungan uang fisik tiap pertemuan, termasuk hitungan lama.');
+    expect(spec?.detail).toBe('Selisih = dihitung - tercatat. Hanya hitungan berstatus Berlaku yang dipakai di aplikasi; hitungan yang sudah diganti tetap ada sebagai riwayat.');
+    expect(csvFileName('cek-kas', '2026-11-17')).toBe('mascatat-cek-kas-20261117.csv');
+  });
+
+  it('has the agreed header and header only for no counts', () => {
+    expect(CASH_COUNT_HEADER).toEqual(['Tanggal hitung', 'Periode', 'Pertemuan', 'Tempat uang', 'Tercatat (Rp)', 'Dihitung (Rp)', 'Selisih (Rp)', 'Catatan', 'Status']);
+    expect(cashCountsCsv([])).toBe(`${CSV_BOM}${CASH_COUNT_HEADER.join(';')}\r\n`);
+  });
+
+  it('writes one row per place, a negative difference as a plain integer, empty note, and marks replaced counts', () => {
+    const table = parse(
+      cashCountsCsv([
+        row({ seq: 1, account: 'tunai', counted: 90_000, difference: -10_000, note: 'kurang' }),
+        row({ seq: 2, account: 'debit', expected: 50_000, counted: 50_000 }),
+        row({ seq: 3, account: 'tunai', counted: 100_000, difference: 0 }), // replaces seq 1 (Tunai only, Debit stays from seq 2)
+        row({ seq: 4, week: 3, account: 'tunai', periodId: 'p1' }),
+        row({ seq: 5, week: 2, periodName: 'Q', periodId: 'p2', account: 'tunai', counted: 5, difference: -99_995 }),
+      ]),
+    );
+    expect(table[0]).toEqual([...CASH_COUNT_HEADER]);
+    expect(table[1]).toEqual(['2026-01-13', 'P', '2', 'Tunai', '100000', '90000', '-10000', 'kurang', 'Diganti']);
+    expect(table[2]).toEqual(['2026-01-13', 'P', '2', 'Debit', '50000', '50000', '0', '', 'Berlaku']);
+    expect(table[3]?.[8]).toBe('Berlaku');
+    expect(table[4]?.[8]).toBe('Berlaku');
+    // same meeting number in another period is its own group
+    expect(table[5]).toEqual(['2026-01-13', 'Q', '2', 'Tunai', '100000', '5', '-99995', '', 'Berlaku']);
+  });
+
+  it('reads the real database: every stored line, replaced counts as Diganti, a skipped Debit has no Debit row', async () => {
+    const { repos } = await history();
+    const form = await repos.cashCounts.form((await repos.periods.getActive())?.id ?? '');
+    const periodId = (await repos.periods.getActive())?.id as string;
+    const week = form.defaultWeek as number;
+    await repos.cashCounts.save({ periodId, week, tunai: 1_000, debit: 0 });
+    await repos.cashCounts.save({ periodId, week, tunai: 2_000, debit: null, note: 'ulang' });
+    const table = parse(cashCountsCsv(await repos.exports.listCashCounts()));
+    expect(table.length - 1).toBe(3);
+    expect(table.slice(1).map((r) => [r[3], r[8]])).toEqual([['Tunai', 'Diganti'], ['Debit', 'Berlaku'], ['Tunai', 'Berlaku']]);
+    expect(table[3]?.[7]).toBe('ulang');
+    for (const r of table.slice(1)) expect(Number(r[6])).toBe(Number(r[5]) - Number(r[4]));
   });
 });

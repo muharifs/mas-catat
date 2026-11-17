@@ -2,6 +2,7 @@
 // from the existing repositories and the pure functions in src/domain/report.ts. Rows hold raw values (enums, ids
 // turned into names); the Indonesian labels are added in src/ui/csvFiles.ts.
 import type { MeetingSummary, PeriodSummary } from '@/domain/report';
+import type { CountAccount } from '@/domain/cash-count';
 import type { Account, LedgerEntryType } from '@/domain/types';
 import type { Db } from './db';
 import { defaultDeps, type RepoDeps } from './deps';
@@ -52,6 +53,22 @@ export interface MeetingDueExportRow {
   offset: number;
   credited: number;
   outstanding: number;
+}
+
+export interface CashCountExportRow {
+  /** Date of the count. */
+  date: string;
+  periodName: string;
+  week: number;
+  account: CountAccount;
+  expected: number;
+  counted: number;
+  /** counted - expected as stored (negative = less money than the ledger said). */
+  difference: number;
+  note: string | null;
+  /** Order of saving: a larger seq is a later line. */
+  seq: number;
+  periodId: string;
 }
 
 export interface PeriodExportRow {
@@ -176,6 +193,39 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         }
       }
       return result;
+    },
+
+    /** Every cash count line of every period (replaced counts too), by period (oldest first), meeting, then save order. */
+    async listCashCounts(): Promise<CashCountExportRow[]> {
+      const rows = await db.getAll<{
+        seq: number;
+        period_id: string;
+        period_name: string;
+        week: number;
+        account: CountAccount;
+        count_date: string;
+        expected: number;
+        counted: number;
+        difference: number;
+        note: string;
+      }>(
+        `SELECT c.seq, c.period_id, p.name AS period_name, c.week, c.account, c.count_date, c.expected, c.counted, c.difference, c.note
+           FROM cash_counts c
+           JOIN periods p ON p.id = c.period_id
+          ORDER BY p.rowid, c.week, c.seq`,
+      );
+      return rows.map((r) => ({
+        date: r.count_date,
+        periodName: r.period_name,
+        week: r.week,
+        account: r.account,
+        expected: r.expected,
+        counted: r.counted,
+        difference: r.difference,
+        note: r.note === '' ? null : r.note,
+        seq: r.seq,
+        periodId: r.period_id,
+      }));
     },
 
     /** One row per period with its totals. */

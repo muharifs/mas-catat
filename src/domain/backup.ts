@@ -134,6 +134,8 @@ export interface DbSummary {
   userVersion: number;
   ledgerCount: number;
   paymentCount: number;
+  /** Saved Cek kas counts (one per save: the Tunai and Debit rows of a save count once). 0 for a version 6 backup. */
+  cashCountBatches: number;
   memberCount: number;
   periodCount: number;
   /** Latest entry date (YYYY-MM-DD), or null without entries. */
@@ -155,26 +157,60 @@ export type RestoreKind = 'same' | 'older' | 'newer' | 'diverged';
 
 export interface RestoreClassification {
   kind: RestoreKind;
-  /** Records in the live data that the file does not have: they are LOST by this restore. */
+  /** Records in the live data that the file does not have: they are LOST by this restore. Cek kas counts are NOT included. */
   lost: number;
-  /** Records in the file that the live data does not have yet. */
+  /** Records in the file that the live data does not have yet. Cek kas counts are NOT included. */
   added: number;
+  /** Cek kas counts (saves, not rows) in the live data that the file does not have: LOST by this restore. */
+  cashCountsLost: number;
+  /** Cek kas counts (saves, not rows) in the file that the live data does not have yet. */
+  cashCountsAdded: number;
+}
+
+/** Record id of one cash_counts row: "C:<batch id>|<row id>". A count (batch) is lost or added as a whole. */
+export function cashCountRecordId(batchId: string, rowId: string): string {
+  return `C:${batchId}|${rowId}`;
+}
+
+/** The batch id inside a cash count record id, or null for any other kind of record id. */
+function cashCountBatchOf(id: string): string | null {
+  if (!id.startsWith('C:')) return null;
+  const bar = id.indexOf('|');
+  return bar === -1 ? id.slice(2) : id.slice(2, bar);
 }
 
 /**
- * Compares the record ids (ledger entries and payments) of the file with the live data:
+ * Compares the record ids (ledger entries, payments, skips, cash counts) of the file with the live data:
  * - same: identical sets;
  * - older: the file is a subset of live (live has more: those entries are lost);
  * - newer: live is a subset of the file (the file has more);
  * - diverged: each has records the other lacks (two phones, or edits after the backup).
+ * Cash count rows are counted per batch (one saved count, however many rows it has) in their own fields, so a
+ * count with Tunai and Debit is one count, and never inflates the number of "catatan".
  */
 export function classifyRestore(candidateIds: ReadonlySet<string>, liveIds: ReadonlySet<string>): RestoreClassification {
   let lost = 0;
   let added = 0;
-  for (const id of liveIds) if (!candidateIds.has(id)) lost += 1;
-  for (const id of candidateIds) if (!liveIds.has(id)) added += 1;
-  const kind: RestoreKind = lost === 0 && added === 0 ? 'same' : lost > 0 && added === 0 ? 'older' : lost === 0 ? 'newer' : 'diverged';
-  return { kind, lost, added };
+  const lostBatches = new Set<string>();
+  const addedBatches = new Set<string>();
+  for (const id of liveIds) {
+    if (candidateIds.has(id)) continue;
+    const batch = cashCountBatchOf(id);
+    if (batch === null) lost += 1;
+    else lostBatches.add(batch);
+  }
+  for (const id of candidateIds) {
+    if (liveIds.has(id)) continue;
+    const batch = cashCountBatchOf(id);
+    if (batch === null) added += 1;
+    else addedBatches.add(batch);
+  }
+  const cashCountsLost = lostBatches.size;
+  const cashCountsAdded = addedBatches.size;
+  const anyLost = lost + cashCountsLost > 0;
+  const anyAdded = added + cashCountsAdded > 0;
+  const kind: RestoreKind = !anyLost && !anyAdded ? 'same' : anyLost && !anyAdded ? 'older' : !anyLost ? 'newer' : 'diverged';
+  return { kind, lost, added, cashCountsLost, cashCountsAdded };
 }
 
 export const PHRASE_RESTORE = 'PULIHKAN';

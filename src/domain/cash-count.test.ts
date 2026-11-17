@@ -163,6 +163,15 @@ describe('history', () => {
     expect(s.differing.map((l) => l.account)).toEqual(['tunai']);
   });
 
+  it('latestCountStatus ignores counts of skipped meetings', () => {
+    const lines = [line(1, 1, 'tunai', 100, 100), line(2, 2, 'tunai', 100, 100), line(3, 3, 'tunai', 100, 90)];
+    expect(latestCountStatus(lines)).toMatchObject({ state: 'difference', week: 3 });
+    expect(latestCountStatus(lines, [3])).toMatchObject({ state: 'clean', week: 2, differing: [] });
+    expect(latestCountStatus([line(1, 3, 'tunai', 100, 90)], [3])).toEqual({ state: 'none', week: null, differing: [] });
+    // a skipped week only hides its own lines; its older counts do not resurface
+    expect(latestCountStatus([line(1, 2, 'tunai', 100, 90), line(2, 2, 'tunai', 100, 100)], [1])).toMatchObject({ state: 'clean', week: 2 });
+  });
+
   it('hasCountForWeek', () => {
     const lines = [line(1, 2, 'tunai', 1, 1)];
     expect(hasCountForWeek(lines, 'p1', 2)).toBe(true);

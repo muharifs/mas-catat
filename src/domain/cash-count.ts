@@ -218,9 +218,12 @@ export interface CountStatus {
   differing: StoredCountLine[];
 }
 
-/** The status of the latest counted meeting (highest meeting number with an effective count). */
-export function latestCountStatus(lines: readonly StoredCountLine[]): CountStatus {
-  const effective = effectiveLines(lines);
+/**
+ * The status of the latest counted meeting (highest meeting number with an effective count). Counts of skipped meetings
+ * (`skippedWeeks`, week numbers of the period the lines belong to) are ignored, like in the history screen.
+ */
+export function latestCountStatus(lines: readonly StoredCountLine[], skippedWeeks: readonly number[] = []): CountStatus {
+  const effective = effectiveLines(lines.filter((l) => !skippedWeeks.includes(l.week)));
   if (effective.length === 0) return { state: 'none', week: null, differing: [] };
   const week = Math.max(...effective.map((l) => l.week));
   const own = effective.filter((l) => l.week === week);

@@ -4,8 +4,10 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { showDialog } from '@/ui/dialog';
 import { backupReminder } from '@/domain/backup';
+import { hasCountForWeek, latestCountStatus, type StoredCountLine } from '@/domain/cash-count';
 import { useRepos } from '@/db/provider';
 import { monthOfDate, summarizeMonth } from '@/domain/flow';
+import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { EmptyState } from '@/ui/components/EmptyState';
@@ -21,6 +23,7 @@ import { QuickAction } from '@/ui/components/QuickAction';
 import { ReminderRow } from '@/ui/components/ReminderRow';
 import { Section } from '@/ui/components/Section';
 import { BALANCE_MASK, balanceToggleLabel, toggleBalanceHidden, useBalanceHidden } from '@/ui/balanceVisibilityStore';
+import { CHECK_FIRST_LABEL, closeWeekCountWarning, homeCountBadge, homeCountSpoken } from '@/ui/cashCount';
 import { firstRunChecklist } from '@/ui/checklist';
 import { formatDate, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
@@ -76,7 +79,7 @@ export default function HomeScreen() {
     const backup = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
     const common = { members, balances, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, backup };
     if (!period) {
-      return { ...common, period: null, week: null, hostName: null, arrears: null, hostPaid: false, paidPayoutWeeks: new Set<number>(), paidTodayIds: [] as string[], weeks: [] };
+      return { ...common, period: null, week: null, hostName: null, arrears: null, hostPaid: false, paidPayoutWeeks: new Set<number>(), paidTodayIds: [] as string[], weeks: [], countLines: [] as StoredCountLine[] };
     }
     const weeks = await repos.weeks.listByPeriod(period.id);
     const week = weeks.find((w) => w.status === 'open') ?? null;
@@ -95,7 +98,9 @@ export default function HomeScreen() {
     ]);
     const paidPayoutWeeks = new Set(payouts.filter(([, payout]) => payout !== null).map(([number]) => number));
     const hostPaid = week ? paidPayoutWeeks.has(week.number) : false;
-    return { ...common, period, week, hostName, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, weeks };
+    // Cek kas (decision 34): every count of the period; the domain picks the effective ones.
+    const countLines = await repos.cashCounts.listAll(period.id);
+    return { ...common, period, week, hostName, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, weeks, countLines };
   }, [repos]);
 
   const { data, error, reload } = useLoad(load);
@@ -104,7 +109,7 @@ export default function HomeScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup } = data;
+  const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup, countLines } = data;
   const memberCount = members.filter((m) => !m.archivedAt).length; // archived members do not count as "has members"
   const checklist = firstRunChecklist({
     memberCount,
@@ -150,10 +155,15 @@ export default function HomeScreen() {
     if (!period || !week) return;
     const periodId = period.id;
     const number = week.number;
+    const countWarning = closeWeekCountWarning(hasCountForWeek(countLines, periodId, number));
     showDialog({
       title: `Tutup pertemuan ${number}`,
-      message: closeWeekMessage(number, week.date, arrears),
+      message: closeWeekMessage(number, week.date, arrears) + (countWarning ? `
+
+${countWarning}` : ''),
       buttons: [
+        // A warning, never a block: "Tutup pertemuan" below still closes the meeting.
+        ...(countWarning ? [{ label: CHECK_FIRST_LABEL, onPress: () => router.push('/cek-kas') }] : []),
         { label: 'Batal', role: 'cancel' },
         {
           label: 'Tutup pertemuan',
@@ -384,6 +394,13 @@ export default function HomeScreen() {
                     onPress={() => goPayout(period.id, week.number)}
                   />
                   <ListRow title={hostPaid ? 'Ubah tanggal' : 'Ubah tuan rumah / tanggal'} tone="alt" onPress={() => goMeeting(period.id, week.number)} />
+                  <ListRow
+                    title="Cek kas"
+                    tone="alt"
+                    accessibilityLabel={homeCountSpoken(latestCountStatus(countLines))}
+                    right={<Badge label={homeCountBadge(latestCountStatus(countLines), week.number).label} tone={homeCountBadge(latestCountStatus(countLines), week.number).tone} />}
+                    onPress={() => router.push('/cek-kas')}
+                  />
                   {/* Set apart from the rows above (8 gap + 12 margin = 20dp); no chevron because it opens a dialog, not a screen. */}
                   <View style={styles.closeWeek}>
                     <ListRow title={`Tutup pertemuan ${week.number}`} tone="alt" destructive chevron={false} onPress={confirmCloseWeek} />

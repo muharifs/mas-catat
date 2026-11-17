@@ -6,6 +6,7 @@ import { sql as sql0003 } from './0003_kas_corrections';
 import { sql as sql0004 } from './0004_period_close';
 import { sql as sql0005 } from './0005_member_archive';
 import { sql as sql0006 } from './0006_week_skip';
+import { sql as sql0007 } from './0007_cash_count';
 
 export interface Migration {
   version: number;
@@ -20,4 +21,5 @@ export const MIGRATIONS: readonly Migration[] = [
   { version: 4, name: 'period_close', sql: sql0004 },
   { version: 5, name: 'member_archive', sql: sql0005 },
   { version: 6, name: 'week_skip', sql: sql0006 },
+  { version: 7, name: 'cash_count', sql: sql0007 },
 ];

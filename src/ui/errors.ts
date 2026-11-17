@@ -2,6 +2,7 @@
 // Repositories and domain functions throw English messages (for logs and tests); screens call toIndonesian().
 import { MigrationError, RepositoryError } from '@/db/errors';
 import { BackupError, type BackupErrorCode } from '@/domain/backup';
+import { CashCountError, type CashCountErrorCode } from '@/domain/cash-count';
 import { MemberArchiveError, type ArchiveBlockCode } from '@/domain/members';
 import { DomainError } from '@/domain/money';
 import { PaymentHostPayoutStandsError } from '@/domain/payment-correction';
@@ -34,6 +35,7 @@ export type ErrorContext =
   | 'close_period'
   | 'skip_week'
   | 'unskip_week'
+  | 'cash_count'
   | 'correct'
   | 'refund'
   | 'share'
@@ -56,6 +58,7 @@ export const CONTEXT_ERROR_TEXT: Record<ErrorContext, string> = {
   close_period: 'Periode belum diakhiri. Tidak ada data yang berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
   skip_week: 'Pertemuan belum dilewati. Tidak ada data yang berubah. Coba lagi.',
   unskip_week: 'Pelewatan belum dibatalkan. Tidak ada data yang berubah. Coba lagi.',
+  cash_count: 'Hitungan belum tersimpan. Tidak ada data yang berubah. Coba lagi.',
   correct: 'Koreksi belum tersimpan. Catatan asli tidak berubah. Coba lagi.',
   refund: 'Pengembalian belum tersimpan. Tidak ada uang yang dicatat keluar. Coba lagi.',
   share: 'Berkas belum bisa dibagikan. Data di HP ini tidak berubah. Coba lagi. Jika tetap gagal, tutup aplikasi sepenuhnya lalu buka lagi.',
@@ -194,10 +197,20 @@ export function archiveBlockText(code: ArchiveBlockCode, amount: number): string
   return `Belum bisa diarsipkan: masih punya titipan ${formatRupiah(amount)}. Kembalikan dulu di Titipan anggota.`;
 }
 
+/** Texts of the cash count rules (decision 34), by error code. */
+export const CASH_COUNT_ERROR_TEXT: Record<CashCountErrorCode, string> = {
+  no_active_period: 'Tidak ada periode aktif, jadi kas belum bisa dicek. Mulai periode dulu.',
+  week_not_countable: 'Pertemuan ini belum bisa dicek. Pilih pertemuan yang sedang berjalan atau yang terakhir ditutup.',
+  week_skipped: 'Pertemuan ini dilewati, jadi tidak ada uang yang dicek. Pilih pertemuan lain.',
+  tunai_required: 'Isi jumlah Tunai dulu. Isi 0 bila tidak ada uang tunai.',
+  no_amount: 'Isi jumlah yang dihitung.',
+};
+
 /** Maps any thrown value to a short Indonesian message. Unknown errors get a generic message (never raw English). */
 export function toIndonesian(error: unknown, context: ErrorContext = 'save'): string {
   const generic = CONTEXT_ERROR_TEXT[context];
   if (error instanceof BackupError) return BACKUP_ERROR_TEXT[error.code];
+  if (error instanceof CashCountError) return CASH_COUNT_ERROR_TEXT[error.code];
   if (error instanceof MemberArchiveError) return archiveBlockText(error.code, error.amount);
   if (error instanceof HostPayoutStandsError) return HOST_PAYOUT_STANDS_TEXT;
   if (error instanceof PaymentHostPayoutStandsError) return PAYMENT_HOST_PAYOUT_STANDS_TEXT;

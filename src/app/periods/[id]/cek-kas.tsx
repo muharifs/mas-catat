@@ -11,7 +11,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { COUNT_STRINGS, countRowView, firstDifferenceNotice } from '@/ui/cashCount';
-import { formatDate } from '@/ui/dates';
+import { formatDate, recordedAtLabel } from '@/ui/dates';
 import { colors, spacing, type } from '@/ui/theme';
 import { useLoad } from '@/ui/useLoad';
 
@@ -42,10 +42,14 @@ export default function CashCountHistoryScreen() {
       {rows.map((row) => {
         const view = countRowView(row, timesCounted(lines, id, row.week));
         const date = row.lines[0]?.date;
+        // Latest count of the meeting: the Tunai and Debit lines of one save share created_at, a later save has a later one.
+        const latest = row.lines.reduce<string | undefined>((a, l) => (l.createdAt && (!a || l.createdAt > a) ? l.createdAt : a), undefined);
+        const recordedAt = date ? recordedAtLabel(latest, date) : '';
         return (
           <Card key={row.week} tone={view.tint ? 'warn' : 'default'}>
             <Text style={styles.cardTitle}>{view.title}</Text>
             {date ? <Text style={styles.muted}>{formatDate(date)}</Text> : null}
+            {recordedAt ? <Text style={styles.muted}>{recordedAt}</Text> : null}
             {view.lines.map((l) => (
               <View key={l.account} style={styles.line}>
                 <Text style={styles.body}>{l.label}:</Text>

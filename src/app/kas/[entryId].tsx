@@ -13,8 +13,8 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
 import { SectionHeader } from '@/ui/components/SectionHeader';
-import { formatDate } from '@/ui/dates';
-import { createdDate, entryStatus, loanMemberOf, paidMeetingRows } from '@/ui/entryDetail';
+import { formatDate, recordedAtLabel } from '@/ui/dates';
+import { entryStatus, loanMemberOf, paidMeetingRows } from '@/ui/entryDetail';
 import { formatRupiah } from '@/ui/format';
 import { amountSign, correctionRoute, entryTitle, flowText, showsNoPosWarning, TYPE_LABELS, visibleNote } from '@/ui/kasLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -54,6 +54,8 @@ export default function KasEntryScreen() {
 
   const route = correctionRoute(entry, period?.status === 'active');
   const note = visibleNote(entry);
+  // Empty when created_at is broken: the row is then hidden.
+  const recordedAtLong = recordedAtLabel(entry.createdAt, entry.date, true);
   const status = entryStatus(entry);
   const corrected = Boolean(entry.reversedById);
   const openEntry = (id: string) => router.push({ pathname: '/kas/[entryId]', params: { entryId: id } });
@@ -79,7 +81,7 @@ export default function KasEntryScreen() {
       <SectionHeader title="Rincian" />
       <Card>
         <DetailRow label="Tanggal" value={formatDate(entry.date)} />
-        <DetailRow label="Dicatat pada" value={formatDate(createdDate(entry.createdAt))} />
+        {recordedAtLong ? <DetailRow label="Dicatat pada" value={recordedAtLong} /> : null}
         <DetailRow label="Tempat uang" value={posText(entry)} />
         {member ? <DetailRow label="Anggota" value={member.name} /> : null}
         {entry.week !== null ? <DetailRow label="Pertemuan" value={String(entry.week)} /> : null}
@@ -136,6 +138,7 @@ export default function KasEntryScreen() {
               <ChainRow
                 title={`Catatan asli: ${TYPE_LABELS[original.type]}`}
                 detail={`${formatDate(original.date)}${SEP}${formatRupiah(original.amount)}`}
+                recordedAt={recordedAtLabel(original.createdAt, original.date)}
                 current={original.id === entry.id}
                 onPress={() => openEntry(original.id)}
               />
@@ -144,6 +147,7 @@ export default function KasEntryScreen() {
               <ChainRow
                 title="Koreksi"
                 detail={`${formatDate(reversal.date)}${SEP}Alasan: ${reversal.correctionReason ?? '-'}`}
+                recordedAt={recordedAtLabel(reversal.createdAt, reversal.date)}
                 current={reversal.id === entry.id}
                 onPress={() => openEntry(reversal.id)}
               />
@@ -215,10 +219,24 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function ChainRow({ title, detail, current, onPress }: { title: string; detail: string; current: boolean; onPress: () => void }) {
+function ChainRow({
+  title,
+  detail,
+  recordedAt,
+  current,
+  onPress,
+}: {
+  title: string;
+  detail: string;
+  /** "Dicatat ..." text; empty when created_at is broken (then not rendered). */
+  recordedAt: string;
+  current: boolean;
+  onPress: () => void;
+}) {
   return (
     <ListRow title={title} onPress={current ? undefined : onPress} right={current ? <Badge label="Catatan ini" tone="brand" /> : undefined}>
       <RowText>{detail}</RowText>
+      {recordedAt ? <RowText>{recordedAt}</RowText> : null}
     </ListRow>
   );
 }

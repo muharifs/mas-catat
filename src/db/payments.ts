@@ -79,6 +79,8 @@ export interface PaymentWithCredit extends Payment {
   /** True when the payment was corrected (reversed). It stays visible but counts for nothing. */
   reversed: boolean;
   reversalReason: string | null;
+  /** When the payment was recorded (ISO UTC, created_at). Display only: the domain Payment does not carry it. */
+  createdAt: string;
 }
 
 /** One member's position in a period, counted through the current week (the oldest open week). */
@@ -288,8 +290,8 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
      * Corrected payments are included (marked reversed, credit 0) so the history stays complete.
      */
     async listWithCredit(periodId: string, memberId: string): Promise<PaymentWithCredit[]> {
-      const rows = await db.getAll<PaymentRow & { allocated: number; reversal_reason: string | null }>(
-        `SELECT p.id, p.member_id, p.date, p.amount, pr.reason AS reversal_reason,
+      const rows = await db.getAll<PaymentRow & { allocated: number; reversal_reason: string | null; created_at: string }>(
+        `SELECT p.id, p.member_id, p.date, p.amount, p.created_at, pr.reason AS reversal_reason,
                 COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.payment_id = p.id AND ${NOT_SKIPPED}), 0) AS allocated
            FROM payments p LEFT JOIN payment_reversals pr ON pr.payment_id = p.id
           WHERE p.period_id = ? AND p.member_id = ? ORDER BY p.date, p.rowid`,
@@ -300,6 +302,7 @@ export function createPaymentsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         credit: r.reversal_reason === null ? r.amount - r.allocated : 0,
         reversed: r.reversal_reason !== null,
         reversalReason: r.reversal_reason,
+        createdAt: r.created_at,
       }));
     },
 

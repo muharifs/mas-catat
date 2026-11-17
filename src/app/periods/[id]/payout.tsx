@@ -12,7 +12,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
-import { formatDate, todayIso } from '@/ui/dates';
+import { formatDate, recordedAtLabel, todayIso } from '@/ui/dates';
 import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { toasts } from '@/ui/messages';
@@ -155,6 +155,7 @@ export default function PayoutScreen() {
             <Text style={styles.body}>
               Tanggal {formatDate(paid.payout.date)}, dari {paid.payout.account ? ACCOUNT_LABELS[paid.payout.account] : 'tempat uang tidak tercatat'}
             </Text>
+            {recordedAtLabel(paid.payout.createdAt, paid.payout.date) ? <Text style={styles.body}>{recordedAtLabel(paid.payout.createdAt, paid.payout.date)}</Text> : null}
             <Text style={styles.body}>Dibayarkan ke tuan rumah: {formatRupiah(paid.payout.amount)}</Text>
             {paid.offset ? <Text style={styles.body}>Dipotong dari bayaran tuan rumah ini: {formatRupiah(paid.offset.amount)}</Text> : <Text style={styles.muted}>Tidak ada potongan dari bayaran ini.</Text>}
             {active && !correcting ? (

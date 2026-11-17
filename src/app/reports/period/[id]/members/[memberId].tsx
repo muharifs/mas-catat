@@ -8,7 +8,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { ReportLine } from '@/ui/components/ReportLine';
 import { SectionHeader } from '@/ui/components/SectionHeader';
-import { formatDate } from '@/ui/dates';
+import { formatDate, recordedAtLabel } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import {
   CORRECTED_NOT_COUNTED,
@@ -84,6 +84,7 @@ export default function MemberHistoryScreen() {
               <Money amount={e.amount} size="body" tone="neutral" style={e.reversed ? styles.strike : undefined} />
             </View>
             <Text style={styles.hint}>{formatDate(e.date)}</Text>
+            {recordedAtLabel(e.createdAt, e.date) ? <Text style={styles.hint}>{recordedAtLabel(e.createdAt, e.date)}</Text> : null}
             {eventLines(e).map((line) => (
               <Text key={line} style={styles.body}>
                 {line}
@@ -105,6 +106,7 @@ export default function MemberHistoryScreen() {
               <Money amount={l.amount} size="body" tone="neutral" style={l.reversed ? styles.strike : undefined} />
             </View>
             <Text style={styles.hint}>{formatDate(l.date)}</Text>
+            {recordedAtLabel(l.createdAt, l.date) ? <Text style={styles.hint}>{recordedAtLabel(l.createdAt, l.date)}</Text> : null}
             {correction ? <Text style={styles.bad}>{correction}</Text> : null}
           </View>
         );

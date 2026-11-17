@@ -74,16 +74,17 @@ export const NO_POS_WARNING = 'Peringatan: belum ada Tunai atau Debit pada catat
 
 /**
  * Screen-reader label of a history row: one sentence from the words already on the row (title, member, flow text,
- * amount, note, warning, "Dikoreksi"), joined by commas. The amount has no sign: direction is carried by the flow text
+ * amount, "Dicatat ..." (passed in, so this stays free of the device time zone), note, warning, "Dikoreksi"), joined by commas. The amount has no sign: direction is carried by the flow text
  * ("Masuk ke" / "Keluar dari"), so TalkBack does not depend on how it reads "+" or "-". Empty parts are skipped.
  */
-export function historyRowLabel(p: { title: string; memberName: string; entry: LedgerListItem }): string {
+export function historyRowLabel(p: { title: string; memberName: string; entry: LedgerListItem; recordedAt?: string }): string {
   const e = p.entry;
   return [
     p.title,
     p.memberName,
     historyFlowText(e),
     formatRupiah(e.amount),
+    p.recordedAt ?? '',
     visibleNote(e),
     showsNoPosWarning(e) ? NO_POS_WARNING : '',
     e.reversedById ? 'Dikoreksi' : '',

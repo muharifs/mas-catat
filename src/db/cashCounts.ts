@@ -49,6 +49,7 @@ interface CountRow {
   counted: number;
   difference: number;
   note: string;
+  created_at: string;
 }
 
 const toLine = (r: CountRow): StoredCountLine => ({
@@ -62,9 +63,10 @@ const toLine = (r: CountRow): StoredCountLine => ({
   counted: r.counted,
   difference: r.difference,
   note: r.note,
+  createdAt: r.created_at,
 });
 
-const COLUMNS = 'seq, batch_id, period_id, week, account, count_date, expected, counted, difference, note';
+const COLUMNS = 'seq, batch_id, period_id, week, account, count_date, expected, counted, difference, note, created_at';
 
 async function loadPeriodWeeks(db: Queryable, periodId: string) {
   const period = await db.getFirst<{ status: 'active' | 'closed'; member_count: number }>(

@@ -11,6 +11,9 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.muharifs.mascatat",
+      "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

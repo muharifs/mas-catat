@@ -24,6 +24,7 @@ export type BackupErrorCode =
   | 'busy'
   | 'safety_failed'
   | 'restore_failed'
+  | 'safety_missing'
   | 'share_unavailable';
 
 /** Backup/restore problem. `message` is English for logs (no file paths); the UI maps `code` to Indonesian. */
@@ -34,6 +35,20 @@ export class BackupError extends Error {
   ) {
     super(message);
     this.name = 'BackupError';
+  }
+}
+
+/**
+ * Replacing a database file that cannot be opened failed. `afterDelete` tells the recovery screen how far it got:
+ * false = the old file is still where it was (nothing was deleted), true = it was deleted (the new empty file may be missing).
+ */
+export class DamagedDatabaseError extends Error {
+  constructor(
+    public readonly afterDelete: boolean,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DamagedDatabaseError';
   }
 }
 
@@ -153,7 +168,8 @@ export function diffTableCounts(expected: Record<string, number>, actual: Record
   return [...names].filter((n) => expected[n] !== actual[n]).sort();
 }
 
-export type RestoreKind = 'same' | 'older' | 'newer' | 'diverged';
+/** 'changed' = every record id is the same, but meeting, period or member state differs (see classifyRestore). */
+export type RestoreKind = 'same' | 'older' | 'newer' | 'diverged' | 'changed';
 
 export interface RestoreClassification {
   kind: RestoreKind;
@@ -165,6 +181,12 @@ export interface RestoreClassification {
   cashCountsLost: number;
   /** Cek kas counts (saves, not rows) in the file that the live data does not have yet. */
   cashCountsAdded: number;
+  /**
+   * Number of state keys (meeting `W:`, period `T:`, member `M:`) that exist on BOTH sides with a different value: closing a
+   * meeting, choosing host or date, ending a period, archiving or renaming a member write no ledger entry or payment, so
+   * the id sets alone cannot see them. Keys that exist on one side only are not counted (they show up as missing/new rows).
+   */
+  stateChanged: number;
 }
 
 /** Record id of one cash_counts row: "C:<batch id>|<row id>". A count (batch) is lost or added as a whole. */
@@ -187,8 +209,15 @@ function cashCountBatchOf(id: string): string | null {
  * - diverged: each has records the other lacks (two phones, or edits after the backup).
  * Cash count rows are counted per batch (one saved count, however many rows it has) in their own fields, so a
  * count with Tunai and Debit is one count, and never inflates the number of "catatan".
+ * The two optional state maps (see loadStateFingerprints) catch changes that leave the id sets equal; a backup that would
+ * otherwise be 'same' becomes 'changed'. Values are compared as the strings they are, never parsed.
  */
-export function classifyRestore(candidateIds: ReadonlySet<string>, liveIds: ReadonlySet<string>): RestoreClassification {
+export function classifyRestore(
+  candidateIds: ReadonlySet<string>,
+  liveIds: ReadonlySet<string>,
+  candidateState: ReadonlyMap<string, string> = new Map(),
+  liveState: ReadonlyMap<string, string> = new Map(),
+): RestoreClassification {
   let lost = 0;
   let added = 0;
   const lostBatches = new Set<string>();
@@ -209,8 +238,14 @@ export function classifyRestore(candidateIds: ReadonlySet<string>, liveIds: Read
   const cashCountsAdded = addedBatches.size;
   const anyLost = lost + cashCountsLost > 0;
   const anyAdded = added + cashCountsAdded > 0;
-  const kind: RestoreKind = !anyLost && !anyAdded ? 'same' : anyLost && !anyAdded ? 'older' : !anyLost ? 'newer' : 'diverged';
-  return { kind, lost, added, cashCountsLost, cashCountsAdded };
+  let stateChanged = 0;
+  for (const [key, value] of liveState) {
+    const other = candidateState.get(key);
+    if (other !== undefined && other !== value) stateChanged += 1;
+  }
+  const idKind: Exclude<RestoreKind, 'changed'> = !anyLost && !anyAdded ? 'same' : anyLost && !anyAdded ? 'older' : !anyLost ? 'newer' : 'diverged';
+  const kind: RestoreKind = idKind === 'same' && stateChanged > 0 ? 'changed' : idKind;
+  return { kind, lost, added, cashCountsLost, cashCountsAdded, stateChanged };
 }
 
 export const PHRASE_RESTORE = 'PULIHKAN';
@@ -219,7 +254,8 @@ export const PHRASE_RESET = 'HAPUS SEMUA';
 /** The word the owner must type before the restore may start, or null when two dialogs are enough. */
 export function requiredPhrase(source: 'file' | 'empty', classification: RestoreClassification): string | null {
   if (source === 'empty') return PHRASE_RESET;
-  return classification.kind === 'older' || classification.kind === 'diverged' ? PHRASE_RESTORE : null;
+  const loses = classification.kind === 'older' || classification.kind === 'diverged' || classification.stateChanged > 0;
+  return loses ? PHRASE_RESTORE : null;
 }
 
 export function phraseMatches(input: string, phrase: string): boolean {
@@ -241,6 +277,11 @@ export function backupFileName(now: Date, userVersion: number): string {
 /** Files the app puts in the cache folder to share: database backups and CSV exports. Only these are ever swept. */
 export function isShareCacheFileName(name: string): boolean {
   return /^mascatat-[A-Za-z0-9-]+\.(db|csv)$/.test(name);
+}
+
+/** "rusak-20261120-143005.db": a data file that could not be opened, kept before it was replaced. Never listed as a safety copy. */
+export function damagedCopyName(now: Date): string {
+  return `rusak-${stamp(now)}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.db`;
 }
 
 /** Safety copy made before every restore. Seconds are included so two restores in one minute never collide. */
@@ -303,4 +344,79 @@ export function backupReminder(lastSharedAt: string | null, now: Date, hasData: 
   if (Number.isNaN(last)) return { due: hasData, daysSince: null };
   const elapsed = now.getTime() - last;
   return { due: hasData && elapsed > REMINDER_DAYS * DAY_MS, daysSince: Math.max(0, Math.floor(elapsed / DAY_MS)) };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// "Restore in progress" marker (L6)
+// ---------------------------------------------------------------------------------------------------------------
+// A small JSON file written right before the live data is replaced and removed after the result was verified. If the
+// app or the phone dies in between, the next start finds it and offers to put the safety copy back. It holds no member
+// names and no money: only file names, counts and the id of the last ledger entry.
+
+export const RESTORE_MARKER_NAME = 'restore-berjalan.json';
+/** Temp name while the marker is written; like the marker it never matches the safety pattern. */
+export const RESTORE_MARKER_TEMP_NAME = 'restore-berjalan.tmp';
+
+export interface MarkerBefore {
+  userVersion: number;
+  ledgerCount: number;
+  lastLedgerId: string | null;
+}
+
+export interface MarkerAfter extends MarkerBefore {
+  tableCounts: Record<string, number>;
+}
+
+export interface RestoreMarker {
+  v: 1;
+  /** 'reset' = "Mulai dari nol" (the same commit path as a restore). */
+  kind: 'restore' | 'reset';
+  /** 'swapping' = the copy into the live data may be running; 'recovering' = the automatic rollback has started. */
+  stage: 'swapping' | 'recovering';
+  /** The safety copy made before the swap (always a valid safety name). */
+  safetyName: string;
+  startedAt: string;
+  before: MarkerBefore;
+  after: MarkerAfter;
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
+const isIdOrNull = (v: unknown): v is string | null => v === null || (typeof v === 'string' && v.length > 0 && v.length <= 200);
+
+function parseBefore(v: unknown): MarkerBefore | null {
+  if (!isRecord(v)) return null;
+  const { userVersion, ledgerCount, lastLedgerId } = v;
+  if (!isCount(userVersion) || userVersion < 1 || !isCount(ledgerCount) || !isIdOrNull(lastLedgerId)) return null;
+  return { userVersion, ledgerCount, lastLedgerId };
+}
+
+/** Strict parser: any unknown shape, wrong type or invalid safety name gives null (the caller treats that as corrupt). */
+export function parseRestoreMarker(text: string): RestoreMarker | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isRecord(raw) || raw.v !== 1) return null;
+  if (raw.kind !== 'restore' && raw.kind !== 'reset') return null;
+  if (raw.stage !== 'swapping' && raw.stage !== 'recovering') return null;
+  if (typeof raw.safetyName !== 'string' || !isSafetyFileName(raw.safetyName)) return null;
+  if (typeof raw.startedAt !== 'string' || Number.isNaN(Date.parse(raw.startedAt))) return null;
+  const before = parseBefore(raw.before);
+  const after = parseBefore(raw.after);
+  if (!before || !after || !isRecord(raw.after)) return null;
+  const counts = raw.after.tableCounts;
+  if (!isRecord(counts)) return null;
+  const tableCounts: Record<string, number> = {};
+  for (const [name, n] of Object.entries(counts)) {
+    if (!isCount(n)) return null;
+    tableCounts[name] = n;
+  }
+  return { v: 1, kind: raw.kind, stage: raw.stage, safetyName: raw.safetyName, startedAt: raw.startedAt, before, after: { ...after, tableCounts } };
+}
+
+export function serializeRestoreMarker(marker: RestoreMarker): string {
+  return JSON.stringify(marker);
 }

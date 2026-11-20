@@ -169,7 +169,7 @@ describe('toIndonesian: backup and restore (M7)', () => {
   );
 
   it('covers every code of the domain', () => {
-    expect(codes.length).toBe(17);
+    expect(codes.length).toBe(18);
   });
 
   it('never shows the English detail', () => {

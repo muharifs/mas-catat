@@ -142,7 +142,7 @@ describe('Restore classification blind spot (F3)', () => {
     await commitRestore(live.bridge, live.db, prepared, new FakeSafetyStore(), () => new Date(2026, 2, 10, 10, 0, 0)); // release the memory copy
   });
 
-  it.failing('restoring an older backup that lacks a closed meeting and an ended period must require typing PULIHKAN', async () => {
+  it('restoring an older backup that lacks a closed meeting and an ended period must require typing PULIHKAN', async () => {
     const { live, repos, p, backup } = await liveWithStateAfterBackup();
     await repos.weeks.closeOldest(p.id); // state change without a ledger entry
     await repos.periods.close(p.id, TODAY); // state change without a ledger entry (no debt, no credit)

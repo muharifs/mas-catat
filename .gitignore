@@ -45,3 +45,8 @@ yarn-error.*
 *.db
 *.sqlite
 *.csv
+
+# Signing material (never commit a keystore or its credentials, also the copy downloaded from EAS)
+*.keystore
+keystore-*
+credentials.json

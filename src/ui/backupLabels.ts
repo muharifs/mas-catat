@@ -1,13 +1,17 @@
 // Indonesian texts for the backup, export and restore screens (M7). Display only: every number comes from the
 // engine in src/db/backup.ts, nothing is calculated here. The UI says "titipan", never "kredit".
 import type { BackupReminder, DbSummary, RestoreClassification } from '@/domain/backup';
-import { parseSafetyName, PHRASE_RESET, PHRASE_RESTORE, SAFETY_KEEP } from '@/domain/backup';
+import { BackupError, DamagedDatabaseError, parseSafetyName, PHRASE_RESET, PHRASE_RESTORE, SAFETY_KEEP } from '@/domain/backup';
 import type { RestoreOutcome } from '@/db/backup';
 import { formatDate, formatTime, todayIso } from './dates';
+import { restoreErrorNeedsReload } from './errors';
 import { formatRupiah } from './format';
 
 /** Shown in a dialog right before the backup goes to the share sheet. */
 export const BACKUP_WARNING = 'Berisi nama dan uang anggota. Kirim ke diri sendiri atau Google Drive pribadi.';
+
+/** Shown after a backup was made while the live data failed its health check (M2). The backup is still shared. */
+export const BACKUP_UNHEALTHY_TEXT = 'Data di HP ini gagal pemeriksaan; berkas cadangan ini mungkin tidak bisa dipulihkan.';
 
 export const OFFSITE_HINT =
   'Simpan satu salinan di luar HP ini, misalnya di Google Drive pribadi atau dikirim ke diri sendiri. Jika HP hilang atau rusak, salinan di dalam HP ikut hilang.';
@@ -50,9 +54,15 @@ function cashCountSentence(c: RestoreClassification): string {
   return '';
 }
 
+/** Said when meeting, period or member state differs although every record is the same (see classifyRestore). */
+export const STATE_CHANGED_TEXT = 'Cadangan ini berbeda: status pertemuan, periode atau anggota di HP ini akan kembali seperti di cadangan.';
+
+/** Extra sentence for a backup that ALSO lacks or adds records: the state of meetings, periods and members goes back too. */
+const STATE_ALSO_TEXT = 'Status pertemuan, periode, dan anggota di HP ini juga akan kembali seperti di cadangan.';
+
 /**
- * What the restore will do to the data, in words. Counts are records (kas entries and payments); Cek kas counts are
- * named apart. A "0 catatan" is never shown: a sentence about catatan appears only when there are some.
+ * What the restore will do to the data, in words. Counts are records (kas entries, payments, skips, members, periods); Cek kas counts are
+ * named apart. A "0 data" is never shown. The word is "data", not "catatan": the counts include members and periods.
  */
 export function classificationText(c: RestoreClassification): string {
   const cash = cashCountSentence(c);
@@ -60,32 +70,36 @@ export function classificationText(c: RestoreClassification): string {
   switch (c.kind) {
     case 'same':
       return 'Isi cadangan sama dengan data di HP ini.';
+    case 'changed':
+      return STATE_CHANGED_TEXT;
     case 'newer':
-      base = c.added > 0 ? `Cadangan ini lebih baru: ${c.added} catatan lebih banyak daripada data di HP ini.` : 'Cadangan ini lebih baru.';
+      base = c.added > 0 ? `Cadangan ini lebih baru: ${c.added} data lebih banyak daripada di HP ini.` : 'Cadangan ini lebih baru.';
       break;
     case 'older':
-      base = c.lost > 0 ? `Cadangan ini lebih lama. ${c.lost} catatan di HP ini tidak ada di cadangan dan akan hilang.` : 'Cadangan ini lebih lama.';
+      base = c.lost > 0 ? `Cadangan ini lebih lama. ${c.lost} data di HP ini tidak ada di cadangan dan akan hilang.` : 'Cadangan ini lebih lama.';
       break;
     case 'diverged': {
-      const intro = 'Isi cadangan ini dan data di HP ini sama-sama punya catatan yang tidak ada di pihak lain.';
+      const intro = 'Isi cadangan ini dan data di HP ini sama-sama punya data yang tidak ada di pihak lain.';
       if (c.lost > 0 && c.added > 0) {
-        base = `${intro} ${c.lost} catatan di HP ini akan hilang, dan HP ini akan memakai ${c.added} catatan dari cadangan.`;
+        base = `${intro} ${c.lost} data di HP ini akan hilang, dan HP ini akan memakai ${c.added} data dari cadangan.`;
       } else if (c.lost > 0) {
-        base = `${intro} ${c.lost} catatan di HP ini akan hilang.`;
+        base = `${intro} ${c.lost} data di HP ini akan hilang.`;
       } else if (c.added > 0) {
-        base = `${intro} HP ini akan memakai ${c.added} catatan dari cadangan.`;
+        base = `${intro} HP ini akan memakai ${c.added} data dari cadangan.`;
       } else {
         base = intro;
       }
       break;
     }
   }
-  return cash ? `${base} ${cash}` : base;
+  const withCash = cash ? `${base} ${cash}` : base;
+  return c.stateChanged > 0 ? `${withCash} ${STATE_ALSO_TEXT}` : withCash;
 }
 
-/** Bold title of the restore Notice when records would be lost (emphasis by title, not by CAPITAL letters), else undefined. */
+/** Bold title of the restore Notice when records would be lost or state would change (emphasis by title, not by CAPITAL letters), else undefined. */
 export function classificationTitle(c: RestoreClassification): string | undefined {
-  return c.kind === 'older' || c.kind === 'diverged' || c.cashCountsLost > 0 ? 'Sebagian catatan di HP ini akan hilang' : undefined;
+  if (c.kind === 'older' || c.kind === 'diverged' || c.cashCountsLost > 0) return 'Sebagian data di HP ini akan hilang';
+  return c.stateChanged > 0 ? 'Sebagian data di HP ini akan berubah' : undefined;
 }
 
 export interface SummaryRow {
@@ -150,4 +164,102 @@ export const ROLLED_BACK_TEXT =
 export function safetyOfferText(outcome: RestoreOutcome): string {
   const base = `${safetyCopyLabel(outcome.safetyName)} tersimpan di HP ini (hanya ${SAFETY_KEEP} yang terakhir disimpan).`;
   return `${base} Mau dibagikan ke tempat lain sekarang? ${BACKUP_WARNING}`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Recovery screen (L6): shown at app start when a restore did not finish
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Date and time of a safety copy as shown to the owner ("10 Nov 2026" and "10.15"), or null for a name that is not one. */
+export function safetyCopyWhen(name: string): { date: string; time: string } | null {
+  const parsed = parseSafetyName(name);
+  if (!parsed) return null;
+  const [hour = 0, minute = 0] = parsed.time.split(':').map(Number);
+  return { date: formatDate(parsed.date), time: formatTime(new Date(2000, 0, 1, hour, minute)) };
+}
+
+export const recoveryTexts = {
+  title: 'Pemulihan sebelumnya tidak selesai',
+  noticeTitle: 'Data di HP ini mungkin setengah terganti',
+  noticeBodyRestore:
+    'Tadi aplikasi atau HP mati saat data sedang diganti. Karena itu sebagian data bisa belum lengkap atau bercampur. Jangan mencatat apa pun dulu.',
+  // "Mulai dari nol" went through the same path. The last sentence is the same warning as above (owner-facing wording added by the developer).
+  noticeBodyReset:
+    'Tadi aplikasi atau HP mati saat data sedang dihapus untuk mulai dari nol. Data di HP ini mungkin setengah terhapus. Jangan mencatat apa pun dulu.',
+  explain:
+    'Sebelum penggantian dimulai, aplikasi sudah membuat salinan pengaman dari data kamu. Pulihkan salinan itu supaya data kembali seperti sebelum pemulihan.',
+  cardNote: 'Salinan ini dibuat otomatis sebelum pemulihan tadi.',
+  primary: 'Pulihkan salinan pengaman',
+  secondary: 'Pilih salinan atau berkas lain',
+  small: 'Pemulihan mengganti semua data di HP ini. Data tidak digabung.',
+  confirmTitle: 'Pulihkan salinan pengaman?',
+  confirmOk: 'Ya, pulihkan',
+  working: 'Memulihkan salinan pengaman. Jangan tutup aplikasi.',
+  toastDone: 'Salinan pengaman sudah dipulihkan',
+  doneTitle: 'Data sudah dipulihkan',
+  doneBody: 'Periksa Total kas dan catatan terakhir di Beranda. Jika ada yang kurang, bagikan berkas cadangan terakhir lewat menu Cadangan.',
+  doneOk: 'Mengerti',
+  retryTitle: 'Salinan pengaman belum bisa dipulihkan',
+  retryBody: 'Data tidak berubah dari sebelum kamu menekan tombol. Coba lagi. Jika tetap gagal, pilih salinan atau berkas lain di bawah.',
+  retry: 'Coba lagi',
+  unsafe:
+    'Pemulihan gagal dan data di HP ini belum aman dipakai. Jangan mencatat apa pun. Pilih berkas cadangan lain, misalnya yang terakhir kamu bagikan ke Drive.',
+  pickFile: 'Pilih berkas cadangan',
+  missingTitle: 'Salinan pengaman tidak ditemukan',
+  missingBody:
+    'Salinan otomatis dari sebelum pemulihan tadi tidak ada lagi di HP ini. Data di HP ini mungkin setengah terganti dan belum aman dipakai.',
+  missingHint:
+    'Pulihkan dari berkas cadangan yang kamu simpan di luar HP, misalnya di Google Drive atau dikirim ke diri sendiri.',
+  otherCopies: 'Salinan lain di HP ini (bisa lebih lama dari yang tadi)',
+  reviewTitle: 'Periksa sebelum memulihkan',
+};
+
+/** Said when the data file cannot be opened: it is moved aside (kept as a damaged copy), never just thrown away. */
+export const UNREADABLE_FILE_NOTE =
+  'Berkas data di HP ini tidak bisa dibaca. Berkas itu dipindahkan dan disimpan sebagai cadangan rusak, lalu diganti dengan berkas data baru.';
+
+/** Message of the confirmation dialog of the recovery screen. `unreadable` = the data file cannot be opened (see UNREADABLE_FILE_NOTE). */
+export function recoveryConfirmText(safetyName: string, unreadable = false): string {
+  const when = safetyCopyWhen(safetyName);
+  const label = when ? `tanggal ${when.date} pukul ${when.time}` : 'terakhir';
+  const base = `Data di HP ini diganti dengan salinan pengaman ${label}. Catatan yang dibuat setelah itu, jika ada, tidak ikut kembali. Data yang ada sekarang disimpan dulu sebagai salinan pengaman baru bila masih terbaca.`;
+  return unreadable ? `${base} ${UNREADABLE_FILE_NOTE}` : base;
+}
+
+/** Shown when a finished restore could not remove its "in progress" marker, even after a second try. */
+export const MARKER_NOT_CLEARED_TEXT =
+  'Penanda pemulihan belum terhapus. Saat aplikasi dibuka lagi, layar pemulihan bisa muncul; jangan pulihkan salinan lama bila kamu sudah mencatat data baru, pilih berkas cadangan terbaru.';
+
+/** Body of the dialog after a recovery: what was saved, and what to watch for. */
+export function recoveryDoneBody(outcome: { previousCopyName: string | null; liveDiffers: boolean; markerCleared: boolean }): string {
+  const parts: string[] = [recoveryTexts.doneBody];
+  if (outcome.previousCopyName) {
+    parts.push(`Data yang tadi ada di HP ini disimpan dulu sebagai ${safetyCopyLabel(outcome.previousCopyName)}.`);
+  }
+  if (outcome.liveDiffers) {
+    parts.push(
+      'Data tadi berbeda dari data sebelum dan sesudah pemulihan yang gagal, jadi mungkin ada catatan baru. Bila ada yang kurang, pilih salinan itu lewat Cadangan, lalu Pulihkan data.',
+    );
+  }
+  if (!outcome.markerCleared) parts.push(MARKER_NOT_CLEARED_TEXT);
+  return parts.join(' ');
+}
+
+/** Screen reader hint of the main button. */
+export function recoveryHint(safetyName: string): string {
+  const when = safetyCopyWhen(safetyName);
+  return `Mengganti semua data di HP ini dengan salinan pengaman${when ? ` tanggal ${when.date}` : ''}`;
+}
+
+export type RecoveryFailure = 'retry' | 'missing' | 'unsafe';
+
+/**
+ * How the recovery screen explains a failure. 'retry': the data is certainly untouched. 'missing': the safety copy cannot
+ * be used (nothing was overwritten). 'unsafe': the live data may have changed and is not known to be good.
+ */
+export function recoveryFailure(error: unknown): RecoveryFailure {
+  // Replacing an unreadable file: before the delete nothing changed; after it the old file is gone and the new one may not exist.
+  if (error instanceof DamagedDatabaseError) return error.afterDelete ? 'unsafe' : 'retry';
+  if (error instanceof BackupError && error.code === 'safety_missing') return 'missing';
+  return restoreErrorNeedsReload(error) ? 'unsafe' : 'retry';
 }

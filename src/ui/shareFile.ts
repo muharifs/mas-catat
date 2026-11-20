@@ -10,7 +10,17 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { SafetyStore } from '@/db/backup';
-import { BackupError, isSafetyFileName, isShareCacheFileName } from '@/domain/backup';
+import {
+  BackupError,
+  damagedCopyName,
+  isSafetyFileName,
+  isShareCacheFileName,
+  parseRestoreMarker,
+  RESTORE_MARKER_NAME,
+  RESTORE_MARKER_TEMP_NAME,
+  serializeRestoreMarker,
+  type RestoreMarker,
+} from '@/domain/backup';
 
 export const BACKUP_MIME = 'application/octet-stream';
 export const CSV_MIME = 'text/csv';
@@ -131,7 +141,65 @@ export function createSafetyStore(): SafetyStore {
       if (file.exists) file.delete();
     },
     list: async () => safetyDirectory().list().filter((item): item is File => item instanceof File).map((f) => f.name),
+    // "Restore in progress" marker (L6): a small JSON file next to the safety copies. It holds no names and no money.
+    // Written like the safety copy: temp file, read back and parsed, then moved into place, so a crash leaves either no
+    // marker or a whole one. (Not provable in Jest: only the phone shows that `move` with overwrite replaces the file.)
+    writeMarker: async (marker) => {
+      const text = serializeRestoreMarker(marker);
+      const temp = new File(safetyDirectory(), RESTORE_MARKER_TEMP_NAME);
+      try {
+        temp.create({ overwrite: true });
+        await temp.write(text);
+        const readBack = await temp.text();
+        const parsed = parseRestoreMarker(readBack);
+        if (readBack !== text || !parsed) throw new Error('the marker read back differently');
+        await temp.move(new File(safetyDirectory(), RESTORE_MARKER_NAME), { overwrite: true });
+      } catch (cause) {
+        try {
+          if (temp.exists) temp.delete();
+        } catch {
+          // Leftover temp files are removed at the next start.
+        }
+        throw cause;
+      }
+    },
+    readMarker: async (): Promise<RestoreMarker | null | 'corrupt'> => {
+      const file = new File(safetyDirectory(), RESTORE_MARKER_NAME);
+      if (!file.exists) return null;
+      try {
+        return parseRestoreMarker(await file.text()) ?? 'corrupt';
+      } catch {
+        return 'corrupt';
+      }
+    },
+    clearMarker: async () => {
+      const file = new File(safetyDirectory(), RESTORE_MARKER_NAME);
+      if (file.exists) file.delete();
+    },
   };
+}
+
+/**
+ * Copies a database file that cannot be opened (plus its -wal, -shm and -journal sidecars, when they exist) to Paths.document as
+ * "rusak-<time>.db", and reads the size of every copy back. Only then may the caller delete the original.
+ * 'absent' = the file is not visible (it is gone, or the app cannot read it): the caller must NOT delete anything then.
+ * Only a phone shows whether the app may read its own SQLite folder through this API.
+ */
+export async function copyDamagedDatabaseAside(databaseDirectory: string, databaseName: string, now: Date = new Date()): Promise<'copied' | 'absent'> {
+  const directory = new Directory(databaseDirectory.startsWith('file://') ? databaseDirectory : `file://${databaseDirectory}`);
+  const main = new File(directory, databaseName);
+  if (!main.exists) return 'absent';
+  const target = damagedCopyName(now);
+  const jobs: { from: File; to: File }[] = [{ from: main, to: new File(Paths.document, target) }];
+  for (const suffix of ['-wal', '-shm', '-journal']) {
+    const sidecar = new File(directory, `${databaseName}${suffix}`);
+    if (sidecar.exists) jobs.push({ from: sidecar, to: new File(Paths.document, `${target}${suffix}`) });
+  }
+  for (const { from, to } of jobs) {
+    await from.copy(to, { overwrite: true });
+    if (!to.exists || to.size !== from.size) throw new Error('the copy of the unreadable data file has a different size');
+  }
+  return 'copied';
 }
 
 /** Names of the safety copies, newest first. */

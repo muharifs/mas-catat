@@ -174,6 +174,7 @@ export const BACKUP_ERROR_TEXT: Record<BackupErrorCode, string> = {
   busy: 'Proses lain masih berjalan. Tunggu sebentar, lalu coba lagi.',
   safety_failed: 'Data tidak berubah. Salinan pengaman gagal dibuat, mungkin karena ruang penyimpanan penuh atau data lama tidak terbaca, jadi pemulihan dibatalkan. Periksa ruang penyimpanan lalu coba lagi.',
   restore_failed: 'Pemulihan gagal dan data lama tidak berhasil dikembalikan otomatis. Jangan buat catatan baru. Salinan pengaman masih tersimpan dan bisa dipulihkan lewat Cadangan, lalu Pulihkan dari cadangan.',
+  safety_missing: 'Salinan pengaman tidak ditemukan atau tidak bisa dibaca, jadi tidak dipakai. Data di HP ini tidak diubah oleh langkah ini. Pilih berkas cadangan yang lain.',
   share_unavailable: 'Fitur berbagi tidak tersedia di HP ini, jadi berkas tidak bisa dikirim.',
 };
 

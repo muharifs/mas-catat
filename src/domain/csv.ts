@@ -55,7 +55,7 @@ export function buildCsv(header: readonly string[], rows: readonly (readonly Csv
   return CSV_BOM + lines.join(CSV_NEWLINE) + CSV_NEWLINE;
 }
 
-export type CsvKind = 'buku-kas' | 'pembayaran' | 'iuran-per-pertemuan' | 'ringkasan-periode';
+export type CsvKind = 'buku-kas' | 'pembayaran' | 'iuran-per-pertemuan' | 'ringkasan-periode' | 'cek-kas';
 
 /** "mascatat-buku-kas-20261106.csv": no member names, no period names. */
 export function csvFileName(kind: CsvKind, date: IsoDate): string {

@@ -15,6 +15,7 @@ import { computeKasBalances } from '@/domain/kas';
 import { WEEKLY_DUE } from '@/domain/money';
 import {
   BackupError,
+  cashCountRecordId,
   classifyRestore,
   diffSchema,
   diffTableCounts,
@@ -93,7 +94,7 @@ export async function buildReferenceSchema(bridge: NativeBridge, version: number
 }
 
 /**
- * Ids of all ledger entries, payments, skips (S:) and skip undos (U:, by skip id), prefixed so the kinds never collide.
+ * Ids of all ledger entries, payments, skips (S:), skip undos (U:, by skip id) and cash counts (C:, by batch id and row id), prefixed so the kinds never collide.
  * Skips and undos MUST be here: without them a backup from before a skip would look "the same" as the live data.
  */
 export async function loadRecordIds(q: Queryable): Promise<Set<string>> {
@@ -102,6 +103,7 @@ export async function loadRecordIds(q: Queryable): Promise<Set<string>> {
   for (const r of await q.getAll<{ id: string }>('SELECT id FROM payments')) ids.add(`P:${r.id}`);
   for (const r of await q.getAll<{ id: string }>('SELECT id FROM week_skips')) ids.add(`S:${r.id}`);
   for (const r of await q.getAll<{ skip_id: string }>('SELECT skip_id FROM week_skip_undos')) ids.add(`U:${r.skip_id}`);
+  for (const r of await q.getAll<{ id: string; batch_id: string }>('SELECT id, batch_id FROM cash_counts')) ids.add(cashCountRecordId(r.batch_id, r.id));
   return ids;
 }
 
@@ -118,11 +120,13 @@ export async function summarizeDb(q: Queryable): Promise<DbSummary> {
     'SELECT direction, amount, account, to_account FROM ledger_entries',
   );
   const last = await q.getFirst<{ id: string }>('SELECT id FROM ledger_entries ORDER BY rowid DESC LIMIT 1');
+  const batches = await q.getFirst<{ n: number }>('SELECT COUNT(DISTINCT batch_id) AS n FROM cash_counts');
   const lastDate = await q.getFirst<{ d: string | null }>('SELECT MAX(date) AS d FROM ledger_entries');
   return {
     userVersion: await readUserVersion(q),
     ledgerCount: tableCounts.ledger_entries ?? 0,
     paymentCount: tableCounts.payments ?? 0,
+    cashCountBatches: batches?.n ?? 0,
     memberCount: tableCounts.members ?? 0,
     periodCount: tableCounts.periods ?? 0,
     lastEntryDate: lastDate?.d ?? null,
@@ -201,6 +205,12 @@ const INVARIANTS: readonly Invariant[] = [
   {
     id: 'meeting_count_differs_from_member_count',
     sql: `SELECT p.id FROM periods p WHERE (SELECT COUNT(*) FROM weeks w WHERE w.period_id = p.id) <> p.member_count`,
+  },
+  {
+    id: 'cash_count_inconsistent',
+    sql: `SELECT id FROM cash_counts
+           WHERE typeof(expected) <> 'integer' OR typeof(counted) <> 'integer' OR typeof(difference) <> 'integer'
+              OR counted < 0 OR difference <> counted - expected OR account NOT IN ('tunai', 'debit')`,
   },
   {
     id: 'two_skips_in_force_for_one_week',

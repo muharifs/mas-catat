@@ -89,6 +89,7 @@ export default function MenuScreen() {
         <MenuRow label="Pinjaman anggota" icon="swap-horizontal-outline" onPress={() => router.push('/loans')} />
       </Group>
       <Group title="Kas">
+        {activePeriodId ? <MenuRow label="Cek kas" icon="checkmark-done-outline" onPress={() => router.push('/cek-kas')} /> : null}
         <MenuRow label="Catat kas" icon="create-outline" onPress={() => router.push('/kas')} />
       </Group>
       <Group title="Data">

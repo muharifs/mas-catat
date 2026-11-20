@@ -55,13 +55,13 @@ async function atLastMeeting(prefix: string): Promise<Scenario> {
 }
 
 describe('restoring a backup from before migration 0006', () => {
-  it('a full version 5 backup is migrated as a copy and restored: userVersion 6, healthy, data intact', async () => {
+  it('a full version 5 backup is migrated as a copy and restored: the latest version, healthy, data intact', async () => {
     const live = await atLastMeeting('l');
     const bytes = await v5Bytes();
     const prepared = await prepareRestore(live.env.bridge, live.env.db, { kind: 'file', bytes });
     expect(prepared.originalVersion).toBe(5);
     expect(prepared.candidate.userVersion).toBe(LATEST_VERSION);
-    expect(prepared.candidate.userVersion).toBe(6);
+    expect(prepared.candidate.userVersion).toBe(LATEST_VERSION);
     expect(prepared.candidate.ledgerCount).toBe(5);
     expect(prepared.candidate.paymentCount).toBe(2);
 
@@ -70,11 +70,11 @@ describe('restoring a backup from before migration 0006', () => {
     expect(outcome.outcome).toBe('restored');
     expect(outcome.safetyName).toBe(safetyFileName(NOW(), LATEST_VERSION));
 
-    expect((await live.env.db.getFirst<{ user_version: number }>('PRAGMA user_version'))?.user_version).toBe(6);
+    expect((await live.env.db.getFirst<{ user_version: number }>('PRAGMA user_version'))?.user_version).toBe(LATEST_VERSION);
     expect(await healthCheck(live.env.db)).toEqual({ ok: true, problems: [] });
     expect(await live.env.db.getFirst('SELECT COUNT(*) AS n FROM week_skips')).toEqual({ n: 0 });
     const summary = await summarizeDb(live.env.db);
-    expect(summary).toMatchObject({ userVersion: 6, ledgerCount: 5, paymentCount: 2, memberCount: 3, periodCount: 2 });
+    expect(summary).toMatchObject({ userVersion: LATEST_VERSION, ledgerCount: 5, paymentCount: 2, memberCount: 3, periodCount: 2 });
     expect(live.env.openMemoryCount()).toBe(0);
 
     // the restored data works with the new code: the repositories read the (empty) skip view without trouble
@@ -96,12 +96,12 @@ describe('restoring a backup from before migration 0006', () => {
 
     // restoring the older file onto the live phone loses the skip: classified "older", not "same"
     const prepared = await prepareRestore(a.env.bridge, a.env.db, { kind: 'file', bytes: before });
-    expect(prepared.classification).toEqual({ kind: 'older', lost: 1, added: 0 });
+    expect(prepared.classification).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
     await discardRestore(prepared);
   });
 });
 
-describe('restoring a version 6 backup with skips', () => {
+describe('restoring a latest-version backup with skips', () => {
   it('round trip: the skip and its undo survive a backup, restore into an empty phone and a new skip', async () => {
     const a = await atLastMeeting('a');
     await a.repos.weeks.skipLast(a.periodId, 'first');
@@ -110,7 +110,7 @@ describe('restoring a version 6 backup with skips', () => {
 
     const empty = await createSqlJsEnv();
     const prepared = await prepareRestore(empty.bridge, empty.db, { kind: 'file', bytes: a.env.liveBytes() });
-    expect(prepared.originalVersion).toBe(6);
+    expect(prepared.originalVersion).toBe(LATEST_VERSION);
     const outcome = await commitRestore(empty.bridge, empty.db, prepared, new FakeSafetyStore(), NOW);
     expect(outcome.outcome).toBe('restored');
 
@@ -142,12 +142,12 @@ describe('restoring a version 6 backup with skips', () => {
       return c;
     };
     // live now holds the skip and its undo
-    expect(await kind(preSkip, a.env)).toEqual({ kind: 'older', lost: 2, added: 0 });
-    expect(await kind(skipped, a.env)).toEqual({ kind: 'older', lost: 1, added: 0 });
+    expect(await kind(preSkip, a.env)).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(await kind(skipped, a.env)).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
 
     // the other way round: a phone at the pre-skip state is offered the later file
     const phone = await createSqlJsEnv({ initialBytes: preSkip, migrated: false });
-    expect(await kind(skipped, phone)).toEqual({ kind: 'newer', lost: 0, added: 1 });
+    expect(await kind(skipped, phone)).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
   });
 });
 

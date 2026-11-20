@@ -1,3 +1,4 @@
+import { hasCountForWeek } from '@/domain/cash-count';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -15,6 +16,7 @@ import { Notice } from '@/ui/components/Notice';
 import { Section } from '@/ui/components/Section';
 import { formatDate } from '@/ui/dates';
 import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
+import { CHECK_FIRST_LABEL, closeWeekCountWarning, COUNT_STRINGS } from '@/ui/cashCount';
 import { closeWeekMessage, toasts } from '@/ui/messages';
 import {
   shouldLoadSkipPreview,
@@ -56,7 +58,8 @@ export default function PeriodDetailScreen() {
       period && shouldLoadSkipPreview({ periodActive: period.status === 'active', memberCount: period.memberCount, oldestOpenNumber })
         ? await repos.weeks.previewSkip(id)
         : null;
-    return { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview };
+    const countLines = await repos.cashCounts.listAll(id);
+    return { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview, countLines };
   }, [repos, id]);
   const { data, error: loadError, reload } = useLoad(load);
 
@@ -67,7 +70,7 @@ export default function PeriodDetailScreen() {
   if (!data) return <Loading />;
   if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
-  const { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview } = data;
+  const { period, weeks, members, periodMembers, paidWeeks, arrears, skipPreview, countLines } = data;
   const nameOf = (memberId: string | null) =>
     memberId === null ? 'Belum ditentukan' : (members.find((m) => m.id === memberId)?.name ?? '-');
   const selectable = selectableWeekNumbers(weeks);
@@ -87,10 +90,15 @@ export default function PeriodDetailScreen() {
   function confirmCloseWeek() {
     if (!oldestOpen) return;
     const number = oldestOpen.number;
+    const countWarning = closeWeekCountWarning(hasCountForWeek(countLines, period.id, number));
     showDialog({
       title: `Tutup pertemuan ${number}`,
-      message: closeWeekMessage(number, oldestOpen.date, arrears),
+      message: closeWeekMessage(number, oldestOpen.date, arrears) + (countWarning ? `
+
+${countWarning}` : ''),
       buttons: [
+        // A warning, never a block: "Tutup pertemuan" below still closes the meeting.
+        ...(countWarning ? [{ label: CHECK_FIRST_LABEL, onPress: () => router.push('/cek-kas') }] : []),
         { label: 'Batal', role: 'cancel' },
         {
           label: 'Tutup pertemuan',
@@ -144,6 +152,12 @@ export default function PeriodDetailScreen() {
           ) : null}
         </Card>
       ) : null}
+
+      <Button
+        label={COUNT_STRINGS.history}
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/periods/[id]/cek-kas', params: { id: period.id } })}
+      />
 
       {isActive && skipView ? (
         <Card tone="alt">

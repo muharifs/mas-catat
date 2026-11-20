@@ -37,7 +37,7 @@ describe('migration 0006 (week skip): upgrade of existing data', () => {
     const before = await dumpData(db);
     const beforeSchema = await schemaOf(db);
 
-    expect(await migrate(db)).toEqual({ from: 5, to: 6 });
+    expect(await migrate(db, MIGRATIONS.slice(0, 6))).toEqual({ from: 5, to: 6 });
     expect(await userVersion(db)).toBe(6);
 
     const after = await dumpData(db);
@@ -61,19 +61,20 @@ describe('migration 0006 (week skip): upgrade of existing data', () => {
   });
 
   it('a fresh version 6 schema equals a version 5 database migrated to 6 (no fingerprint drift)', async () => {
-    const fresh = await createMigratedTestDb();
+    const fresh = await createSqlJsDb();
+    await migrate(fresh, MIGRATIONS.slice(0, 6));
     const upgraded = await v5WithData();
-    await migrate(upgraded);
+    await migrate(upgraded, MIGRATIONS.slice(0, 6));
     expect(diffSchema(await schemaOf(fresh), await schemaOf(upgraded))).toEqual([]);
     expect(await schemaOf(upgraded)).toEqual(await schemaOf(fresh));
   });
 
   it('is idempotent: running again changes nothing', async () => {
     const db = await v5WithData();
-    await migrate(db);
+    await migrate(db, MIGRATIONS.slice(0, 6));
     const data = await dumpData(db);
     const schema = await schemaOf(db);
-    expect(await migrate(db)).toEqual({ from: 6, to: 6 });
+    expect(await migrate(db, MIGRATIONS.slice(0, 6))).toEqual({ from: 6, to: 6 });
     expect(await dumpData(db)).toEqual(data);
     expect(await schemaOf(db)).toEqual(schema);
   });
@@ -88,13 +89,13 @@ describe('migration 0006 (week skip): upgrade of existing data', () => {
     expect(await schemaOf(db)).toEqual(schema);
     expect(await dumpData(db)).toEqual(data);
     // and the real migration still works afterwards
-    expect(await migrate(db)).toEqual({ from: 5, to: 6 });
+    expect(await migrate(db, MIGRATIONS.slice(0, 6))).toEqual({ from: 5, to: 6 });
   });
 
   it('the app database still refuses a newer version', async () => {
     const db = await v5WithData();
     await migrate(db);
-    await db.exec('PRAGMA user_version = 7');
+    await db.exec(`PRAGMA user_version = ${MIGRATIONS.length + 1}`);
     await expect(migrate(db)).rejects.toThrow(/newer/);
   });
 });

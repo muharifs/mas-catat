@@ -40,23 +40,52 @@ export function reminderText(reminder: BackupReminder): string {
   return 'Buat cadangan baru supaya catatan terbaru ikut aman.';
 }
 
-/** What the restore will do to the data, in words. Counts are records (kas entries and payments). */
+/** Sentence about Cek kas counts (saves, not rows). Empty when no count differs. */
+function cashCountSentence(c: RestoreClassification): string {
+  if (c.cashCountsLost > 0 && c.cashCountsAdded > 0) {
+    return `${c.cashCountsLost} hitungan Cek kas di HP ini akan hilang, dan HP ini akan memakai ${c.cashCountsAdded} hitungan dari cadangan.`;
+  }
+  if (c.cashCountsLost > 0) return `${c.cashCountsLost} hitungan Cek kas di HP ini tidak ada di cadangan dan akan hilang.`;
+  if (c.cashCountsAdded > 0) return `Cadangan ini punya ${c.cashCountsAdded} hitungan Cek kas yang belum ada di HP ini.`;
+  return '';
+}
+
+/**
+ * What the restore will do to the data, in words. Counts are records (kas entries and payments); Cek kas counts are
+ * named apart. A "0 catatan" is never shown: a sentence about catatan appears only when there are some.
+ */
 export function classificationText(c: RestoreClassification): string {
+  const cash = cashCountSentence(c);
+  let base: string;
   switch (c.kind) {
     case 'same':
       return 'Isi cadangan sama dengan data di HP ini.';
     case 'newer':
-      return `Cadangan ini lebih baru: ${c.added} catatan lebih banyak daripada data di HP ini.`;
+      base = c.added > 0 ? `Cadangan ini lebih baru: ${c.added} catatan lebih banyak daripada data di HP ini.` : 'Cadangan ini lebih baru.';
+      break;
     case 'older':
-      return `Cadangan ini lebih lama. ${c.lost} catatan di HP ini tidak ada di cadangan dan akan hilang.`;
-    case 'diverged':
-      return `Isi cadangan ini dan data di HP ini sama-sama punya catatan yang tidak ada di pihak lain. ${c.lost} catatan di HP ini akan hilang, dan HP ini akan memakai ${c.added} catatan dari cadangan.`;
+      base = c.lost > 0 ? `Cadangan ini lebih lama. ${c.lost} catatan di HP ini tidak ada di cadangan dan akan hilang.` : 'Cadangan ini lebih lama.';
+      break;
+    case 'diverged': {
+      const intro = 'Isi cadangan ini dan data di HP ini sama-sama punya catatan yang tidak ada di pihak lain.';
+      if (c.lost > 0 && c.added > 0) {
+        base = `${intro} ${c.lost} catatan di HP ini akan hilang, dan HP ini akan memakai ${c.added} catatan dari cadangan.`;
+      } else if (c.lost > 0) {
+        base = `${intro} ${c.lost} catatan di HP ini akan hilang.`;
+      } else if (c.added > 0) {
+        base = `${intro} HP ini akan memakai ${c.added} catatan dari cadangan.`;
+      } else {
+        base = intro;
+      }
+      break;
+    }
   }
+  return cash ? `${base} ${cash}` : base;
 }
 
 /** Bold title of the restore Notice when records would be lost (emphasis by title, not by CAPITAL letters), else undefined. */
 export function classificationTitle(c: RestoreClassification): string | undefined {
-  return c.kind === 'older' || c.kind === 'diverged' ? 'Sebagian catatan di HP ini akan hilang' : undefined;
+  return c.kind === 'older' || c.kind === 'diverged' || c.cashCountsLost > 0 ? 'Sebagian catatan di HP ini akan hilang' : undefined;
 }
 
 export interface SummaryRow {
@@ -69,6 +98,7 @@ export function summaryRows(s: DbSummary): SummaryRow[] {
   return [
     { label: 'Tanggal catatan kas terakhir', value: s.lastEntryDate ? formatDate(s.lastEntryDate) : '-' },
     { label: 'Jumlah catatan kas', value: String(s.ledgerCount) },
+    { label: 'Jumlah hitungan Cek kas', value: String(s.cashCountBatches) },
     { label: 'Anggota', value: String(s.memberCount) },
     { label: 'Periode', value: String(s.periodCount) },
     { label: 'Total kas (Tunai + Debit)', value: formatRupiah(s.kas.actual) },
@@ -99,7 +129,7 @@ export const restoreTexts = {
   secondDialogBody: 'Setelah ini data di HP ini sama persis dengan cadangan.',
   secondDialogOk: 'Ya, ganti semua data',
   resetWarning:
-    'Semua data di HP ini akan dihapus: anggota, periode, pembayaran, dan kas. Aplikasi mulai dari kosong. Salinan pengaman dibuat otomatis lebih dulu, tetapi setelah ini data tidak kembali dengan sendirinya.',
+    'Semua data di HP ini akan dihapus: anggota, periode, pembayaran, kas, dan hitungan Cek kas. Aplikasi mulai dari kosong. Salinan pengaman dibuat otomatis lebih dulu, tetapi setelah ini data tidak kembali dengan sendirinya.',
   working: 'Memulihkan data. Jangan tutup aplikasi.',
   done: 'Data berhasil dipulihkan',
   resetDone: 'Aplikasi dimulai dari kosong',

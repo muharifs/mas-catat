@@ -66,6 +66,8 @@ function AppStack() {
       <Stack.Screen name="periods/[id]/payout" options={{ title: 'Bayar tuan rumah' }} />
       <Stack.Screen name="periods/[id]/close" options={{ title: 'Akhiri periode' }} />
       <Stack.Screen name="credits/index" options={{ title: 'Titipan anggota' }} />
+      <Stack.Screen name="cek-kas/index" options={{ title: 'Cek kas' }} />
+      <Stack.Screen name="periods/[id]/cek-kas" options={{ title: 'Riwayat cek kas' }} />
       <Stack.Screen name="kas/index" options={{ title: 'Catat kas' }} />
       <Stack.Screen name="filter-riwayat" options={{ title: 'Filter riwayat' }} />
       <Stack.Screen name="kas/new" options={{ title: 'Catat kas' }} />

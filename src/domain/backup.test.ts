@@ -3,6 +3,7 @@ import {
   backupReminder,
   BackupError,
   checkFileSize,
+  cashCountRecordId,
   classifyRestore,
   diffSchema,
   diffTableCounts,
@@ -153,7 +154,7 @@ describe('classifyRestore', () => {
   const set = (...ids: string[]) => new Set(ids);
 
   it('same', () => {
-    expect(classifyRestore(set('L:1', 'P:1'), set('L:1', 'P:1'))).toEqual({ kind: 'same', lost: 0, added: 0 });
+    expect(classifyRestore(set('L:1', 'P:1'), set('L:1', 'P:1'))).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
   });
 
   it('both empty is the same', () => {
@@ -161,19 +162,39 @@ describe('classifyRestore', () => {
   });
 
   it('older: the file is a subset of live and the extra live entries are lost', () => {
-    expect(classifyRestore(set('L:1'), set('L:1', 'L:2', 'P:1'))).toEqual({ kind: 'older', lost: 2, added: 0 });
+    expect(classifyRestore(set('L:1'), set('L:1', 'L:2', 'P:1'))).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
   });
 
   it('an empty file against live data is older', () => {
-    expect(classifyRestore(set(), set('L:1'))).toEqual({ kind: 'older', lost: 1, added: 0 });
+    expect(classifyRestore(set(), set('L:1'))).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
   });
 
   it('newer: live is a subset of the file', () => {
-    expect(classifyRestore(set('L:1', 'L:2'), set('L:1'))).toEqual({ kind: 'newer', lost: 0, added: 1 });
+    expect(classifyRestore(set('L:1', 'L:2'), set('L:1'))).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
   });
 
   it('diverged: each side has records the other lacks', () => {
-    expect(classifyRestore(set('L:1', 'L:3'), set('L:1', 'L:2'))).toEqual({ kind: 'diverged', lost: 1, added: 1 });
+    expect(classifyRestore(set('L:1', 'L:3'), set('L:1', 'L:2'))).toEqual({ kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+  });
+
+  it('cash count rows are counted per batch, apart from the records', () => {
+    const rows = (batch: string, ...ids: string[]) => ids.map((id) => cashCountRecordId(batch, id));
+    // one count with Tunai + Debit = two rows = ONE lost count, and no lost "catatan"
+    expect(classifyRestore(set('L:1'), set('L:1', ...rows('b1', 'r1', 'r2')))).toEqual({
+      kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0,
+    });
+    expect(classifyRestore(set('L:1', ...rows('b1', 'r1', 'r2'), ...rows('b2', 'r3')), set('L:1'))).toEqual({
+      kind: 'newer', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 2,
+    });
+    expect(classifyRestore(set(...rows('b1', 'r1', 'r2')), set(...rows('b1', 'r1', 'r2')))).toMatchObject({ kind: 'same' });
+  });
+
+  it('records and cash counts are told apart, and each side adds to the kind', () => {
+    expect(classifyRestore(set('L:1', ...['C:b9|r9']), set('L:1', 'L:2', 'C:b1|r1', 'C:b1|r2'))).toEqual({
+      kind: 'diverged', lost: 1, added: 0, cashCountsLost: 1, cashCountsAdded: 1,
+    });
+    // only counts differ on both sides: still diverged, no record counted
+    expect(classifyRestore(set('C:b9|r9'), set('C:b1|r1'))).toEqual({ kind: 'diverged', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 1 });
   });
 
   it('a ledger id and a payment id with the same text do not collide', () => {
@@ -183,18 +204,18 @@ describe('classifyRestore', () => {
 
 describe('typed confirmation', () => {
   it('older and diverged need PULIHKAN', () => {
-    expect(requiredPhrase('file', { kind: 'older', lost: 1, added: 0 })).toBe(PHRASE_RESTORE);
-    expect(requiredPhrase('file', { kind: 'diverged', lost: 1, added: 1 })).toBe(PHRASE_RESTORE);
+    expect(requiredPhrase('file', { kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESTORE);
+    expect(requiredPhrase('file', { kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESTORE);
   });
 
   it('same and newer need only the two dialogs', () => {
-    expect(requiredPhrase('file', { kind: 'same', lost: 0, added: 0 })).toBeNull();
-    expect(requiredPhrase('file', { kind: 'newer', lost: 0, added: 3 })).toBeNull();
+    expect(requiredPhrase('file', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBeNull();
+    expect(requiredPhrase('file', { kind: 'newer', lost: 0, added: 3, cashCountsLost: 0, cashCountsAdded: 0 })).toBeNull();
   });
 
   it('starting from zero always needs HAPUS SEMUA', () => {
-    expect(requiredPhrase('empty', { kind: 'same', lost: 0, added: 0 })).toBe(PHRASE_RESET);
-    expect(requiredPhrase('empty', { kind: 'older', lost: 9, added: 0 })).toBe(PHRASE_RESET);
+    expect(requiredPhrase('empty', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESET);
+    expect(requiredPhrase('empty', { kind: 'older', lost: 9, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESET);
   });
 
   it('matches the exact word (surrounding spaces are fine, other case is not)', () => {

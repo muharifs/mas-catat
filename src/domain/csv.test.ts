@@ -122,6 +122,7 @@ describe('csvFileName', () => {
   it('has the kind and the date and no names', () => {
     expect(csvFileName('buku-kas', '2026-11-06')).toBe('mascatat-buku-kas-20261106.csv');
     expect(csvFileName('ringkasan-periode', '2026-01-04')).toBe('mascatat-ringkasan-periode-20260104.csv');
+    expect(csvFileName('cek-kas', '2026-01-04')).toBe('mascatat-cek-kas-20260104.csv');
   });
 
   it('rejects a date that is not ISO', () => {

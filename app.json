@@ -35,6 +35,17 @@
       "expo-router",
       "expo-sqlite",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "d96865a5-c7ec-41a3-b021-4049d9fb736f"
+      }
+    },
+    "owner": "arif-temas-dev"
   }
 }

@@ -157,6 +157,8 @@ export interface StoredCountLine extends CountLine {
   week: number;
   date: IsoDate;
   note: string;
+  /** When the count was saved (ISO UTC created_at, one value per batch). Display only; absent in fixtures. */
+  createdAt?: string;
 }
 
 /** Latest line per (meeting, pos): the effective count. Older lines stay in storage as history. */

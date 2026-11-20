@@ -1,5 +1,5 @@
 import type { Allocation } from '@/domain/types';
-import { createdDate, entryStatus, loanMemberOf, paidMeetingRows } from './entryDetail';
+import { entryStatus, loanMemberOf, paidMeetingRows } from './entryDetail';
 
 describe('entryStatus', () => {
   it('names the three states in words', () => {
@@ -45,15 +45,5 @@ describe('paidMeetingRows', () => {
 
   it('is empty when the payment paid no meeting (all credit)', () => {
     expect(paidMeetingRows([])).toEqual([]);
-  });
-});
-
-describe('createdDate', () => {
-  it('turns a timestamp into a local ISO date', () => {
-    expect(createdDate('2026-02-10T12:00:00.000Z')).toMatch(/^2026-02-1[01]$/);
-  });
-
-  it('returns unparsable input unchanged', () => {
-    expect(createdDate('not a date')).toBe('not a date');
   });
 });

@@ -192,6 +192,7 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
             account: e.account,
             reversesEntryId: e.reversesEntryId,
             correctionReason: e.correctionReason,
+            createdAt: e.createdAt,
           });
         }
       }
@@ -251,6 +252,7 @@ export function createReportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
           credit: p.credit,
           reversed: p.reversed,
           reversalReason: p.reversalReason,
+          createdAt: p.createdAt,
           settled: allocations
             .filter((a) => a.paymentId === p.id)
             .map((a) => ({ week: a.week, amount: a.amount, skipped: a.skipped === true })),

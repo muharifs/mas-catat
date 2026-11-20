@@ -217,6 +217,8 @@ export interface HistoryPaymentInput {
   credit: Rupiah;
   reversed: boolean;
   reversalReason: string | null;
+  /** When it was recorded (ISO UTC created_at). Display only. */
+  createdAt?: string;
   /** Meetings this payment settled (stored allocations). Rows with skipped true were released to credit and are not listed. */
   settled: readonly (WeekCredit & { skipped?: boolean })[];
 }
@@ -233,6 +235,8 @@ export interface HistoryEntryInput {
   account: Account | null;
   reversesEntryId: string | null;
   correctionReason: string | null;
+  /** When it was recorded (ISO UTC created_at). Display only. */
+  createdAt?: string;
 }
 
 export interface HistoryApplicationInput {
@@ -286,6 +290,8 @@ export interface HistoryEvent {
   /** Carry events: the other period. */
   otherPeriodName: string | null;
   account: Account | null;
+  /** When the payment or ledger entry behind this event was recorded. Absent for titipan applications (made by the system). */
+  createdAt?: string;
 }
 
 export interface HistoryLoan {
@@ -296,6 +302,8 @@ export interface HistoryLoan {
   reversed: boolean;
   reversalReason: string | null;
   account: Account | null;
+  /** When the entry was recorded (ISO UTC created_at). Display only. */
+  createdAt?: string;
 }
 
 export interface MemberHistory {
@@ -359,6 +367,7 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       week: null,
       otherPeriodName: null,
       account: null,
+      ...(p.createdAt ? { createdAt: p.createdAt } : {}),
     });
   }
 
@@ -384,6 +393,7 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       week: e.week,
       otherPeriodName: null,
       account: e.account,
+      ...(e.createdAt ? { createdAt: e.createdAt } : {}),
     });
   }
 
@@ -467,6 +477,7 @@ export function buildMemberHistory(input: MemberHistoryInput): MemberHistory {
       reversed: isReversed(e.id),
       reversalReason: reasonByOriginal.get(e.id) ?? null,
       account: e.account,
+      ...(e.createdAt ? { createdAt: e.createdAt } : {}),
     });
   }
   loans.sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));

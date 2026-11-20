@@ -11,7 +11,7 @@ import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
 import { Money } from '@/ui/components/Money';
 import { SectionHeader } from '@/ui/components/SectionHeader';
-import { formatDate } from '@/ui/dates';
+import { formatDate, recordedAtLabel } from '@/ui/dates';
 import { PAYMENT_HOST_PAYOUT_STANDS_TEXT } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { colors, radius, spacing, type } from '@/ui/theme';
@@ -117,6 +117,7 @@ export default function MemberInPeriodScreen() {
             <Text style={[styles.weekTitle, p.reversed ? styles.strike : null]}>
               {formatDate(p.date)}{SEP}{formatRupiah(p.amount)}
             </Text>
+            {recordedAtLabel(p.createdAt, p.date) ? <Text style={styles.muted}>{recordedAtLabel(p.createdAt, p.date)}</Text> : null}
             {p.reversed ? (
               <Text style={styles.bad}>Dikoreksi (dibatalkan): {p.reversalReason}</Text>
             ) : (

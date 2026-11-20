@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LedgerListItem } from '@/db/ledger';
 import type { LedgerEntryType } from '@/domain/types';
 import { entryDirection, historyFlowText, historyRowLabel, NO_POS_WARNING, reversalTitle } from '../history';
+import { recordedAtLabel } from '../dates';
 import { entryTitle, showsNoPosWarning, visibleNote } from '../kasLabels';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
 import { Badge } from './Badge';
@@ -56,12 +57,14 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
   const corrected = Boolean(e.reversedById);
   const second = [memberName, historyFlowText(e)].filter((part) => part !== '').join(SEP);
   const note = visibleNote(e);
+  // Empty when created_at is broken: then the line is not rendered at all.
+  const recordedAt = recordedAtLabel(e.createdAt, e.date);
   const direction = entryDirection(e);
   return (
     <Pressable
       accessibilityRole="button"
       // One sentence for TalkBack; the icon and the +/- sign inside are hidden from it (see historyRowLabel).
-      accessibilityLabel={historyRowLabel({ title, memberName, entry: e })}
+      accessibilityLabel={historyRowLabel({ title, memberName, entry: e, recordedAt })}
       onPress={onPress ?? (() => router.push({ pathname: '/kas/[entryId]', params: { entryId: e.id } }))}
       style={({ pressed }) => [
         styles.row,
@@ -80,6 +83,7 @@ export function HistoryRow({ entry: e, byId, memberName, flat = false, onPress }
       <View style={styles.main}>
         <Text style={[styles.title, corrected && styles.strike]}>{title}</Text>
         <Text style={styles.sub}>{second}</Text>
+        {recordedAt ? <Text style={styles.sub}>{recordedAt}</Text> : null}
         {note ? <Text style={styles.sub}>{note}</Text> : null}
         {corrected ? <Badge label="Dikoreksi" tone="error" onTint /> : null}
         {showsNoPosWarning(e) ? <Text style={[styles.sub, styles.warn]}>{NO_POS_WARNING}</Text> : null}

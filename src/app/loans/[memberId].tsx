@@ -11,7 +11,7 @@ import { Money } from '@/ui/components/Money';
 import { Notice } from '@/ui/components/Notice';
 import { ReportLine } from '@/ui/components/ReportLine';
 import { SectionHeader } from '@/ui/components/SectionHeader';
-import { formatDate } from '@/ui/dates';
+import { formatDate, recordedAtLabel } from '@/ui/dates';
 import { formatRupiah } from '@/ui/format';
 import { entryTitle } from '@/ui/kasLabels';
 import { colors, spacing, type } from '@/ui/theme';
@@ -74,6 +74,7 @@ export default function MemberLoanScreen() {
           right={<Money amount={e.amount} size="heading" tone="neutral" />}
         >
           <RowText>{formatDate(e.date)}</RowText>
+          {recordedAtLabel(e.createdAt, e.date) ? <RowText>{recordedAtLabel(e.createdAt, e.date)}</RowText> : null}
           {e.note ? <RowText>{e.note}</RowText> : null}
           {e.reversedById ? <RowText tone="danger">Dikoreksi</RowText> : null}
         </ListRow>

@@ -169,6 +169,14 @@ describe('historyRowLabel', () => {
     expect(historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e })).toBe('Iuran, Dedi, Masuk ke Tunai, Rp50.000, Dikoreksi');
   });
 
+  it('puts the recorded-at text before the note and Dikoreksi, and skips it when empty', () => {
+    const e = entry({ amount: 50_000, reversedById: 'r1' });
+    expect(historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e, recordedAt: 'Dicatat 19.42' })).toBe(
+      'Iuran, Dedi, Masuk ke Tunai, Rp50.000, Dicatat 19.42, Dikoreksi',
+    );
+    expect(historyRowLabel({ title: 'Iuran', memberName: 'Dedi', entry: e, recordedAt: '' })).toBe('Iuran, Dedi, Masuk ke Tunai, Rp50.000, Dikoreksi');
+  });
+
   it('skips the member part when there is none (no double comma)', () => {
     const e = entry({ memberId: null, type: 'shared_goal', direction: 'out', amount: 20_000 });
     const label = historyRowLabel({ title: 'Pengeluaran', memberName: '', entry: e });

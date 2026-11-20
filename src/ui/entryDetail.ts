@@ -2,7 +2,6 @@
 // whether the member's remaining loan is shown, and the lines for the meetings a payment paid. No money is computed.
 import { isLoanEntry } from '@/domain/loans';
 import type { Account, Allocation, LedgerEntryType } from '@/domain/types';
-import { todayIso } from './dates';
 import type { BadgeTone } from './components/Badge';
 
 export interface EntryStatus {
@@ -39,10 +38,4 @@ export function paidMeetingRows(allocations: readonly Allocation[]): { week: num
     .filter((a) => a.skipped !== true)
     .sort((a, b) => a.week - b.week)
     .map((a) => ({ week: a.week, amount: a.amount, label: `Pertemuan ${a.week}` }));
-}
-
-/** Local calendar date on which an entry was written, from its created-at timestamp. */
-export function createdDate(createdAt: string): string {
-  const d = new Date(createdAt);
-  return Number.isNaN(d.getTime()) ? createdAt : todayIso(d);
 }

@@ -114,16 +114,16 @@ export const EXPECTED_LABELS = {
   titipan: 'Titipan anggota',
   titipanAvailable: 'Rincian titipan: belum dipakai',
   titipanCarried: 'Rincian titipan: sudah dialokasikan ke pertemuan yang belum ditutup',
-  expected: 'Kas seharusnya',
+  expected: 'Perkiraan kas',
   prepaid: 'Dibayar di muka',
   unpaidPayout: 'Bayaran tuan rumah belum dibayar',
 } as const;
 
-/** Reads "Kas seharusnya = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
-/** One line under the "Kas seharusnya" heading in Laporan. */
+/** Reads "Perkiraan kas = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
+/** One line under the "Perkiraan kas" heading in Laporan. */
 export const EXPECTED_SUBTITLE = 'Perkiraan kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan.';
 
-export const EXPECTED_FORMULA = 'Kas seharusnya = Total kas + tunggakan iuran - titipan anggota';
+export const EXPECTED_FORMULA = 'Perkiraan kas = Total kas + tunggakan iuran - titipan anggota';
 
 /** Info line text for "Bayaran tuan rumah belum dibayar": count of closed meetings. */
 export function unpaidPayoutText(count: number): string {

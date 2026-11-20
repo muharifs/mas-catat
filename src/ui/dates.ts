@@ -88,6 +88,17 @@ export function parseCreatedAt(createdAt: string | null | undefined): Date | nul
 }
 
 /**
+ * Recorded-at for the CSV "Dicatat" column: "2026-11-18 19:42" in the device local time (no zone), which spreadsheets read
+ * as a date-time. Empty string when `createdAt` is empty or malformed (the cell is then left blank).
+ */
+export function csvRecordedAt(createdAt: string | null | undefined, offsetMinutes?: number): string {
+  const d = parseCreatedAt(createdAt);
+  if (!d) return '';
+  const p = localParts(d, offsetMinutes);
+  return `${String(p.year).padStart(4, '0')}-${pad2(p.month)}-${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}`;
+}
+
+/**
  * Display text of when an entry was recorded. Empty string when `createdAt` is not valid (callers then render nothing).
  * - long: always the full date and time, "18 Nov 2026, 19.42" (detail screen, value of the "Dicatat pada" row).
  * - same local day as the entry date: "Dicatat 19.42".

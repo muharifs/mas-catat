@@ -154,6 +154,53 @@ describe('buku-kas', () => {
   });
 });
 
+/** Expected "Dicatat" cell built from the local Date getters, so the test does not depend on the machine time zone. */
+function localStamp(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+describe('kolom Dicatat', () => {
+  it('is the LAST column of Buku kas and Pembayaran; the old columns keep their order', () => {
+    expect(LEDGER_HEADER[LEDGER_HEADER.length - 1]).toBe('Dicatat');
+    expect(LEDGER_HEADER.slice(0, 13)).toEqual([
+      'Tanggal', 'Jenis', 'Tempat uang', 'Tempat uang tujuan', 'Anggota', 'Periode', 'Pertemuan',
+      'Masuk (Rp)', 'Keluar (Rp)', 'Tanpa perubahan kas (Rp)', 'Catatan', 'Status', 'Alasan koreksi',
+    ]);
+    expect(PAYMENT_HEADER[PAYMENT_HEADER.length - 1]).toBe('Dicatat');
+    expect(PAYMENT_HEADER.slice(0, 8)).toEqual(['Tanggal', 'Anggota', 'Periode', 'Jumlah (Rp)', 'Untuk pertemuan', 'Titipan (Rp)', 'Status', 'Alasan koreksi']);
+  });
+
+  it('Buku kas rows hold the local created_at as YYYY-MM-DD HH:mm; a bad value gives an empty cell', async () => {
+    const { repos } = await history();
+    const rows = await repos.exports.listLedger();
+    const table = parse(ledgerCsv(rows));
+    expect(table[0]?.length).toBe(LEDGER_HEADER.length);
+    rows.forEach((r, i) => {
+      expect(table[i + 1]?.length).toBe(LEDGER_HEADER.length);
+      expect(table[i + 1]?.[13]).toBe(localStamp(r.createdAt));
+      expect(table[i + 1]?.[13]).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+    });
+    const first = rows[0]!;
+    for (const bad of ['', 'abc', '2026-01-04']) {
+      expect(parse(ledgerCsv([{ ...first, createdAt: bad }]))[1]?.[13]).toBe('');
+    }
+  });
+
+  it('Pembayaran rows hold the local created_at of the payment; a bad value gives an empty cell', async () => {
+    const { repos } = await history();
+    const rows = await repos.exports.listPayments();
+    expect(rows.length).toBeGreaterThan(0);
+    const table = parse(paymentsCsv(rows));
+    expect(table[0]?.length).toBe(PAYMENT_HEADER.length);
+    rows.forEach((r, i) => {
+      expect(table[i + 1]?.[8]).toBe(localStamp(r.createdAt));
+    });
+    expect(parse(paymentsCsv([{ ...rows[0]!, createdAt: '' }]))[1]?.[8]).toBe('');
+  });
+});
+
 describe('pembayaran', () => {
   it('lists every payment with the meetings it paid, the titipan part and the status', async () => {
     const { repos } = await history();

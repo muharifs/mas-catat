@@ -24,7 +24,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   { group: 'Kas dan uang', term: 'Pinjaman', meaning: 'Uang kas yang dipinjamkan ke anggota. Tanpa bunga dan tanpa batas waktu.' },
   { group: 'Kas dan uang', term: 'Pelunasan pinjaman', meaning: 'Anggota mengembalikan sebagian atau seluruh pinjaman. Uangnya masuk ke Tunai.' },
   { group: 'Kas dan uang', term: 'Sisa pinjaman', meaning: 'Pinjaman dikurangi yang sudah dikembalikan, dihitung dari semua periode.' },
-  { group: 'Kas dan uang', term: 'Perkiraan kas', meaning: 'Perkiraan kas bila semua tunggakan dilunasi dan semua titipan dikembalikan. Rumus: Total kas + tunggakan iuran - titipan anggota.' },
+  { group: 'Kas dan uang', term: 'Perkiraan kas', meaning: 'Jumlah kas bila semua tunggakan dilunasi dan semua titipan dikembalikan. Rumus: Total kas + tunggakan iuran - titipan anggota.' },
   { group: 'Iuran dan tuan rumah', term: 'Iuran', meaning: 'Rp15.000 yang dibayar setiap anggota di setiap pertemuan, termasuk tuan rumah.' },
   { group: 'Iuran dan tuan rumah', term: 'Kelipatan Rp15.000', meaning: 'Pembayaran harus Rp15.000, Rp30.000, Rp45.000, dan seterusnya. Pembayaran sebagian tidak diterima.' },
   { group: 'Iuran dan tuan rumah', term: 'Tunggakan', meaning: 'Iuran pertemuan yang belum dibayar anggota.' },

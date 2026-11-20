@@ -119,10 +119,10 @@ export const EXPECTED_LABELS = {
   unpaidPayout: 'Bayaran tuan rumah belum dibayar',
 } as const;
 
-/** Reads "Perkiraan kas = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
 /** One line under the "Perkiraan kas" heading in Laporan. */
-export const EXPECTED_SUBTITLE = 'Perkiraan kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan.';
+export const EXPECTED_SUBTITLE = 'Jumlah kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan.';
 
+/** Reads "Perkiraan kas = Total kas + tunggakan iuran - titipan anggota" for the formula caption. */
 export const EXPECTED_FORMULA = 'Perkiraan kas = Total kas + tunggakan iuran - titipan anggota';
 
 /** Info line text for "Bayaran tuan rumah belum dibayar": count of closed meetings. */

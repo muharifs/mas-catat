@@ -46,6 +46,11 @@ describe('report labels', () => {
     for (const text of all) expect(text.toLowerCase()).not.toContain('kredit');
   });
 
+  it('words the Perkiraan kas subtitle and keeps the formula', () => {
+    expect(EXPECTED_SUBTITLE).toBe('Jumlah kas bila semua tunggakan dilunasi dan semua titipan anggota dikembalikan.');
+    expect(EXPECTED_FORMULA).toBe('Perkiraan kas = Total kas + tunggakan iuran - titipan anggota');
+  });
+
   it('names written-off arrears "Tunggakan ditanggung kas"', () => {
     expect(EVENT_LABELS.writeoff).toBe('Tunggakan ditanggung kas');
   });

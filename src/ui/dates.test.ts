@@ -1,4 +1,4 @@
-import { formatTime, parseCreatedAt, recordedAtLabel } from './dates';
+import { csvRecordedAt, formatTime, parseCreatedAt, recordedAtLabel } from './dates';
 
 // Every case passes an explicit offset (minutes east of UTC), so the tests do not depend on the machine time zone.
 const WIB = 420;
@@ -74,5 +74,27 @@ describe('recordedAtLabel', () => {
   it('without an offset it uses the device zone and still returns a well-formed label', () => {
     const label = recordedAtLabel('2026-11-17T12:42:00.000Z', '2026-11-17');
     expect(label).toMatch(/^Dicatat (\d{2}\.\d{2}|\d{1,2} [A-Z][a-z]{2}( \d{4})?, \d{2}\.\d{2})$/);
+  });
+});
+
+describe('csvRecordedAt', () => {
+  it('gives "YYYY-MM-DD HH:mm" in the given zone, with the local day (not the UTC day)', () => {
+    expect(csvRecordedAt('2026-11-18T12:42:00.000Z', WIB)).toBe('2026-11-18 19:42');
+    expect(csvRecordedAt('2026-11-17T18:30:00.000Z', WIB)).toBe('2026-11-18 01:30');
+    expect(csvRecordedAt('2026-11-16T17:05:00.000Z', WIB)).toBe('2026-11-17 00:05');
+    expect(csvRecordedAt('2026-11-18T02:30:00.000Z', -300)).toBe('2026-11-17 21:30');
+  });
+
+  it('empty, garbage and zone-less values give an empty cell and do not throw', () => {
+    for (const bad of ['', 'abc', '2026-01-04', '2026-01-04T10:00:00', null, undefined]) {
+      expect(csvRecordedAt(bad, WIB)).toBe('');
+    }
+  });
+
+  it('without an offset it matches the device local clock, whatever the machine zone', () => {
+    const iso = '2026-11-18T12:42:00.000Z';
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    expect(csvRecordedAt(iso)).toBe(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`);
   });
 });

@@ -15,6 +15,7 @@ import { Loading } from '@/ui/components/Loading';
 import { Notice } from '@/ui/components/Notice';
 import { Section } from '@/ui/components/Section';
 import { formatDate } from '@/ui/dates';
+import { isEstimatedMeetingDate, withEstimateLabel } from '@/ui/meetingEstimate';
 import { HOST_PAYOUT_STANDS_TEXT, toIndonesian } from '@/ui/errors';
 import { CHECK_FIRST_LABEL, closeWeekCountWarning, COUNT_STRINGS } from '@/ui/cashCount';
 import { closeWeekMessage, toasts } from '@/ui/messages';
@@ -196,8 +197,7 @@ ${countWarning}` : ''),
         const texts = (
           <View style={[styles.texts, wholeCardTap && styles.textsFlex]}>
             <Text style={styles.weekTitle}>
-              Pertemuan {w.number}{SEP}{formatDate(w.date)}
-              {w.status === 'open' && !w.hostMemberId && !canPick ? ' (perkiraan)' : ''}
+              Pertemuan {w.number}{SEP}{withEstimateLabel(formatDate(w.date), isEstimatedMeetingDate(w))}
             </Text>
             {/* A skipped meeting shows no host: a name there would read as if a payout happened. */}
             <Text style={w.hostMemberId && !isSkipped ? styles.body : styles.hint}>

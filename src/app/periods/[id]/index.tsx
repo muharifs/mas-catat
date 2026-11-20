@@ -65,6 +65,7 @@ export default function PeriodDetailScreen() {
   const { data, error: loadError, reload } = useLoad(load);
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const skip = useSkipMeeting(id);
 
   if (loadError) return <ErrorState message={loadError} onRetry={() => void reload()} />;
@@ -132,52 +133,6 @@ ${countWarning}` : ''),
         onPress={() => router.push({ pathname: '/periods/[id]/payments', params: { id: period.id } })}
       />
 
-      {isActive && oldestOpen ? (
-        <Card tone="alt">
-          <Text style={styles.cardTitle}>Tutup pertemuan</Text>
-          <Text style={styles.hint}>
-            Pertemuan yang ditutup selalu yang paling awal yang masih terbuka (pertemuan {oldestOpen.number}) dan harus
-            sudah punya tuan rumah. Tunggakan dihitung sampai pertemuan ini. Saat libur (misalnya Ramadan) tidak ada iuran:
-            cukup jangan tutup pertemuan.
-          </Text>
-          <Button
-            label={`Tutup pertemuan ${oldestOpen.number}`}
-            variant="dangerOutline"
-            disabled={oldestOpen.hostMemberId === null}
-            onPress={confirmCloseWeek}
-          />
-          {oldestOpen.hostMemberId === null ? (
-            <Text style={styles.hint}>
-              Tentukan tuan rumah pertemuan {oldestOpen.number} dulu{skipView ? ', atau lewati pertemuan ini' : ''}.
-            </Text>
-          ) : null}
-        </Card>
-      ) : null}
-
-      <Button
-        label={COUNT_STRINGS.history}
-        variant="secondary"
-        onPress={() => router.push({ pathname: '/periods/[id]/cek-kas', params: { id: period.id } })}
-      />
-
-      {isActive && skipView ? (
-        <Card tone="alt">
-          <Text style={styles.cardTitle}>{skipCardTitle(skipView.number)}</Text>
-          <Text style={styles.hint}>{SKIP_CARD_HELP}</Text>
-          <Button
-            label={skipCardTitle(skipView.number)}
-            variant="secondary"
-            disabled={!skipView.enabled}
-            loading={skip.busy}
-            disabledReason={skipView.reason ?? undefined}
-            onPress={() => {
-              if (skipPreview) skip.ask({ number: skipView.number, preview: skipPreview, onSkipped: reload });
-            }}
-          />
-          {skip.error ? <Notice tone="danger">{skip.error}</Notice> : null}
-        </Card>
-      ) : null}
-
       <Section title="Jadwal" contentGap={spacing.md}>
       {weeks.map((w) => {
         // A skipped meeting (status 'skipped') is neither open nor closed: no host, date, payout or close actions.
@@ -213,7 +168,7 @@ ${countWarning}` : ''),
             {isSkipped ? <Text style={styles.hint}>{skippedRowHelp(turnName)}</Text> : null}
             {/* With the "Lihat pembayaran tuan rumah" button (open meeting, active period) the paid state is obvious;
                 otherwise the status line stays. */}
-            {isPaid && (!canViewPayout || wholeCardTap) ? <Text style={styles.closed}>Pembayaran tuan rumah: sudah dibayar</Text> : null}
+            {isPaid && (!canViewPayout || wholeCardTap) ? <Badge label="Tuan rumah dibayar" tone="ok" /> : null}
             {canPick && isPaid && w.hostMemberId ? <Text style={styles.hint}>{HOST_PAYOUT_STANDS_TEXT}</Text> : null}
           </View>
         );
@@ -280,6 +235,67 @@ ${countWarning}` : ''),
       })}
       </Section>
 
+      {isActive && oldestOpen ? (
+        <Card tone="alt">
+          <Text style={styles.cardTitle}>Tutup pertemuan</Text>
+          {/* J3: the long rule text is folded away by default; the words are unchanged. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Aturan penutupan"
+            accessibilityState={{ expanded: rulesOpen }}
+            onPress={() => setRulesOpen((v) => !v)}
+            style={styles.foldRow}
+          >
+            <Text style={styles.foldLabel}>Aturan penutupan</Text>
+            <View accessibilityElementsHidden importantForAccessibility="no">
+              <Ionicons name={rulesOpen ? 'chevron-up' : 'chevron-down'} size={ICON.sm} color={colors.brandStrong} />
+            </View>
+          </Pressable>
+          {rulesOpen ? (
+            <Text style={styles.hint}>
+              Pertemuan yang ditutup selalu yang paling awal yang masih terbuka (pertemuan {oldestOpen.number}) dan harus
+              sudah punya tuan rumah. Tunggakan dihitung sampai pertemuan ini. Saat libur (misalnya Ramadan) tidak ada iuran:
+              cukup jangan tutup pertemuan.
+            </Text>
+          ) : null}
+          <Button
+            label={`Tutup pertemuan ${oldestOpen.number}`}
+            variant="dangerOutline"
+            disabled={oldestOpen.hostMemberId === null}
+            onPress={confirmCloseWeek}
+          />
+          {oldestOpen.hostMemberId === null ? (
+            <Text style={styles.hint}>
+              Tentukan tuan rumah pertemuan {oldestOpen.number} dulu{skipView ? ', atau lewati pertemuan ini' : ''}.
+            </Text>
+          ) : null}
+        </Card>
+      ) : null}
+
+      <Button
+        label={COUNT_STRINGS.history}
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/periods/[id]/cek-kas', params: { id: period.id } })}
+      />
+
+      {isActive && skipView ? (
+        <Card tone="alt">
+          <Text style={styles.cardTitle}>{skipCardTitle(skipView.number)}</Text>
+          <Text style={styles.hint}>{SKIP_CARD_HELP}</Text>
+          <Button
+            label={skipCardTitle(skipView.number)}
+            variant="secondary"
+            disabled={!skipView.enabled}
+            loading={skip.busy}
+            disabledReason={skipView.reason ?? undefined}
+            onPress={() => {
+              if (skipPreview) skip.ask({ number: skipView.number, preview: skipPreview, onSkipped: reload });
+            }}
+          />
+          {skip.error ? <Notice tone="danger">{skip.error}</Notice> : null}
+        </Card>
+      ) : null}
+
       {isActive ? (
         <Card tone="alt">
           <Text style={styles.cardTitle}>Akhiri periode</Text>
@@ -315,6 +331,7 @@ const styles = StyleSheet.create({
   textsFlex: { flex: 1 },
   actions: { gap: spacing.sm, alignSelf: 'stretch' },
   weekTitle: { ...type.bodyStrong, color: colors.text },
-  closed: { ...type.body, color: colors.textSecondary },
+  foldRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  foldLabel: { ...type.label, color: colors.brandStrong },
   hint: { ...type.secondary, color: colors.textSecondary },
 });

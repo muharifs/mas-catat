@@ -245,8 +245,8 @@ export default function RestoreScreen() {
         {/* One comparison card: two column titles, then each item once with its two values side by side. */}
         <Card>
           <View style={styles.columns}>
-            <Text style={[styles.heading, styles.column]}>Di HP ini sekarang</Text>
-            <Text style={[styles.heading, styles.column]}>{isReset ? 'Setelah mulai dari nol' : 'Isi cadangan'}</Text>
+            <Text style={[styles.heading, styles.column]}>Di HP ini</Text>
+            <Text style={[styles.heading, styles.column]}>{isReset ? 'Setelah mulai dari nol' : 'Di cadangan'}</Text>
           </View>
           {summaryRows(prepared.live).map((row, index) => (
             <CompareLine key={row.label} label={row.label} current={row.value} other={summaryRows(prepared.candidate)[index]?.value ?? '-'} />

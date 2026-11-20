@@ -1,0 +1,74 @@
+# EAS upload filter. When this file exists, EAS CLI uses it INSTEAD of every .gitignore,
+# so all .gitignore patterns are repeated below. Keep both files in sync.
+# Reference: https://docs.expo.dev/build-reference/easignore/
+
+# ---- Repeated from .gitignore (keep these out of the upload) ----
+
+# dependencies (EAS installs them from package-lock.json)
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env.*
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders (EAS runs prebuild)
+/ios
+/android
+
+# Backups and exports (contain member names and money)
+*.db
+*.sqlite
+*.csv
+
+# Signing material
+*.keystore
+keystore-*
+credentials.json
+
+# ---- Extra: not needed by the build ----
+
+# Docs, plans and assistant/agent files
+/docs/
+/PROJECT.md
+/.claude/
+/notes/
+/memory/
+
+# Tests and test-only helpers (nothing outside tests imports src/db/testing/;
+# src/ui/gallery/fixtures.ts is used by the app and is NOT excluded)
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
+/src/db/testing/
+/jest.config.js

@@ -57,6 +57,7 @@ Expo Go lulus tidak membuktikan APK lulus. Pakai data contoh lagi.
 | 8 | L6: matikan paksa (force-stop) saat pemulihan berjalan | Awal berikutnya menampilkan pesan pemulihan (lihat bagian E) |
 | 9 | allowBackup: cek di info aplikasi atau keluaran build | Sesuai keputusan (mati). Ini bukan fitur yang terlihat pengguna |
 | 10 | Salinan keystore | Pemilik mengonfirmasi dua tempat |
+| 11 | Setelah pemasangan, buka Info aplikasi > Izin. Lalu bagikan sebuah cadangan dan bagikan satu CSV, dan pilih berkas lewat Pulihkan (data contoh) | Daftar izin TIDAK memuat izin yang diblokir (READ/WRITE_EXTERNAL_STORAGE, SYSTEM_ALERT_WINDOW, VIBRATE). Berbagi cadangan dan memilih berkas pemulihan tetap berfungsi (keputusan 41) |
 | L6 (baru) | Jalur marker pemulihan, lihat E1 sampai E4 | Layar "Pemulihan sebelumnya tidak selesai" dan tombol Pulihkan bekerja |
 | F3 (baru) | Cadangan lama dengan perubahan sesudahnya: tutup pertemuan, pilih tuan rumah atau tanggal, akhiri periode, arsipkan anggota, tambah atau ganti nama anggota | Setiap perubahan itu membuat cadangan lama terbaca "berbeda/lebih lama" dan butuh mengetik PULIHKAN, bukan "sama" |
 

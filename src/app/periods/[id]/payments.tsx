@@ -5,6 +5,8 @@ import { showMessage } from '@/ui/dialog';
 import { useRepos } from '@/db/provider';
 import { sortByName } from '@/domain/sort';
 import { canSwipePay, SWIPE_PAYMENT_AMOUNT } from '@/domain/swipe-pay';
+import { Badge } from '@/ui/components/Badge';
+import { Card } from '@/ui/components/Card';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { ErrorState } from '@/ui/components/ErrorState';
 import { Loading } from '@/ui/components/Loading';
@@ -16,6 +18,7 @@ import { toIndonesian } from '@/ui/errors';
 import { formatRupiah } from '@/ui/format';
 import { filterByQuery, shouldShowMemberSearch } from '@/ui/memberSearch';
 import { swipePaymentToast } from '@/ui/messages';
+import { meetingStatusBlock } from '@/ui/paymentsMeeting';
 import { skippedPaymentsLine } from '@/ui/skipMeeting';
 import { colors, MIN_TOUCH, radius, spacing, type } from '@/ui/theme';
 import { toast } from '@/ui/toast';
@@ -46,7 +49,7 @@ export default function PeriodPaymentsScreen() {
     ]);
     const paidToday = new Set(paidIds);
     paidTodayRef.current = paidToday;
-    return { period, balances, members, paidToday, skippedNumbers: weeks.filter((w) => w.status === 'skipped').map((w) => w.number) };
+    return { period, balances, members, paidToday, weeks, skippedNumbers: weeks.filter((w) => w.status === 'skipped').map((w) => w.number) };
   }, [repos, id]);
   const { data, error, reload } = useLoad(load);
   const sortedBalances = useMemo(() => {
@@ -59,12 +62,19 @@ export default function PeriodPaymentsScreen() {
   if (!data) return <Loading />;
   if (!data.period) return <ErrorState title="Data tidak ditemukan" message="Periode tidak ditemukan. Kembali lalu pilih lagi." />;
 
-  const { balances, members, period, paidToday, skippedNumbers } = data;
+  const { balances, members, period, paidToday, weeks, skippedNumbers } = data;
   const paidTodayCount = balances.filter((b) => paidToday.has(b.memberId)).length;
   const nameOf = (memberId: string) => members.find((m) => m.id === memberId)?.name ?? '-';
   const throughWeek = balances[0]?.throughWeek;
   const periodActive = period.status === 'active';
-  const searchShown = shouldShowMemberSearch(balances.length);
+  const meeting = meetingStatusBlock({
+    weeks,
+    throughWeek,
+    meetingCount: period.memberCount,
+    periodActive,
+    memberNames: new Map(members.map((m) => [m.id, m.name])),
+  });
+  const searchShown =shouldShowMemberSearch(balances.length);
   const found = filterByQuery(sortedBalances, (b) => nameOf(b.memberId), searchShown ? query : '');
 
   // Preview first (same domain function as record) so the toast can name exactly what was settled.
@@ -100,7 +110,21 @@ export default function PeriodPaymentsScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>{period.name}</Text>
-            {throughWeek ? <Text style={styles.muted}>Tunggakan dihitung sampai pertemuan {throughWeek}.</Text> : null}
+            {meeting ? (
+              <Card tone="alt">
+                <View accessible accessibilityLabel={meeting.accessibilityLabel} style={styles.meetingBody}>
+                  <View style={styles.meetingTop}>
+                    <Text style={styles.meetingTitle}>{meeting.title}</Text>
+                    <Badge label={meeting.statusLabel} tone={meeting.badgeTone} />
+                  </View>
+                  <Text style={[styles.meetingText, !meeting.hostKnown && styles.muted]}>{meeting.hostLine}</Text>
+                  <Text style={styles.meetingText}>{meeting.dateLine}</Text>
+                  <Text style={styles.muted}>{meeting.throughLine}</Text>
+                </View>
+              </Card>
+            ) : throughWeek ? (
+              <Text style={styles.muted}>Tunggakan dihitung sampai pertemuan {throughWeek}.</Text>
+            ) : null}
             {throughWeek && skippedPaymentsLine(throughWeek, skippedNumbers) ? (
               <Text style={styles.muted}>{skippedPaymentsLine(throughWeek, skippedNumbers)}</Text>
             ) : null}
@@ -160,6 +184,10 @@ const styles = StyleSheet.create({
   container: { padding: spacing.lg, gap: spacing.sm },
   header: { gap: spacing.xs, marginBottom: spacing.xs },
   title: { ...type.titleL, color: colors.text },
+  meetingBody: { gap: spacing.xs },
+  meetingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  meetingTitle: { ...type.titleM, color: colors.text, flexShrink: 1 },
+  meetingText: { ...type.body, color: colors.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, paddingLeft: spacing.md, borderRadius: radius.md, backgroundColor: colors.bgCard },
   rowArrears: { backgroundColor: colors.errorTint, borderWidth: 1, borderColor: colors.error },
   main: { flex: 1, minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

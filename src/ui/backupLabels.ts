@@ -3,7 +3,7 @@
 import type { BackupReminder, DbSummary, RestoreClassification } from '@/domain/backup';
 import { parseSafetyName, PHRASE_RESET, PHRASE_RESTORE, SAFETY_KEEP } from '@/domain/backup';
 import type { RestoreOutcome } from '@/db/backup';
-import { formatDate, todayIso } from './dates';
+import { formatDate, formatTime, todayIso } from './dates';
 import { formatRupiah } from './format';
 
 /** Shown in a dialog right before the backup goes to the share sheet. */
@@ -20,7 +20,7 @@ export const CSV_HINT =
 
 /** Shown under the Buku kas button only. Mirrors csvAmountColumns (src/domain/flow.ts). */
 export const CSV_LEDGER_HINT =
-  'Masuk dan Keluar mengikuti perubahan Tunai + Debit untuk semua jenis catatan: pinjaman di Keluar, pelunasan di Masuk, sedangkan pindah saldo, tunggakan ditanggung kas, dan saldo awal Piutang ada di Tanpa perubahan kas.';
+  'Masuk dan Keluar mengikuti perubahan Tunai + Debit untuk semua jenis catatan: pinjaman di Keluar, pelunasan di Masuk, sedangkan pindah saldo, tunggakan ditanggung kas, dan saldo awal Piutang ada di Tanpa perubahan kas. Kolom Dicatat di paling kanan berisi waktu catatan diketik, memakai jam HP ini.';
 
 export const NO_ENCRYPTION_HINT = 'Cadangan tidak dikunci dengan kata sandi. Siapa pun yang memegang berkasnya bisa membacanya.';
 
@@ -107,7 +107,11 @@ export function summaryRows(s: DbSummary): SummaryRow[] {
 
 export function safetyCopyLabel(name: string): string {
   const parsed = parseSafetyName(name);
-  return parsed ? `Salinan pengaman ${formatDate(parsed.date)} pukul ${parsed.time}` : 'Salinan pengaman';
+  if (!parsed) return 'Salinan pengaman';
+  // The name holds local clock parts ("HH:mm"), not an instant. They go through formatTime so the clock reads like
+  // "Dicatat 19.42" everywhere ("09.05"). The Date is built from local components, so no time zone shift happens.
+  const [hour = 0, minute = 0] = parsed.time.split(':').map(Number);
+  return `Salinan pengaman ${formatDate(parsed.date)} pukul ${formatTime(new Date(2000, 0, 1, hour, minute))}`;
 }
 
 export function phraseInstruction(phrase: string): string {

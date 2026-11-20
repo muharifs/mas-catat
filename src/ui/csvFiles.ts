@@ -8,6 +8,7 @@ import { csvAmountColumns } from '@/domain/flow';
 import { ACCOUNT_LABELS } from '@/domain/kas';
 import type { Account } from '@/domain/types';
 import { CSV_LEDGER_HINT } from './backupLabels';
+import { csvRecordedAt } from './dates';
 import { TYPE_LABELS, showsNoPosWarning, visibleNote } from './kasLabels';
 
 const posText = (account: Account | null, type: LedgerExportRow['type']): string => {
@@ -29,6 +30,7 @@ export const LEDGER_HEADER = [
   'Catatan',
   'Status',
   'Alasan koreksi',
+  'Dicatat',
 ] as const;
 
 const LEDGER_STATUS: Record<LedgerExportRow['status'], string> = {
@@ -61,12 +63,13 @@ export function ledgerCsv(rows: readonly LedgerExportRow[]): string {
         visibleNote(r),
         LEDGER_STATUS[r.status],
         r.correctionReason,
+        csvRecordedAt(r.createdAt),
       ];
     }),
   );
 }
 
-export const PAYMENT_HEADER = ['Tanggal', 'Anggota', 'Periode', 'Jumlah (Rp)', 'Untuk pertemuan', 'Titipan (Rp)', 'Status', 'Alasan koreksi'] as const;
+export const PAYMENT_HEADER = ['Tanggal', 'Anggota', 'Periode', 'Jumlah (Rp)', 'Untuk pertemuan', 'Titipan (Rp)', 'Status', 'Alasan koreksi', 'Dicatat'] as const;
 
 export function paymentsCsv(rows: readonly PaymentExportRow[]): string {
   return buildCsv(
@@ -80,6 +83,7 @@ export function paymentsCsv(rows: readonly PaymentExportRow[]): string {
       r.corrected ? null : r.credit,
       r.corrected ? 'Dikoreksi' : 'Berlaku',
       r.correctionReason,
+      csvRecordedAt(r.createdAt),
     ]),
   );
 }

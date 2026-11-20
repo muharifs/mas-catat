@@ -81,6 +81,8 @@ describe('QA D10: Buku kas CSV reconciles with the real kas (own scenario)', () 
     for (const w of writeoffs) expect([w[7], w[8]]).toEqual(['', '']);
     // Old named Piutang balance: no cash.
     expect(table.filter((r) => r[1] === 'Saldo awal: pinjaman lama' || (r[1] === 'Saldo awal' && r[2] === 'Piutang')).every((r) => r[7] === '' && r[8] === '')).toBe(true);
+    // The "Dicatat" column is the last one and sits outside the amount columns: it never changes the reconcile.
+    for (const r of table) expect(r).toHaveLength(14);
     // Every row has exactly one of the three amount columns filled.
     for (const r of table) expect([r[7], r[8], r[9]].filter((v) => v !== '').length).toBe(1);
     // Refund is cash out; host payout is cash out; host offset is not cash.

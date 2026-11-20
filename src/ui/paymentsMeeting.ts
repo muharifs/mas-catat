@@ -1,6 +1,7 @@
 // Status card of the payment list: the meeting that arrears are counted through. Pure; shows stored data only, no money.
 import type { WeekState } from '@/db/weeks';
 import { formatDate } from './dates';
+import { isEstimatedMeetingDate, withEstimateLabel } from './meetingEstimate';
 import { MEETING_STATUS_LABELS } from './reportLabels';
 
 export interface MeetingStatusWeek {
@@ -40,12 +41,12 @@ export function meetingStatusBlock(input: MeetingStatusInput): MeetingStatusBloc
   const skipped = week.status === 'skipped';
   const noHostYet = !skipped && week.hostMemberId === null;
   const hostName = skipped || week.hostMemberId === null ? null : (memberNames.get(week.hostMemberId) ?? '-');
-  const estimated = week.status === 'open' && week.hostMemberId === null;
+  const estimated = isEstimatedMeetingDate(week);
 
   const hostLine = skipped ? 'Tuan rumah: tidak ada' : noHostYet ? 'Tuan rumah: Belum ditentukan' : `Tuan rumah: ${hostName}`;
   const hostKnown = hostName !== null;
   const date = formatDate(week.date);
-  const dateLine = `Tanggal: ${date}${estimated ? ' (perkiraan)' : ''}`;
+  const dateLine = `Tanggal: ${withEstimateLabel(date, estimated)}`;
   const throughLine = periodActive
     ? `Tunggakan dihitung sampai pertemuan ${week.number}.`
     : 'Periode berakhir. Tunggakan dihitung sampai pertemuan terakhir.';

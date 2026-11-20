@@ -25,6 +25,8 @@ export interface LedgerExportRow {
   status: 'in_force' | 'corrected' | 'reversal';
   /** The reason typed with the correction: on the reversal row, and on the row it cancelled. */
   correctionReason: string | null;
+  /** When the entry was recorded (ISO UTC, created_at). */
+  createdAt: string;
 }
 
 export interface PaymentExportRow {
@@ -38,6 +40,8 @@ export interface PaymentExportRow {
   credit: number;
   corrected: boolean;
   correctionReason: string | null;
+  /** When the payment was recorded (ISO UTC, created_at). */
+  createdAt: string;
 }
 
 export interface MeetingDueExportRow {
@@ -91,6 +95,7 @@ interface LedgerSqlRow {
   correction_reason: string | null;
   reversed_reason: string | null;
   reversed_by_id: string | null;
+  created_at: string;
 }
 
 export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
@@ -114,7 +119,7 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
       const rows = await db.getAll<LedgerSqlRow>(
         `SELECT e.date, e.type, e.account, e.to_account, m.name AS member_name, p.name AS period_name, e.week,
                 e.direction, e.amount, e.note, e.reverses_entry_id, e.correction_reason,
-                r.correction_reason AS reversed_reason, r.id AS reversed_by_id
+                r.correction_reason AS reversed_reason, r.id AS reversed_by_id, e.created_at
            FROM ledger_entries e
            JOIN periods p ON p.id = e.period_id
            LEFT JOIN members m ON m.id = e.member_id
@@ -134,6 +139,7 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
         note: r.note,
         status: r.reverses_entry_id !== null ? 'reversal' : r.reversed_by_id !== null ? 'corrected' : 'in_force',
         correctionReason: r.reverses_entry_id !== null ? r.correction_reason : r.reversed_reason,
+        createdAt: r.created_at,
       }));
     },
 
@@ -158,6 +164,7 @@ export function createExportsRepo(db: Db, deps: RepoDeps = defaultDeps) {
               credit: p.credit,
               corrected: p.reversed,
               correctionReason: p.reversalReason,
+              createdAt: p.createdAt,
             });
           }
         }

@@ -6,6 +6,12 @@ describe('glossary (Istilah page)', () => {
     expect(GLOSSARY).toHaveLength(51);
   });
 
+  it('words the Perkiraan kas entry with its formula', () => {
+    expect(GLOSSARY.find((e) => e.term === 'Perkiraan kas')?.meaning).toBe(
+      'Jumlah kas bila semua tunggakan dilunasi dan semua titipan dikembalikan. Rumus: Total kas + tunggakan iuran - titipan anggota.',
+    );
+  });
+
   it('gives every term a non-empty meaning and lists no term twice', () => {
     for (const entry of GLOSSARY) {
       expect(entry.term.trim().length).toBeGreaterThan(0);

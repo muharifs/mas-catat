@@ -403,6 +403,16 @@ export function createLedgerRepo(db: Db, deps: RepoDeps = defaultDeps) {
       return rows.map(toItem);
     },
 
+    /**
+     * The last `limit` entries in the order they were RECORDED, newest first (Home "Terakhir"). Unlike listKas this ignores
+     * the transaction date, so a back-dated entry typed just now is first. rowid is the insert order of an append-only
+     * table, so it is the tie-break and the order itself; created_at is not used because the phone clock can be changed.
+     */
+    async listRecentRecorded(limit: number): Promise<LedgerListItem[]> {
+      const rows = await db.getAll<LedgerRow>(`${ITEM_SELECT} ORDER BY e.rowid DESC LIMIT ?`, [Math.max(0, Math.floor(limit))]);
+      return rows.map(toItem);
+    },
+
     async getEntry(id: string): Promise<LedgerListItem | null> {
       return loadEntry(db, id);
     },

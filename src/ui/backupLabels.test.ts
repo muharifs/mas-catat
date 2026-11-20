@@ -25,6 +25,7 @@ describe('backup labels', () => {
     expect(ONE_PHONE_HINT).toContain('tidak bisa digabung');
     expect(CSV_HINT).toMatch(/bukan cadangan/i);
     expect(CSV_LEDGER_HINT).toContain('Tanpa perubahan kas');
+    expect(CSV_LEDGER_HINT).toContain('Kolom Dicatat di paling kanan');
     expect(CSV_LEDGER_HINT).toContain('pinjaman di Keluar');
     expect(CSV_LEDGER_HINT).toContain('pelunasan di Masuk');
   });
@@ -105,7 +106,9 @@ describe('backup labels', () => {
   });
 
   it('names a safety copy by date and time without a file name', () => {
-    expect(safetyCopyLabel('pengaman-20261106-090507-v4.db')).toBe('Salinan pengaman 6 Nov 2026 pukul 09:05');
+    expect(safetyCopyLabel('pengaman-20261106-090507-v4.db')).toBe('Salinan pengaman 6 Nov 2026 pukul 09.05');
+    expect(safetyCopyLabel('pengaman-20261106-000507-v4.db')).toBe('Salinan pengaman 6 Nov 2026 pukul 00.05');
+    expect(safetyCopyLabel('pengaman-20261106-231507-v4.db')).toBe('Salinan pengaman 6 Nov 2026 pukul 23.15');
     expect(safetyCopyLabel('whatever')).toBe('Salinan pengaman');
   });
 

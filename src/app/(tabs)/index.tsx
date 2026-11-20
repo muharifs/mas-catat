@@ -63,13 +63,15 @@ export default function HomeScreen() {
   const balanceHidden = useBalanceHidden();
 
   const load = useCallback(async () => {
-    const [members, period, periods, kasReport, kasEntries] = await Promise.all([
+    const [members, period, periods, kasReport, kasEntries, lastEntries] = await Promise.all([
       repos.members.list(),
       repos.periods.getActive(),
       repos.periods.list(),
       // Same numbers as the Laporan tab: balances (Tunai, Debit).
       repos.reports.getKasReport(),
       repos.ledger.listKas(),
+      // "Terakhir" follows the order of recording, not the transaction date (Riwayat keeps the date order).
+      repos.ledger.listRecentRecorded(3),
     ]);
     const balances = kasReport.balances;
     const names = new Map(members.map((m) => [m.id, m.name]));
@@ -77,7 +79,7 @@ export default function HomeScreen() {
     const hasEndedPeriod = periods.some((p) => p.status === 'closed');
     // Nothing to remind about while the database holds no data at all.
     const backup = backupReminder(readLastShared(), new Date(), members.length > 0 || kasEntries.length > 0);
-    const common = { members, balances, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, backup };
+    const common = { members, balances, kasEntries, lastEntries, names, periods, hasEndedPeriod, hasOpeningBalance, backup };
     if (!period) {
       return { ...common, period: null, week: null, hostName: null, arrears: null, hostPaid: false, paidPayoutWeeks: new Set<number>(), paidTodayIds: [] as string[], weeks: [], countLines: [] as StoredCountLine[] };
     }
@@ -109,7 +111,7 @@ export default function HomeScreen() {
   if (error) return <ErrorState message={error} onRetry={() => void reload()} />;
   if (!data) return <Loading />;
 
-  const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, kasEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup, countLines } = data;
+  const { period, week, hostName, members, arrears, hostPaid, paidPayoutWeeks, paidTodayIds, balances, kasEntries, lastEntries, names, periods, hasEndedPeriod, hasOpeningBalance, weeks, backup, countLines } = data;
   const memberCount = members.filter((m) => !m.archivedAt).length; // archived members do not count as "has members"
   const checklist = firstRunChecklist({
     memberCount,
@@ -129,7 +131,6 @@ export default function HomeScreen() {
   const showMonth = periods.length > 0 && kasEntries.length > 0;
   const monthOut = showMonth ? summarizeMonth(kasEntries, thisMonth).moneyOut : null;
   const hasAnyPeriod = periods.length > 0;
-  const lastEntries = kasEntries.slice(0, 3);
   const entriesById = new Map(kasEntries.map((e) => [e.id, e]));
   const reminders = homeReminders({
     today,

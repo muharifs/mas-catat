@@ -12,6 +12,7 @@ import { ListRow } from '@/ui/components/ListRow';
 import { Notice } from '@/ui/components/Notice';
 import { SectionHeader } from '@/ui/components/SectionHeader';
 import {
+  BACKUP_UNHEALTHY_TEXT,
   BACKUP_WARNING,
   CSV_HINT,
   lastSharedText,
@@ -35,6 +36,8 @@ export default function BackupScreen() {
   const [lastShared, setLastShared] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The live data failed its health check when the last backup was made (M2). The backup is still shared: the file may be the only copy.
+  const [unhealthy, setUnhealthy] = useState(false);
   const lock = useRef(false);
 
   useFocusEffect(
@@ -49,6 +52,7 @@ export default function BackupScreen() {
     lock.current = true;
     setBusy(label);
     setError(null);
+    setUnhealthy(false);
     try {
       await job();
     } catch (e) {
@@ -72,7 +76,8 @@ export default function BackupScreen() {
 
   async function shareBackup() {
     // Bytes are taken inside runExclusive (no transaction can run meanwhile); the share sheet itself does not hold the lock.
-    const { bytes, userVersion } = await createBackupSnapshot(bridge, db);
+    const { bytes, userVersion, health } = await createBackupSnapshot(bridge, db);
+    setUnhealthy(!health.ok);
     await shareBackupFile(backupFileName(new Date(), userVersion), bytes);
     // The share sheet closed. We cannot know whether it was sent, so this is "last shared", not "last saved".
     writeLastShared(new Date().toISOString());
@@ -90,10 +95,11 @@ export default function BackupScreen() {
   return (
     <View style={styles.screen}>
       {/* Progress and error live ABOVE the scroll area, so they stay visible when a button far down was tapped. */}
-      {busy || error ? (
+      {busy || error || unhealthy ? (
         <View style={styles.status}>
           {busy ? <Notice tone="info">{busy}</Notice> : null}
           {error ? <Notice tone="danger">{error}</Notice> : null}
+          {unhealthy ? <Notice tone="danger">{BACKUP_UNHEALTHY_TEXT}</Notice> : null}
         </View>
       ) : null}
       <ScrollView contentContainerStyle={styles.container}>

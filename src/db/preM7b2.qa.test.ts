@@ -455,13 +455,13 @@ describe('Restore classification: state that writes no ledger entry or payment (
     expect(await phraseFor(live, backup)).toBeNull();
   });
 
-  it.failing('a member added after the backup is lost by restoring it, but no PULIHKAN is asked', async () => {
+  it('a member added after the backup is lost by restoring it, but no PULIHKAN is asked', async () => {
     const { live, repos, backup } = await liveAndBackup();
     await repos.members.create('Citra'); // no ledger entry, no payment
     expect(await phraseFor(live, backup)).toBe(PHRASE_RESTORE);
   });
 
-  it.failing('a member renamed after the backup is reverted by the restore without PULIHKAN', async () => {
+  it('a member renamed after the backup is reverted by the restore without PULIHKAN', async () => {
     const { live, repos, a, backup } = await liveAndBackup();
     await repos.members.rename(a, 'Ani Wulandari');
     expect(await phraseFor(live, backup)).toBe(PHRASE_RESTORE);

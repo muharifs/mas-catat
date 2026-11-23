@@ -17,6 +17,7 @@ import {
   safetyCopyLabel,
   safetyOfferText,
   summaryRows,
+  MARKER_NOT_CLEARED_TEXT,
   ONE_PHONE_HINT,
 } from '@/ui/backupLabels';
 import { Button } from '@/ui/components/Button';
@@ -145,14 +146,14 @@ export default function RestoreScreen() {
       setPrepared(null);
       reloadEverything();
       if (outcome.outcome === 'rolled_back') {
-        showMessage('Data lama dikembalikan', ROLLED_BACK_TEXT);
+        showMessage('Data lama dikembalikan', outcome.markerCleared ? ROLLED_BACK_TEXT : `${ROLLED_BACK_TEXT} ${MARKER_NOT_CLEARED_TEXT}`);
         return;
       }
       toast(current.source === 'empty' ? restoreTexts.resetDone : restoreTexts.done);
       // Offer the safety copy to the share sheet. The restore is already finished, so this blocks nothing.
       showDialog({
         title: 'Salinan pengaman',
-        message: safetyOfferText(outcome),
+        message: outcome.markerCleared ? safetyOfferText(outcome) : `${safetyOfferText(outcome)}\n\n${MARKER_NOT_CLEARED_TEXT}`,
         buttons: [
           { label: 'Nanti', role: 'cancel' },
           {
@@ -222,7 +223,9 @@ export default function RestoreScreen() {
     const phrase = requiredPhrase(prepared.source, prepared.classification);
     const isReset = prepared.source === 'empty';
     const ready = phrase === null || phraseMatches(typed, phrase);
-    const lossy = prepared.classification.kind === 'older' || prepared.classification.kind === 'diverged';
+    const { kind, stateChanged } = prepared.classification;
+    // 'changed' and any state difference go back too (meeting, period, member), so they are as serious as lost records.
+    const lossy = kind === 'older' || kind === 'diverged' || kind === 'changed' || stateChanged > 0;
     return (
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Stack.Screen options={{ headerBackVisible: false }} />

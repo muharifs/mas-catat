@@ -407,7 +407,7 @@ describe('prepareRestore: classification against live', () => {
   it('same', async () => {
     const live = await seededEnv();
     const prepared = await prepareRestore(live.bridge, live.db, await fileInput(live));
-    expect(prepared.classification).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
     await discardRestore(prepared);
   });
 
@@ -417,7 +417,7 @@ describe('prepareRestore: classification against live', () => {
     await addEntry(live.db, 'late1');
     await addEntry(live.db, 'late2');
     const prepared = await prepareRestore(live.bridge, live.db, { kind: 'file', bytes });
-    expect(prepared.classification).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
     await discardRestore(prepared);
   });
 
@@ -426,7 +426,7 @@ describe('prepareRestore: classification against live', () => {
     const other = await cloneEnv(live);
     await addEntry(other.db, 'new1');
     const prepared = await prepareRestore(live.bridge, live.db, await fileInput(other));
-    expect(prepared.classification).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
     await discardRestore(prepared);
   });
 
@@ -436,7 +436,7 @@ describe('prepareRestore: classification against live', () => {
     await addEntry(other.db, 'phone2');
     await addEntry(live.db, 'phone1');
     const prepared = await prepareRestore(live.bridge, live.db, await fileInput(other));
-    expect(prepared.classification).toEqual({ kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
     await discardRestore(prepared);
   });
 
@@ -831,7 +831,8 @@ describe('Mulai dari nol', () => {
     const prepared = await prepareRestore(live.bridge, live.db, { kind: 'empty' });
     expect(prepared.source).toBe('empty');
     expect(prepared.classification.kind).toBe('older');
-    expect(prepared.classification.lost).toBe(before.ledgerCount + before.paymentCount);
+    // members (M:) and periods (T:) are records too since M7b, so "Mulai dari nol" loses them as well
+    expect(prepared.classification.lost).toBe(before.ledgerCount + before.paymentCount + before.memberCount + before.periodCount);
     expect(prepared.candidate.ledgerCount).toBe(0);
 
     const outcome = await commitRestore(live.bridge, live.db, prepared, store, NOW);

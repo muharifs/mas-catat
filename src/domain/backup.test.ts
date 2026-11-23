@@ -12,13 +12,16 @@ import {
   isShareCacheFileName,
   MAX_BACKUP_BYTES,
   missingTables,
+  parseRestoreMarker,
   parseSafetyName,
   phraseMatches,
   PHRASE_RESET,
   PHRASE_RESTORE,
   requiredPhrase,
+  serializeRestoreMarker,
   safetyFileName,
   safetyToPrune,
+  type RestoreMarker,
   type SchemaObject,
 } from './backup';
 
@@ -154,7 +157,7 @@ describe('classifyRestore', () => {
   const set = (...ids: string[]) => new Set(ids);
 
   it('same', () => {
-    expect(classifyRestore(set('L:1', 'P:1'), set('L:1', 'P:1'))).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(classifyRestore(set('L:1', 'P:1'), set('L:1', 'P:1'))).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 
   it('both empty is the same', () => {
@@ -162,39 +165,39 @@ describe('classifyRestore', () => {
   });
 
   it('older: the file is a subset of live and the extra live entries are lost', () => {
-    expect(classifyRestore(set('L:1'), set('L:1', 'L:2', 'P:1'))).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(classifyRestore(set('L:1'), set('L:1', 'L:2', 'P:1'))).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 
   it('an empty file against live data is older', () => {
-    expect(classifyRestore(set(), set('L:1'))).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(classifyRestore(set(), set('L:1'))).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 
   it('newer: live is a subset of the file', () => {
-    expect(classifyRestore(set('L:1', 'L:2'), set('L:1'))).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(classifyRestore(set('L:1', 'L:2'), set('L:1'))).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 
   it('diverged: each side has records the other lacks', () => {
-    expect(classifyRestore(set('L:1', 'L:3'), set('L:1', 'L:2'))).toEqual({ kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(classifyRestore(set('L:1', 'L:3'), set('L:1', 'L:2'))).toEqual({ kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 
   it('cash count rows are counted per batch, apart from the records', () => {
     const rows = (batch: string, ...ids: string[]) => ids.map((id) => cashCountRecordId(batch, id));
     // one count with Tunai + Debit = two rows = ONE lost count, and no lost "catatan"
     expect(classifyRestore(set('L:1'), set('L:1', ...rows('b1', 'r1', 'r2')))).toEqual({
-      kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0,
+      kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0, stateChanged: 0,
     });
     expect(classifyRestore(set('L:1', ...rows('b1', 'r1', 'r2'), ...rows('b2', 'r3')), set('L:1'))).toEqual({
-      kind: 'newer', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 2,
+      kind: 'newer', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 2, stateChanged: 0,
     });
     expect(classifyRestore(set(...rows('b1', 'r1', 'r2')), set(...rows('b1', 'r1', 'r2')))).toMatchObject({ kind: 'same' });
   });
 
   it('records and cash counts are told apart, and each side adds to the kind', () => {
     expect(classifyRestore(set('L:1', ...['C:b9|r9']), set('L:1', 'L:2', 'C:b1|r1', 'C:b1|r2'))).toEqual({
-      kind: 'diverged', lost: 1, added: 0, cashCountsLost: 1, cashCountsAdded: 1,
+      kind: 'diverged', lost: 1, added: 0, cashCountsLost: 1, cashCountsAdded: 1, stateChanged: 0,
     });
     // only counts differ on both sides: still diverged, no record counted
-    expect(classifyRestore(set('C:b9|r9'), set('C:b1|r1'))).toEqual({ kind: 'diverged', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 1 });
+    expect(classifyRestore(set('C:b9|r9'), set('C:b1|r1'))).toEqual({ kind: 'diverged', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 1, stateChanged: 0 });
   });
 
   it('a ledger id and a payment id with the same text do not collide', () => {
@@ -204,18 +207,18 @@ describe('classifyRestore', () => {
 
 describe('typed confirmation', () => {
   it('older and diverged need PULIHKAN', () => {
-    expect(requiredPhrase('file', { kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESTORE);
-    expect(requiredPhrase('file', { kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESTORE);
+    expect(requiredPhrase('file', { kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBe(PHRASE_RESTORE);
+    expect(requiredPhrase('file', { kind: 'diverged', lost: 1, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBe(PHRASE_RESTORE);
   });
 
   it('same and newer need only the two dialogs', () => {
-    expect(requiredPhrase('file', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBeNull();
-    expect(requiredPhrase('file', { kind: 'newer', lost: 0, added: 3, cashCountsLost: 0, cashCountsAdded: 0 })).toBeNull();
+    expect(requiredPhrase('file', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBeNull();
+    expect(requiredPhrase('file', { kind: 'newer', lost: 0, added: 3, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBeNull();
   });
 
   it('starting from zero always needs HAPUS SEMUA', () => {
-    expect(requiredPhrase('empty', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESET);
-    expect(requiredPhrase('empty', { kind: 'older', lost: 9, added: 0, cashCountsLost: 0, cashCountsAdded: 0 })).toBe(PHRASE_RESET);
+    expect(requiredPhrase('empty', { kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBe(PHRASE_RESET);
+    expect(requiredPhrase('empty', { kind: 'older', lost: 9, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 })).toBe(PHRASE_RESET);
   });
 
   it('matches the exact word (surrounding spaces are fine, other case is not)', () => {
@@ -311,3 +314,83 @@ describe('backupReminder', () => {
     expect(backupReminder(daysAgo(-2), now, true)).toEqual({ due: false, daysSince: 0 });
   });
 });
+
+describe('classifyRestore with state fingerprints (M7b F3 a)', () => {
+  const ids = (...x: string[]) => new Set(x);
+  const state = (...pairs: [string, string][]) => new Map(pairs);
+
+  it('equal ids and equal state is same, stateChanged 0', () => {
+    const c = classifyRestore(ids('L:1', 'M:1'), ids('L:1', 'M:1'), state(['M:1', '["Ani",0]']), state(['M:1', '["Ani",0]']));
+    expect(c).toEqual({ kind: 'same', lost: 0, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
+  });
+
+  it('equal ids but a value that differs on both sides is "changed", counted per key, and needs PULIHKAN', () => {
+    const c = classifyRestore(
+      ids('M:1', 'T:1'),
+      ids('M:1', 'T:1'),
+      state(['M:1', '["Ani",0]'], ['T:1', '["active","2026-01-06",null,"P"]']),
+      state(['M:1', '["Ani B",0]'], ['T:1', '["closed","2026-01-06","2026-02-01","P"]']),
+    );
+    expect(c).toMatchObject({ kind: 'changed', stateChanged: 2 });
+    expect(requiredPhrase('file', c)).toBe(PHRASE_RESTORE);
+  });
+
+  it('keys that exist on one side only are not counted as changed', () => {
+    const c = classifyRestore(ids('M:1'), ids('M:1', 'M:2'), state(['M:1', 'a']), state(['M:1', 'a'], ['M:2', 'b']));
+    expect(c).toMatchObject({ kind: 'older', lost: 1, stateChanged: 0 });
+  });
+
+  it('a value difference keeps the id-based kind when ids differ, and still asks PULIHKAN (also for newer)', () => {
+    const c = classifyRestore(ids('L:1', 'L:2'), ids('L:1'), state(['W:p|1', 'x']), state(['W:p|1', 'y']));
+    expect(c).toMatchObject({ kind: 'newer', added: 1, stateChanged: 1 });
+    expect(requiredPhrase('file', c)).toBe(PHRASE_RESTORE);
+  });
+
+  it('values are compared as plain strings (no parsing)', () => {
+    const c = classifyRestore(ids('M:1'), ids('M:1'), state(['M:1', '["Ani",0]']), state(['M:1', '["Ani", 0]']));
+    expect(c.stateChanged).toBe(1);
+  });
+
+  it('without state maps (old callers) nothing changes', () => {
+    expect(classifyRestore(ids('L:1'), ids('L:1')).kind).toBe('same');
+  });
+});
+
+describe('restore marker (L6)', () => {
+  const marker: RestoreMarker = {
+    v: 1,
+    kind: 'restore',
+    stage: 'swapping',
+    safetyName: 'pengaman-20261110-101500-v7.db',
+    startedAt: '2026-11-10T10:15:00.000Z',
+    before: { userVersion: 7, ledgerCount: 12, lastLedgerId: 'led9' },
+    after: { userVersion: 7, ledgerCount: 0, lastLedgerId: null, tableCounts: { members: 0, ledger_entries: 0 } },
+  };
+
+  it('round trips', () => {
+    expect(parseRestoreMarker(serializeRestoreMarker(marker))).toEqual(marker);
+    expect(parseRestoreMarker(serializeRestoreMarker({ ...marker, kind: 'reset', stage: 'recovering' }))).toMatchObject({ kind: 'reset', stage: 'recovering' });
+  });
+
+  it('holds no names and no money: only counts, ids and the safety file name', () => {
+    expect(Object.keys(JSON.parse(serializeRestoreMarker(marker)) as object).sort()).toEqual(['after', 'before', 'kind', 'safetyName', 'stage', 'startedAt', 'v']);
+  });
+
+  it.each([
+    ['not json', '{oops'],
+    ['an array', '[]'],
+    ['wrong version', JSON.stringify({ ...marker, v: 2 })],
+    ['unknown kind', JSON.stringify({ ...marker, kind: 'other' })],
+    ['unknown stage', JSON.stringify({ ...marker, stage: 'done' })],
+    ['a safety name that is not valid', JSON.stringify({ ...marker, safetyName: '../../mascatat.db' })],
+    ['a marker name as safety name', JSON.stringify({ ...marker, safetyName: 'restore-berjalan.json' })],
+    ['a bad date', JSON.stringify({ ...marker, startedAt: 'yesterday' })],
+    ['a negative count', JSON.stringify({ ...marker, before: { ...marker.before, ledgerCount: -1 } })],
+    ['a fractional count', JSON.stringify({ ...marker, before: { ...marker.before, ledgerCount: 1.5 } })],
+    ['a missing after', JSON.stringify({ ...marker, after: undefined })],
+    ['bad table counts', JSON.stringify({ ...marker, after: { ...marker.after, tableCounts: { members: 'x' } } })],
+  ])('rejects %s', (_label, text) => {
+    expect(parseRestoreMarker(text)).toBeNull();
+  });
+});
+

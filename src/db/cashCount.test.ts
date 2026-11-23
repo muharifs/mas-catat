@@ -237,7 +237,7 @@ describe('backup and restore with cash counts', () => {
     expect([...(await loadRecordIds(s.env.db))].filter((id) => id.startsWith('C:'))).toHaveLength(2);
     const prepared = await prepareRestore(s.env.bridge, s.env.db, { kind: 'file', bytes: before });
     // two rows (Tunai + Debit) of ONE count: one hitungan, never 2 "catatan"
-    expect(prepared.classification).toEqual({ kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'older', lost: 0, added: 0, cashCountsLost: 1, cashCountsAdded: 0, stateChanged: 0 });
     expect(prepared.live.cashCountBatches).toBe(1);
     expect(prepared.live.tableCounts.cash_counts).toBe(2);
     expect(prepared.candidate.cashCountBatches).toBe(0);

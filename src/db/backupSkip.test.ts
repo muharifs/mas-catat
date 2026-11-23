@@ -96,7 +96,7 @@ describe('restoring a backup from before migration 0006', () => {
 
     // restoring the older file onto the live phone loses the skip: classified "older", not "same"
     const prepared = await prepareRestore(a.env.bridge, a.env.db, { kind: 'file', bytes: before });
-    expect(prepared.classification).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(prepared.classification).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
     await discardRestore(prepared);
   });
 });
@@ -142,12 +142,12 @@ describe('restoring a latest-version backup with skips', () => {
       return c;
     };
     // live now holds the skip and its undo
-    expect(await kind(preSkip, a.env)).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
-    expect(await kind(skipped, a.env)).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(await kind(preSkip, a.env)).toEqual({ kind: 'older', lost: 2, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
+    expect(await kind(skipped, a.env)).toEqual({ kind: 'older', lost: 1, added: 0, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
 
     // the other way round: a phone at the pre-skip state is offered the later file
     const phone = await createSqlJsEnv({ initialBytes: preSkip, migrated: false });
-    expect(await kind(skipped, phone)).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0 });
+    expect(await kind(skipped, phone)).toEqual({ kind: 'newer', lost: 0, added: 1, cashCountsLost: 0, cashCountsAdded: 0, stateChanged: 0 });
   });
 });
 
